@@ -1,14 +1,15 @@
 use geng::Camera2d;
-use graphs::{Graph, VertexId};
 
 use super::*;
 
 mod draw;
 
+type Graph = graphs::Graph<Point, Arrow>;
+
 pub struct GameState {
     geng: Geng,
     camera: Camera2d,
-    graph: Graph<Point, Arrow>,
+    graph: Graph,
 }
 
 impl GameState {
@@ -35,7 +36,7 @@ impl GameState {
                     point(vec2(-10.0, 0.0), Color::WHITE),
                     point(vec2(0.0, 0.0), Color::GREEN),
                     point(vec2(10.0, 0.0), Color::WHITE),
-                    point(vec2(0.0, 5.0), Color::BLUE),
+                    point(vec2(0.0, 10.0), Color::BLUE),
                 ];
 
                 let mut connect = |from: usize, to: usize, color: Color<f32>| {
@@ -74,14 +75,14 @@ struct Point {
 
 #[derive(Debug, Clone, PartialEq)]
 struct Arrow {
-    from: VertexId,
-    to: VertexId,
+    from: graphs::VertexId,
+    to: graphs::VertexId,
     color: Color<f32>,
     width: f32,
 }
 
 impl graphs::GraphEdge for Arrow {
-    fn end_points(&self) -> [&VertexId; 2] {
+    fn end_points(&self) -> [&graphs::VertexId; 2] {
         [&self.from, &self.to]
     }
 }
