@@ -4,6 +4,9 @@ const ARROW_HEAD_WIDTH: f32 = 0.5;
 const ARROW_HEAD_LENGTH: f32 = 2.0;
 const ARROW_LENGTH_MAX_FRAC: f32 = 0.5;
 
+const ARROW_DASHED_DASH_LENGTH: f32 = 0.7;
+const ARROW_DASHED_SPACE_LENGTH: f32 = 0.5;
+
 impl GameState {
     pub fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer) {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
@@ -95,16 +98,49 @@ impl GameState {
                     * scale;
                 let head_width = normal * ARROW_HEAD_WIDTH * scale;
                 let head = end - head_length;
+
                 // Line body
-                draw.draw(
-                    framebuffer,
-                    &self.camera,
-                    &[start, end],
-                    arrow.color,
-                    ugli::DrawMode::LineStrip {
-                        line_width: arrow.width,
-                    },
-                );
+                match arrow.connection {
+                    ArrowConnection::Solid => {
+                        draw.draw(
+                            framebuffer,
+                            &self.camera,
+                            &[start, head],
+                            arrow.color,
+                            ugli::DrawMode::LineStrip {
+                                line_width: arrow.width,
+                            },
+                        );
+                    }
+                    ArrowConnection::Dashed => {
+                        let dash_length = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_SPACE_LENGTH;
+                        let delta_len = (head - start).len();
+                        let dashes = (delta_len / dash_length).floor() as usize;
+                        let mut vertices = Vec::with_capacity(dashes * 2);
+                        for i in 0..(dashes - 1) {
+                            let dash_start =
+                                start + direction_norm * i as f32 / dashes as f32 * delta_len;
+                            vertices.push(dash_start);
+                            vertices.push(dash_start + direction_norm * ARROW_DASHED_DASH_LENGTH);
+                        }
+                        vertices.push(
+                            start
+                                + direction_norm * (dashes - 1) as f32 / dashes as f32 * delta_len,
+                        );
+                        vertices.push(head);
+
+                        draw.draw(
+                            framebuffer,
+                            &self.camera,
+                            &vertices,
+                            arrow.color,
+                            ugli::DrawMode::Lines {
+                                line_width: arrow.width,
+                            },
+                        );
+                    }
+                }
+
                 // Line head
                 draw.draw(
                     framebuffer,

@@ -39,20 +39,22 @@ impl GameState {
                     point(vec2(0.0, 10.0), Color::BLUE),
                 ];
 
-                let mut connect = |from: usize, to: usize, color: Color<f32>| {
-                    graph.add_edge(Arrow {
-                        from: vertices[from],
-                        to: vertices[to],
-                        width: 1.0,
-                        color,
-                    })
-                };
+                let mut connect =
+                    |from: usize, to: usize, color: Color<f32>, connection: ArrowConnection| {
+                        graph.add_edge(Arrow {
+                            from: vertices[from],
+                            to: vertices[to],
+                            width: 1.0,
+                            color,
+                            connection,
+                        })
+                    };
 
-                connect(1, 0, Color::GREEN);
-                connect(1, 2, Color::GREEN);
-                connect(3, 0, Color::BLUE);
-                connect(3, 2, Color::BLUE);
-                connect(3, 1, Color::RED);
+                connect(1, 0, Color::GREEN, ArrowConnection::Solid);
+                connect(1, 2, Color::GREEN, ArrowConnection::Solid);
+                connect(3, 0, Color::BLUE, ArrowConnection::Solid);
+                connect(3, 2, Color::BLUE, ArrowConnection::Solid);
+                connect(3, 1, Color::RED, ArrowConnection::Dashed);
 
                 graph
             },
@@ -79,10 +81,17 @@ struct Arrow {
     to: graphs::VertexId,
     color: Color<f32>,
     width: f32,
+    connection: ArrowConnection,
 }
 
 impl graphs::GraphEdge for Arrow {
     fn end_points(&self) -> [&graphs::VertexId; 2] {
         [&self.from, &self.to]
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ArrowConnection {
+    Solid,
+    Dashed,
 }
