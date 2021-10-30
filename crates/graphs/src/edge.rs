@@ -38,10 +38,16 @@ impl<E: GraphEdge> Edges<E> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Edge {
     pub v1: VertexId,
     pub v2: VertexId,
+}
+
+impl Edge {
+    pub fn new(v1: VertexId, v2: VertexId) -> Self {
+        Self { v1, v2 }
+    }
 }
 
 impl GraphEdge for Edge {
@@ -50,10 +56,16 @@ impl GraphEdge for Edge {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct DirectedEdge {
     pub from: VertexId,
     pub to: VertexId,
+}
+
+impl DirectedEdge {
+    pub fn new(from: VertexId, to: VertexId) -> Self {
+        Self { from, to }
+    }
 }
 
 impl GraphEdge for DirectedEdge {
