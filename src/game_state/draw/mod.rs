@@ -1,5 +1,9 @@
 use super::*;
 
+mod segment;
+
+use segment::*;
+
 const ARROW_HEAD_WIDTH: f32 = 0.5;
 const ARROW_HEAD_LENGTH: f32 = 2.0;
 const ARROW_LENGTH_MAX_FRAC: f32 = 0.5;
@@ -7,10 +11,25 @@ const ARROW_LENGTH_MAX_FRAC: f32 = 0.5;
 const ARROW_DASHED_DASH_LENGTH: f32 = 0.7;
 const ARROW_DASHED_SPACE_LENGTH: f32 = 0.5;
 
+const SELECTION_COLOR: Color<f32> = Color {
+    r: 0.0,
+    g: 0.0,
+    b: 0.5,
+    a: 0.5,
+};
+const SELECTED_RADIUS: f32 = 0.5;
+const SELECTED_COLOR: Color<f32> = Color {
+    r: 0.7,
+    g: 0.7,
+    b: 0.7,
+    a: 0.5,
+};
+
 impl GameState {
     pub fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer) {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
 
+        // Graph
         self.draw_graph(
             framebuffer,
             &self.graph,
@@ -20,6 +39,58 @@ impl GameState {
                 scale: vec2(1.0, 1.0),
             },
         );
+
+        // Dragging
+        if let Some(dragging) = &self.dragging {
+            let world_pos = self.camera.screen_to_world(
+                self.framebuffer_size,
+                self.geng.window().mouse_pos().map(|x| x as f32),
+            );
+            self.geng.draw_2d().quad(
+                framebuffer,
+                &self.camera,
+                AABB::from_corners(dragging.world_start_pos, world_pos),
+                SELECTION_COLOR,
+            );
+        }
+
+        // Selection
+        for vertex in self
+            .selection
+            .vertices
+            .iter()
+            .filter_map(|vertex| self.graph.vertices.get(vertex))
+        {
+            self.geng.draw_2d().circle(
+                framebuffer,
+                &self.camera,
+                vertex.position,
+                vertex.radius + SELECTED_RADIUS,
+                SELECTED_COLOR,
+            )
+        }
+        for (edge, from, to) in self.selection.edges.iter().filter_map(|edge| {
+            self.graph.edges.get(edge).and_then(|arrow| {
+                self.graph.vertices.get(&arrow.from).and_then(|from| {
+                    self.graph
+                        .vertices
+                        .get(&arrow.to)
+                        .map(|to| (arrow, from, to))
+                })
+            })
+        }) {
+            draw_segment(
+                self.geng.draw_2d(),
+                framebuffer,
+                &self.camera,
+                Segment {
+                    start: from.position,
+                    end: to.position,
+                    width: edge.width + SELECTED_RADIUS,
+                },
+                SELECTED_COLOR,
+            );
+        }
     }
 
     fn draw_graph(
@@ -78,7 +149,7 @@ impl GameState {
         let scale_min = scale.x.min(scale.y);
 
         // Edges
-        for arrow in graph.edges.iter() {
+        for (_, arrow) in graph.edges.iter() {
             if let Some((from, to)) = self
                 .graph
                 .vertices
@@ -102,41 +173,50 @@ impl GameState {
                 // Line body
                 match arrow.connection {
                     ArrowConnection::Solid => {
-                        draw.draw(
+                        draw_segment(
+                            draw,
                             framebuffer,
                             &self.camera,
-                            &[start, head],
-                            arrow.color,
-                            ugli::DrawMode::LineStrip {
-                                line_width: arrow.width,
+                            Segment {
+                                start,
+                                end: head,
+                                width: arrow.width,
                             },
+                            arrow.color,
                         );
                     }
                     ArrowConnection::Dashed => {
                         let dash_length = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_SPACE_LENGTH;
                         let delta_len = (head - start).len();
                         let dashes = (delta_len / dash_length).floor() as usize;
-                        let mut vertices = Vec::with_capacity(dashes * 2);
                         for i in 0..(dashes - 1) {
                             let dash_start =
                                 start + direction_norm * i as f32 / dashes as f32 * delta_len;
-                            vertices.push(dash_start);
-                            vertices.push(dash_start + direction_norm * ARROW_DASHED_DASH_LENGTH);
+                            draw_segment(
+                                draw,
+                                framebuffer,
+                                &self.camera,
+                                Segment {
+                                    start: dash_start,
+                                    end: dash_start + direction_norm * ARROW_DASHED_DASH_LENGTH,
+                                    width: arrow.width,
+                                },
+                                arrow.color,
+                            );
                         }
-                        vertices.push(
-                            start
-                                + direction_norm * (dashes - 1) as f32 / dashes as f32 * delta_len,
-                        );
-                        vertices.push(head);
 
-                        draw.draw(
+                        draw_segment(
+                            draw,
                             framebuffer,
                             &self.camera,
-                            &vertices,
-                            arrow.color,
-                            ugli::DrawMode::Lines {
-                                line_width: arrow.width,
+                            Segment {
+                                start: start
+                                    + direction_norm * (dashes - 1) as f32 / dashes as f32
+                                        * delta_len,
+                                end: head,
+                                width: arrow.width,
                             },
+                            arrow.color,
                         );
                     }
                 }
@@ -165,6 +245,22 @@ impl GameState {
             );
         }
     }
+}
+
+fn draw_segment(
+    draw_2d: &Rc<geng::Draw2D>,
+    framebuffer: &mut ugli::Framebuffer,
+    camera: &Camera2d,
+    segment: Segment,
+    color: Color<f32>,
+) {
+    draw_2d.draw(
+        framebuffer,
+        camera,
+        &segment.polygon(),
+        color,
+        ugli::DrawMode::TriangleFan,
+    );
 }
 
 enum GraphRender {

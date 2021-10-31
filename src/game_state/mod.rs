@@ -1,21 +1,33 @@
 use geng::Camera2d;
 
+use graphs::{EdgeId, VertexId};
+
 use super::*;
 
 mod draw;
+mod graph_types;
+mod handle_event;
+mod selection;
 
-type Graph = graphs::Graph<Point, Arrow>;
+use graph_types::*;
+use selection::*;
 
 pub struct GameState {
     geng: Geng,
     camera: Camera2d,
+    framebuffer_size: Vec2<f32>,
     graph: Graph,
+    dragging: Option<Dragging>,
+    selection: Selection,
 }
 
 impl GameState {
     pub fn new(geng: &Geng) -> Self {
         Self {
             geng: geng.clone(),
+            dragging: None,
+            framebuffer_size: vec2(1.0, 1.0),
+            selection: Selection::new(),
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
@@ -44,7 +56,7 @@ impl GameState {
                         graph.add_edge(Arrow {
                             from: vertices[from],
                             to: vertices[to],
-                            width: 1.0,
+                            width: 0.2,
                             color,
                             connection,
                         })
@@ -64,34 +76,17 @@ impl GameState {
 
 impl geng::State for GameState {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
+        self.framebuffer_size = framebuffer.size().map(|x| x as f32);
         self.draw_impl(framebuffer);
     }
-}
 
-#[derive(Debug, Clone)]
-struct Point {
-    position: Vec2<f32>,
-    radius: f32,
-    color: Color<f32>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct Arrow {
-    from: graphs::VertexId,
-    to: graphs::VertexId,
-    color: Color<f32>,
-    width: f32,
-    connection: ArrowConnection,
-}
-
-impl graphs::GraphEdge for Arrow {
-    fn end_points(&self) -> [&graphs::VertexId; 2] {
-        [&self.from, &self.to]
+    fn handle_event(&mut self, event: geng::Event) {
+        self.handle_event_impl(event);
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum ArrowConnection {
-    Solid,
-    Dashed,
+struct Dragging {
+    mouse_start_pos: Vec2<f64>,
+    world_start_pos: Vec2<f32>,
+    mouse_button: geng::MouseButton,
 }

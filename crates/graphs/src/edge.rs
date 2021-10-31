@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::*;
 
 pub trait GraphEdge: PartialEq {
@@ -9,32 +11,54 @@ pub trait GraphEdge: PartialEq {
     }
 }
 
-pub struct Edges<E: GraphEdge>(Vec<E>);
+pub struct Edges<E: GraphEdge> {
+    edges: HashMap<EdgeId, E>,
+    next_id: EdgeId,
+}
+
+#[derive(Hash, PartialEq, Eq, Debug, Clone, Copy)]
+pub struct EdgeId(u64);
 
 impl<E: GraphEdge> Edges<E> {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self {
+            edges: HashMap::new(),
+            next_id: EdgeId(0),
+        }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &E> {
-        self.0.iter()
+    pub(crate) fn new_edge(&mut self, edge: E) -> EdgeId {
+        let id = self.next_id;
+        self.next_id.0 += 1;
+        assert!(
+            self.edges.insert(id, edge).is_none(),
+            "Failed to generate new edge"
+        );
+        id
     }
 
-    pub fn remove(&mut self, edge: &E) -> Option<E> {
-        self.0
-            .iter()
-            .enumerate()
-            .find(|&(_, other)| *other == *edge)
-            .map(|(id, _)| id)
-            .map(|id| self.0.remove(id))
+    pub fn iter(&self) -> impl Iterator<Item = (&EdgeId, &E)> {
+        self.edges.iter()
     }
 
-    pub fn retain(&mut self, f: impl Fn(&E) -> bool) {
-        self.0.retain(f);
+    pub fn remove(&mut self, id: &EdgeId) -> Option<E> {
+        self.edges.remove(id)
     }
 
-    pub(super) fn add(&mut self, edge: E) {
-        self.0.push(edge);
+    pub fn retain(&mut self, f: impl FnMut(&EdgeId, &mut E) -> bool) {
+        self.edges.retain(f);
+    }
+
+    pub fn get(&self, id: &EdgeId) -> Option<&E> {
+        self.edges.get(id)
+    }
+
+    pub fn get_mut(&mut self, id: &EdgeId) -> Option<&mut E> {
+        self.edges.get_mut(id)
+    }
+
+    pub fn contains(&self, id: &EdgeId) -> bool {
+        self.edges.contains_key(id)
     }
 }
 
