@@ -1,3 +1,4 @@
+use force_graph::{ForceBody, ForceEdge, ForceParameters, ForceVertex};
 use geng::Camera2d;
 
 use graphs::{EdgeId, VertexId};
@@ -20,7 +21,7 @@ pub struct GameState {
     geng: Geng,
     camera: Camera2d,
     framebuffer_size: Vec2<f32>,
-    graph: Graph,
+    force_graph: Graph,
     dragging: Option<Dragging>,
     selection: Selection,
     rules: Vec<Rule>,
@@ -60,40 +61,54 @@ impl GameState {
                 rotation: 0.0,
                 fov: 100.0,
             },
-            graph: {
-                let mut graph = Graph::new();
+            force_graph: {
+                let mut graph = Graph::new(ForceParameters::default());
 
-                let mut point = |position: Vec2<f32>, color: Color<f32>| {
-                    graph.new_vertex(Point {
-                        position,
-                        radius: POINT_RADIUS,
-                        color,
+                let mut point = |position: Vec2<f32>, color: Color<f32>, anchor: bool| {
+                    graph.graph.new_vertex(ForceVertex {
+                        is_anchor: anchor,
+                        body: ForceBody {
+                            position,
+                            mass: POINT_MASS,
+                            velocity: Vec2::ZERO,
+                        },
+                        vertex: Point {
+                            radius: POINT_RADIUS,
+                            color,
+                        },
                     })
                 };
 
                 let vertices = vec![
-                    point(vec2(-10.0, 0.0), Color::WHITE),
-                    // point(vec2(0.0, 0.0), Color::GREEN),
-                    point(vec2(10.0, 0.0), Color::WHITE),
-                    // point(vec2(0.0, 10.0), Color::BLUE),
+                    point(vec2(-10.0, 0.0), Color::WHITE, false),
+                    point(vec2(0.0, 0.0), Color::GREEN, true),
+                    point(vec2(10.0, 0.0), Color::WHITE, false),
+                    point(vec2(0.0, 10.0), Color::BLUE, false),
                 ];
 
                 let mut connect =
                     |from: usize, to: usize, color: Color<f32>, connection: ArrowConnection| {
-                        graph.add_edge(Arrow {
-                            from: vertices[from],
-                            to: vertices[to],
-                            width: ARROW_WIDTH,
-                            color,
-                            connection,
+                        graph.graph.new_edge(ForceEdge {
+                            body: ForceBody {
+                                position: vec2(0.0, 0.0),
+                                mass: ARROW_MASS,
+                                velocity: Vec2::ZERO,
+                            },
+                            edge: Arrow {
+                                from: vertices[from],
+                                to: vertices[to],
+                                width: ARROW_WIDTH,
+                                color,
+                                connection,
+                            },
                         })
                     };
 
-                // connect(1, 0, Color::GREEN, ArrowConnection::Solid);
-                // connect(1, 2, Color::GREEN, ArrowConnection::Solid);
-                // connect(3, 0, Color::BLUE, ArrowConnection::Solid);
-                // connect(3, 2, Color::BLUE, ArrowConnection::Solid);
-                // connect(3, 1, Color::RED, ArrowConnection::Dashed);
+                connect(1, 0, Color::GREEN, ArrowConnection::Solid);
+                connect(1, 2, Color::GREEN, ArrowConnection::Solid);
+                connect(3, 0, Color::BLUE, ArrowConnection::Solid);
+                connect(3, 2, Color::BLUE, ArrowConnection::Solid);
+                connect(3, 1, Color::RED, ArrowConnection::Dashed);
 
                 graph
             },
@@ -102,6 +117,11 @@ impl GameState {
 }
 
 impl geng::State for GameState {
+    fn update(&mut self, delta_time: f64) {
+        let delta_time = delta_time as f32;
+        self.force_graph.update(delta_time);
+    }
+
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
         self.draw_impl(framebuffer);

@@ -9,19 +9,25 @@ impl GameState {
             .selection
             .vertices
             .iter()
-            .filter_map(|id| self.graph.vertices.get(id).map(|vertex| (id, vertex)))
+            .filter_map(|id| {
+                self.force_graph
+                    .graph
+                    .vertices
+                    .get(id)
+                    .map(|vertex| (id, &vertex.vertex))
+            })
             .collect();
         let input_edges = self
             .selection
             .edges
             .iter()
-            .filter_map(|id| self.graph.edges.get(id))
+            .filter_map(|id| self.force_graph.graph.edges.get(id).map(|edge| &edge.edge))
             .collect();
 
         // Check & apply the rule
         let rule = &self.rules[rule_index];
         rule.check_constraints(&input_vertices, &input_edges)
-            .map(|vertices| rule.apply(&mut self.graph, vertices))
+            .map(|vertices| rule.apply(&mut self.force_graph, vertices))
             .is_some()
     }
 }
@@ -102,10 +108,17 @@ impl Rule {
         // Apply rule
         // Spawn new vertices
         for _ in 0..self.new_vertices {
-            vertices.push(graph.new_vertex(Point {
-                position: Vec2::ZERO,
-                radius: POINT_RADIUS,
-                color: Color::WHITE,
+            vertices.push(graph.graph.new_vertex(ForceVertex {
+                is_anchor: false,
+                body: ForceBody {
+                    position: Vec2::ZERO,
+                    mass: POINT_MASS,
+                    velocity: Vec2::ZERO,
+                },
+                vertex: Point {
+                    radius: POINT_RADIUS,
+                    color: Color::WHITE,
+                },
             }))
         }
 
@@ -119,7 +132,15 @@ impl Rule {
                 connection: new_edge.connection,
             };
             graph
-                .add_edge(new_edge)
+                .graph
+                .new_edge(ForceEdge {
+                    body: ForceBody {
+                        position: Vec2::ZERO,
+                        mass: ARROW_MASS,
+                        velocity: Vec2::ZERO,
+                    },
+                    edge: new_edge,
+                })
                 .expect("Attempted to connect a non-existent vertex when applying a rule");
         }
     }

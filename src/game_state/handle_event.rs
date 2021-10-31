@@ -51,31 +51,35 @@ impl GameState {
     fn select_point(&mut self, position: Vec2<f32>, options: SelectionOptions) {
         // Vertices
         let selected_vertices = self
+            .force_graph
             .graph
             .vertices
             .iter()
-            .filter(|(_, vertex)| (vertex.position - position).len() <= vertex.radius)
+            .filter(|(_, vertex)| (vertex.body.position - position).len() <= vertex.vertex.radius)
             .map(|(&id, _)| id)
             .collect();
 
         // Edges
         let selected_edges = self
+            .force_graph
             .graph
             .edges
             .iter()
             .filter(|(_, edge)| {
-                self.graph
+                self.force_graph
+                    .graph
                     .vertices
-                    .get(&edge.from)
-                    .map(|vertex| vertex.position)
+                    .get(&edge.edge.from)
+                    .map(|vertex| vertex.body.position)
                     .and_then(|arrow_start| {
-                        self.graph
+                        self.force_graph
+                            .graph
                             .vertices
-                            .get(&edge.from)
-                            .map(|vertex| (arrow_start, vertex.position))
+                            .get(&edge.edge.from)
+                            .map(|vertex| (arrow_start, vertex.body.position))
                     })
                     .map(|(arrow_start, arrow_end)| {
-                        distance_point_segment(position, arrow_start, arrow_end) <= edge.width
+                        distance_point_segment(position, arrow_start, arrow_end) <= edge.edge.width
                     })
                     .unwrap_or(false)
             })
@@ -89,28 +93,34 @@ impl GameState {
     fn select_area(&mut self, area: AABB<f32>, options: SelectionOptions) {
         // Vertices
         let selected_vertices = self
+            .force_graph
             .graph
             .vertices
             .iter()
-            .filter(|(_, vertex)| vertex.distance_to_aabb(&area) <= 0.0)
+            .filter(|(_, vertex)| {
+                vertex.vertex.distance_to_aabb(vertex.body.position, &area) <= 0.0
+            })
             .map(|(&id, _)| id)
             .collect();
 
         // Edges
         let selected_edges = self
+            .force_graph
             .graph
             .edges
             .iter()
             .filter(|(_, edge)| {
-                self.graph
+                self.force_graph
+                    .graph
                     .vertices
-                    .get(&edge.from)
-                    .map(|vertex| vertex.position)
+                    .get(&edge.edge.from)
+                    .map(|vertex| vertex.body.position)
                     .and_then(|arrow_start| {
-                        self.graph
+                        self.force_graph
+                            .graph
                             .vertices
-                            .get(&edge.to)
-                            .map(|vertex| (arrow_start, vertex.position))
+                            .get(&edge.edge.to)
+                            .map(|vertex| (arrow_start, vertex.body.position))
                     })
                     .map(|(arrow_start, arrow_end)| {
                         overlap_aabb_segment(&area, arrow_start, arrow_end)

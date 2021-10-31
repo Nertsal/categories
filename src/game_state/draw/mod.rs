@@ -32,7 +32,7 @@ impl GameState {
         // Graph
         self.draw_graph(
             framebuffer,
-            &self.graph,
+            &self.force_graph,
             vec2(0.0, 0.0),
             None,
             GraphRender::ScaledAligned {
@@ -59,34 +59,38 @@ impl GameState {
             .selection
             .vertices
             .iter()
-            .filter_map(|vertex| self.graph.vertices.get(vertex))
+            .filter_map(|vertex| self.force_graph.graph.vertices.get(vertex))
         {
             self.geng.draw_2d().circle(
                 framebuffer,
                 &self.camera,
-                vertex.position,
-                vertex.radius + SELECTED_RADIUS,
+                vertex.body.position,
+                vertex.vertex.radius + SELECTED_RADIUS,
                 SELECTED_COLOR,
             )
         }
         for (edge, from, to) in self.selection.edges.iter().filter_map(|edge| {
-            self.graph.edges.get(edge).and_then(|arrow| {
-                self.graph.vertices.get(&arrow.from).and_then(|from| {
-                    self.graph
-                        .vertices
-                        .get(&arrow.to)
-                        .map(|to| (arrow, from, to))
-                })
+            self.force_graph.graph.edges.get(edge).and_then(|arrow| {
+                self.force_graph
+                    .graph
+                    .vertices
+                    .get(&arrow.edge.from)
+                    .and_then(|from| {
+                        self.force_graph
+                            .graph
+                            .vertices
+                            .get(&arrow.edge.to)
+                            .map(|to| (arrow, from, to))
+                    })
             })
         }) {
-            draw_segment(
+            draw_chain(
                 self.geng.draw_2d(),
                 framebuffer,
                 &self.camera,
-                Segment {
-                    start: from.position,
-                    end: to.position,
-                    width: edge.width + SELECTED_RADIUS,
+                Chain {
+                    vertices: vec![from.body.position, to.body.position],
+                    width: edge.edge.width + SELECTED_RADIUS,
                 },
                 SELECTED_COLOR,
             );
@@ -106,18 +110,18 @@ impl GameState {
         // Alignment
         let align_offset = align
             .and_then(|align| {
-                let mut points = graph.vertices.iter().map(|(_, point)| point);
+                let mut points = graph.graph.vertices.iter().map(|(_, point)| point);
                 points
                     .next()
                     .map(|head| (head, points))
                     .map(|(head, tail)| {
-                        let mut pos_min = head.position;
-                        let mut pos_max = head.position;
+                        let mut pos_min = head.body.position;
+                        let mut pos_max = head.body.position;
                         for point in tail {
-                            pos_min.x = pos_min.x.min(point.position.x);
-                            pos_min.y = pos_min.y.min(point.position.y);
-                            pos_max.x = pos_max.x.max(point.position.x);
-                            pos_max.y = pos_max.y.max(point.position.y);
+                            pos_min.x = pos_min.x.min(point.body.position.x);
+                            pos_min.y = pos_min.y.min(point.body.position.y);
+                            pos_max.x = pos_max.x.max(point.body.position.x);
+                            pos_max.y = pos_max.y.max(point.body.position.y);
                         }
                         (align, pos_min, pos_max)
                     })
@@ -149,20 +153,28 @@ impl GameState {
         let scale_min = scale.x.min(scale.y);
 
         // Edges
-        for (_, arrow) in graph.edges.iter() {
+        for (_, arrow) in graph.graph.edges.iter() {
             if let Some((from, to)) = self
+                .force_graph
                 .graph
                 .vertices
-                .get(&arrow.from)
-                .and_then(|from| graph.vertices.get(&arrow.to).map(|to| (from, to)))
+                .get(&arrow.edge.from)
+                .and_then(|from| {
+                    graph
+                        .graph
+                        .vertices
+                        .get(&arrow.edge.to)
+                        .map(|to| (from, to))
+                })
             {
-                let to_position = to.position * scale;
-                let from_position = from.position * scale;
+                let to_position = to.body.position * scale;
+                let from_position = from.body.position * scale;
                 let delta = to_position - from_position;
                 let delta_len = delta.len();
                 let direction_norm = delta / delta_len;
-                let start = from_position + direction_norm * from.radius * scale_min + offset;
-                let end = to_position - direction_norm * to.radius * scale_min + offset;
+                let start =
+                    from_position + direction_norm * from.vertex.radius * scale_min + offset;
+                let end = to_position - direction_norm * to.vertex.radius * scale_min + offset;
                 let normal = direction_norm.rotate_90();
                 let head_length = direction_norm
                     * ARROW_HEAD_LENGTH.min((end - start).len() * ARROW_LENGTH_MAX_FRAC)
@@ -171,52 +183,29 @@ impl GameState {
                 let head = end - head_length;
 
                 // Line body
-                match arrow.connection {
+                match arrow.edge.connection {
                     ArrowConnection::Solid => {
-                        draw_segment(
+                        draw_chain(
                             draw,
                             framebuffer,
                             &self.camera,
-                            Segment {
-                                start,
-                                end: head,
-                                width: arrow.width,
+                            Chain {
+                                vertices: vec![start, arrow.body.position, head],
+                                width: arrow.edge.width,
                             },
-                            arrow.color,
+                            arrow.edge.color,
                         );
                     }
                     ArrowConnection::Dashed => {
-                        let dash_length = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_SPACE_LENGTH;
-                        let delta_len = (head - start).len();
-                        let dashes = (delta_len / dash_length).floor() as usize;
-                        for i in 0..(dashes - 1) {
-                            let dash_start =
-                                start + direction_norm * i as f32 / dashes as f32 * delta_len;
-                            draw_segment(
-                                draw,
-                                framebuffer,
-                                &self.camera,
-                                Segment {
-                                    start: dash_start,
-                                    end: dash_start + direction_norm * ARROW_DASHED_DASH_LENGTH,
-                                    width: arrow.width,
-                                },
-                                arrow.color,
-                            );
-                        }
-
-                        draw_segment(
+                        draw_dashed_chain(
                             draw,
                             framebuffer,
                             &self.camera,
-                            Segment {
-                                start: start
-                                    + direction_norm * (dashes - 1) as f32 / dashes as f32
-                                        * delta_len,
-                                end: head,
-                                width: arrow.width,
+                            Chain {
+                                vertices: vec![start, arrow.body.position, head],
+                                width: arrow.edge.width,
                             },
-                            arrow.color,
+                            arrow.edge.color,
                         );
                     }
                 }
@@ -226,7 +215,7 @@ impl GameState {
                     framebuffer,
                     &self.camera,
                     &[end, head + head_width, head - head_width],
-                    arrow.color,
+                    arrow.edge.color,
                     ugli::DrawMode::TriangleFan,
                 );
             } else {
@@ -235,16 +224,36 @@ impl GameState {
         }
 
         // Vertices
-        for (_, vertex) in graph.vertices.iter() {
+        for (_, vertex) in graph.graph.vertices.iter() {
             draw.circle(
                 framebuffer,
                 &self.camera,
-                vertex.position * scale + offset,
-                vertex.radius * scale_min,
-                vertex.color,
+                vertex.body.position * scale + offset,
+                vertex.vertex.radius * scale_min,
+                vertex.vertex.color,
             );
         }
     }
+}
+
+fn draw_chain(
+    draw_2d: &Rc<geng::Draw2D>,
+    framebuffer: &mut ugli::Framebuffer,
+    camera: &Camera2d,
+    chain: Chain,
+    color: Color<f32>,
+) {
+    for segment in chain.segments() {
+        draw_segment(draw_2d, framebuffer, camera, segment, color);
+    }
+    // TODO: fix this
+    // draw_2d.draw(
+    //     framebuffer,
+    //     camera,
+    //     &chain.polygon(),
+    //     color,
+    //     ugli::DrawMode::Triangles,
+    // );
 }
 
 fn draw_segment(
@@ -257,9 +266,65 @@ fn draw_segment(
     draw_2d.draw(
         framebuffer,
         camera,
-        &segment.polygon(),
+        &Chain::from(segment).polygon(),
         color,
         ugli::DrawMode::TriangleFan,
+    );
+}
+
+fn draw_dashed_chain(
+    draw_2d: &Rc<geng::Draw2D>,
+    framebuffer: &mut ugli::Framebuffer,
+    camera: &Camera2d,
+    chain: Chain,
+    color: Color<f32>,
+) {
+    for segment in chain.segments() {
+        draw_dashed_segment(draw_2d, framebuffer, camera, segment, color);
+    }
+}
+
+fn draw_dashed_segment(
+    draw_2d: &Rc<geng::Draw2D>,
+    framebuffer: &mut ugli::Framebuffer,
+    camera: &Camera2d,
+    segment: Segment,
+    color: Color<f32>,
+) {
+    let dash_length = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_SPACE_LENGTH;
+    let delta = segment.end - segment.start;
+    let delta_len = delta.len();
+    let direction_norm = delta / delta_len;
+    let dashes = ((delta_len / dash_length).floor() as usize).max(1);
+    for i in 0..(dashes - 1) {
+        let dash_start = segment.start + direction_norm * i as f32 / dashes as f32 * delta_len;
+        draw_chain(
+            draw_2d,
+            framebuffer,
+            camera,
+            Chain {
+                vertices: vec![
+                    dash_start,
+                    dash_start + direction_norm * ARROW_DASHED_DASH_LENGTH,
+                ],
+                width: segment.width,
+            },
+            color,
+        );
+    }
+
+    draw_chain(
+        draw_2d,
+        framebuffer,
+        camera,
+        Chain {
+            vertices: vec![
+                segment.start + direction_norm * (dashes - 1) as f32 / dashes as f32 * delta_len,
+                segment.end,
+            ],
+            width: segment.width,
+        },
+        color,
     );
 }
 

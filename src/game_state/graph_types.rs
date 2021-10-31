@@ -1,20 +1,17 @@
 use super::*;
 
-pub type Graph = graphs::Graph<Point, Arrow<VertexId>>;
+pub type Graph = force_graph::ForceGraph<Point, Arrow<VertexId>>;
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub position: Vec2<f32>,
     pub radius: f32,
     pub color: Color<f32>,
 }
 
 impl Point {
-    pub fn distance_to_aabb(&self, aabb: &AABB<f32>) -> f32 {
-        let dx = (aabb.x_min - self.position.x - self.radius)
-            .max(self.position.x - self.radius - aabb.x_max);
-        let dy = (aabb.y_min - self.position.y - self.radius)
-            .max(self.position.y - self.radius - aabb.y_max);
+    pub fn distance_to_aabb(&self, position: Vec2<f32>, aabb: &AABB<f32>) -> f32 {
+        let dx = (aabb.x_min - position.x - self.radius).max(position.x - self.radius - aabb.x_max);
+        let dy = (aabb.y_min - position.y - self.radius).max(position.y - self.radius - aabb.y_max);
         dx.max(dy)
     }
 }

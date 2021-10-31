@@ -20,7 +20,7 @@ impl<V: GraphVertex> Vertices<V> {
         }
     }
 
-    pub fn new_vertex(&mut self, vertex: V) -> VertexId {
+    pub(crate) fn new_vertex(&mut self, vertex: V) -> VertexId {
         let id = self.next_id;
         self.next_id.0 += 1;
         assert!(
@@ -28,6 +28,10 @@ impl<V: GraphVertex> Vertices<V> {
             "Failed to generate new vertex"
         );
         id
+    }
+
+    pub fn len(&self) -> usize {
+        self.vertices.len()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&VertexId, &V)> {

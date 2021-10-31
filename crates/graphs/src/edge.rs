@@ -37,6 +37,10 @@ impl<E: GraphEdge> Edges<E> {
         id
     }
 
+    pub fn len(&self) -> usize {
+        self.edges.len()
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (&EdgeId, &E)> {
         self.edges.iter()
     }
@@ -45,7 +49,7 @@ impl<E: GraphEdge> Edges<E> {
         self.edges.remove(id)
     }
 
-    pub fn retain(&mut self, f: impl FnMut(&EdgeId, &mut E) -> bool) {
+    pub(crate) fn retain(&mut self, f: impl FnMut(&EdgeId, &mut E) -> bool) {
         self.edges.retain(f);
     }
 
