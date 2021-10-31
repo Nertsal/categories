@@ -25,7 +25,7 @@ impl Chain {
         segments
     }
 
-    pub fn polygon(&self) -> Vec<Vec2<f32>> {
+    pub fn triangle_strip(&self) -> Vec<Vec2<f32>> {
         let length = self.vertices.len();
         if length < 2 {
             return vec![];
@@ -33,17 +33,13 @@ impl Chain {
 
         let length = length * 2;
         let mut polygon = Vec::with_capacity(length);
-        for _ in 0..length {
-            polygon.push(Vec2::ZERO);
-        }
         let mut prev = self.vertices[0];
-        for (index, vertex) in self
+        for vertex in self
             .vertices
             .iter()
             .skip(1)
             .copied()
             .chain(std::iter::once(prev))
-            .enumerate()
         {
             let normal = (vertex - prev).rotate_90();
             let len = normal.len();
@@ -53,8 +49,8 @@ impl Chain {
                 normal / len
             };
             let shift = normal * self.width / 2.0;
-            polygon[index] = prev + shift;
-            polygon[length - index - 1] = prev - shift;
+            polygon.push(prev + shift);
+            polygon.push(prev - shift);
             prev = vertex;
         }
         polygon.to_vec()

@@ -109,6 +109,7 @@ impl GameState {
                 connect(3, 0, Color::BLUE, ArrowConnection::Solid);
                 connect(3, 2, Color::BLUE, ArrowConnection::Solid);
                 connect(3, 1, Color::RED, ArrowConnection::Dashed);
+                connect(3, 1, Color::RED, ArrowConnection::Dashed);
 
                 graph
             },

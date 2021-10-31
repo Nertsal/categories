@@ -216,7 +216,7 @@ impl GameState {
                     &self.camera,
                     &[end, head + head_width, head - head_width],
                     arrow.edge.color,
-                    ugli::DrawMode::TriangleFan,
+                    ugli::DrawMode::Triangles,
                 );
             } else {
                 warn!("Edge connects a non-existent vertex, edge = {:?}", arrow);
@@ -243,32 +243,12 @@ fn draw_chain(
     chain: Chain,
     color: Color<f32>,
 ) {
-    for segment in chain.segments() {
-        draw_segment(draw_2d, framebuffer, camera, segment, color);
-    }
-    // TODO: fix this
-    // draw_2d.draw(
-    //     framebuffer,
-    //     camera,
-    //     &chain.polygon(),
-    //     color,
-    //     ugli::DrawMode::Triangles,
-    // );
-}
-
-fn draw_segment(
-    draw_2d: &Rc<geng::Draw2D>,
-    framebuffer: &mut ugli::Framebuffer,
-    camera: &Camera2d,
-    segment: Segment,
-    color: Color<f32>,
-) {
     draw_2d.draw(
         framebuffer,
         camera,
-        &Chain::from(segment).polygon(),
+        &chain.triangle_strip(),
         color,
-        ugli::DrawMode::TriangleFan,
+        ugli::DrawMode::TriangleStrip,
     );
 }
 
