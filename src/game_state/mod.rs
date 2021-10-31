@@ -4,12 +4,16 @@ use graphs::{EdgeId, VertexId};
 
 use super::*;
 
+mod constants;
 mod draw;
 mod graph_types;
 mod handle_event;
+mod rule;
 mod selection;
 
+use constants::*;
 use graph_types::*;
+use rule::*;
 use selection::*;
 
 pub struct GameState {
@@ -19,6 +23,7 @@ pub struct GameState {
     graph: Graph,
     dragging: Option<Dragging>,
     selection: Selection,
+    rules: Vec<Rule>,
 }
 
 impl GameState {
@@ -28,6 +33,28 @@ impl GameState {
             dragging: None,
             framebuffer_size: vec2(1.0, 1.0),
             selection: Selection::new(),
+            rules: vec![Rule::new(
+                2,
+                vec![],
+                1,
+                vec![
+                    Arrow {
+                        from: 2,
+                        to: 0,
+                        color: Color::GREEN,
+                        width: ARROW_WIDTH,
+                        connection: ArrowConnection::Solid,
+                    },
+                    Arrow {
+                        from: 2,
+                        to: 1,
+                        color: Color::GREEN,
+                        width: ARROW_WIDTH,
+                        connection: ArrowConnection::Solid,
+                    },
+                ],
+            )
+            .unwrap()],
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
@@ -39,16 +66,16 @@ impl GameState {
                 let mut point = |position: Vec2<f32>, color: Color<f32>| {
                     graph.new_vertex(Point {
                         position,
-                        radius: 1.0,
+                        radius: POINT_RADIUS,
                         color,
                     })
                 };
 
                 let vertices = vec![
                     point(vec2(-10.0, 0.0), Color::WHITE),
-                    point(vec2(0.0, 0.0), Color::GREEN),
+                    // point(vec2(0.0, 0.0), Color::GREEN),
                     point(vec2(10.0, 0.0), Color::WHITE),
-                    point(vec2(0.0, 10.0), Color::BLUE),
+                    // point(vec2(0.0, 10.0), Color::BLUE),
                 ];
 
                 let mut connect =
@@ -56,17 +83,17 @@ impl GameState {
                         graph.add_edge(Arrow {
                             from: vertices[from],
                             to: vertices[to],
-                            width: 0.2,
+                            width: ARROW_WIDTH,
                             color,
                             connection,
                         })
                     };
 
-                connect(1, 0, Color::GREEN, ArrowConnection::Solid);
-                connect(1, 2, Color::GREEN, ArrowConnection::Solid);
-                connect(3, 0, Color::BLUE, ArrowConnection::Solid);
-                connect(3, 2, Color::BLUE, ArrowConnection::Solid);
-                connect(3, 1, Color::RED, ArrowConnection::Dashed);
+                // connect(1, 0, Color::GREEN, ArrowConnection::Solid);
+                // connect(1, 2, Color::GREEN, ArrowConnection::Solid);
+                // connect(3, 0, Color::BLUE, ArrowConnection::Solid);
+                // connect(3, 2, Color::BLUE, ArrowConnection::Solid);
+                // connect(3, 1, Color::RED, ArrowConnection::Dashed);
 
                 graph
             },

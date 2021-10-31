@@ -140,6 +140,8 @@ impl GameState {
                 self.selection.change_edges(edges.into_iter());
             }
         }
+
+        self.apply_rule(0);
     }
 }
 

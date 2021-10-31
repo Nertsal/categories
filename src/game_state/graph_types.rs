@@ -1,6 +1,6 @@
 use super::*;
 
-pub type Graph = graphs::Graph<Point, Arrow>;
+pub type Graph = graphs::Graph<Point, Arrow<VertexId>>;
 
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -20,15 +20,15 @@ impl Point {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Arrow {
-    pub from: graphs::VertexId,
-    pub to: graphs::VertexId,
+pub struct Arrow<T> {
+    pub from: T,
+    pub to: T,
     pub color: Color<f32>,
     pub width: f32,
     pub connection: ArrowConnection,
 }
 
-impl graphs::GraphEdge for Arrow {
+impl graphs::GraphEdge for Arrow<VertexId> {
     fn end_points(&self) -> [&graphs::VertexId; 2] {
         [&self.from, &self.to]
     }
@@ -38,4 +38,22 @@ impl graphs::GraphEdge for Arrow {
 pub enum ArrowConnection {
     Solid,
     Dashed,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArrowConstraint<T> {
+    pub from: T,
+    pub to: T,
+}
+
+impl<T> ArrowConstraint<T> {
+    pub fn new(from: T, to: T) -> Self {
+        Self { from, to }
+    }
+}
+
+impl<T: PartialEq> Arrow<T> {
+    pub fn check_constraint(&self, constraint: &ArrowConstraint<T>) -> bool {
+        self.from == constraint.from && self.to == constraint.to
+    }
 }
