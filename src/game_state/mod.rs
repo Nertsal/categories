@@ -65,18 +65,21 @@ impl GameState {
                 let mut graph = Graph::new(ForceParameters::default());
 
                 let mut point = |position: Vec2<f32>, color: Color<f32>, anchor: bool| {
-                    graph.graph.new_vertex(ForceVertex {
-                        is_anchor: anchor,
-                        body: ForceBody {
-                            position,
-                            mass: POINT_MASS,
-                            velocity: Vec2::ZERO,
-                        },
-                        vertex: Point {
-                            radius: POINT_RADIUS,
-                            color,
-                        },
-                    })
+                    (
+                        position,
+                        graph.graph.new_vertex(ForceVertex {
+                            is_anchor: anchor,
+                            body: ForceBody {
+                                position,
+                                mass: POINT_MASS,
+                                velocity: Vec2::ZERO,
+                            },
+                            vertex: Point {
+                                radius: POINT_RADIUS,
+                                color,
+                            },
+                        }),
+                    )
                 };
 
                 let vertices = vec![
@@ -90,13 +93,13 @@ impl GameState {
                     |from: usize, to: usize, color: Color<f32>, connection: ArrowConnection| {
                         graph.graph.new_edge(ForceEdge {
                             body: ForceBody {
-                                position: vec2(0.0, 0.0),
+                                position: (vertices[from].0 + vertices[to].0) / 2.0,
                                 mass: ARROW_MASS,
                                 velocity: Vec2::ZERO,
                             },
                             edge: Arrow {
-                                from: vertices[from],
-                                to: vertices[to],
+                                from: vertices[from].1,
+                                to: vertices[to].1,
                                 width: ARROW_WIDTH,
                                 color,
                                 connection,
