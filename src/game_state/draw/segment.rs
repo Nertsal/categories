@@ -75,12 +75,6 @@ pub struct Segment {
     pub width: f32,
 }
 
-impl Segment {
-    pub fn len(&self) -> f32 {
-        (self.end - self.start).len()
-    }
-}
-
 impl From<Segment> for Chain {
     fn from(segment: Segment) -> Self {
         Self {

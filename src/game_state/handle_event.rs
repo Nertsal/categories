@@ -4,13 +4,10 @@ impl GameState {
     pub fn handle_event_impl(&mut self, event: geng::Event) {
         match event {
             geng::Event::MouseDown { position, button } => {
-                self.dragging = Some(Dragging {
-                    mouse_start_pos: position,
-                    world_start_pos: self
-                        .camera
-                        .screen_to_world(self.framebuffer_size, position.map(|x| x as f32)),
-                    mouse_button: button,
-                })
+                self.drag_start(position, button);
+            }
+            geng::Event::MouseMove { position, delta } => {
+                self.drag_move(position, delta);
             }
             geng::Event::MouseUp { position, button } => {
                 self.drag_stop(position, button);
@@ -19,18 +16,54 @@ impl GameState {
         }
     }
 
-    fn drag_stop(&mut self, mouse_position: Vec2<f64>, mouse_button: geng::MouseButton) {
-        if let Some(dragging) = self.dragging.take() {
-            if dragging.mouse_button != mouse_button {
-                return;
-            }
+    fn drag_start(&mut self, mouse_position: Vec2<f64>, mouse_button: geng::MouseButton) {
+        match mouse_button {
+            geng::MouseButton::Left => {
+                let world_pos = self
+                    .camera
+                    .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
 
-            match mouse_button {
-                geng::MouseButton::Left => {
-                    let dragged_delta = mouse_position - dragging.mouse_start_pos;
+                // Drag vertex
+                let vertex = self
+                    .vertices_under(world_pos)
+                    .next()
+                    .map(|(&vertex, _)| vertex);
+                if let Some(vertex) = vertex {
+                    self.dragging = Some(Dragging::MoveVertex { vertex });
+                    return;
+                }
+
+                // Drag edge
+                let edge = self.edges_under(world_pos).next().map(|(&edge, _)| edge);
+                if let Some(edge) = edge {
+                    self.dragging = Some(Dragging::MoveEdge { edge });
+                    return;
+                }
+
+                // Selection
+                self.dragging = Some(Dragging::Selection {
+                    mouse_start_pos: mouse_position,
+                    world_start_pos: world_pos,
+                });
+            }
+            _ => (),
+        }
+    }
+
+    fn drag_move(&mut self, _mouse_position: Vec2<f64>, _mouse_delta: Vec2<f64>) {
+    }
+
+    fn drag_stop(&mut self, mouse_position: Vec2<f64>, _mouse_button: geng::MouseButton) {
+        if let Some(dragging) = self.dragging.take() {
+            match dragging {
+                Dragging::Selection {
+                    mouse_start_pos,
+                    world_start_pos,
+                } => {
+                    let dragged_delta = mouse_position - mouse_start_pos;
                     if dragged_delta.len().approx_eq(&0.0) {
                         // Click
-                        self.select_point(dragging.world_start_pos, SelectionOptions::New);
+                        self.select_point(world_start_pos, SelectionOptions::New);
                     } else {
                         // Drag
                         let world_pos = self.camera.screen_to_world(
@@ -38,7 +71,7 @@ impl GameState {
                             mouse_position.map(|x| x as f32),
                         );
                         self.select_area(
-                            AABB::from_corners(dragging.world_start_pos, world_pos),
+                            AABB::from_corners(world_start_pos, world_pos),
                             SelectionOptions::New,
                         );
                     }
@@ -48,24 +81,28 @@ impl GameState {
         }
     }
 
-    fn select_point(&mut self, position: Vec2<f32>, options: SelectionOptions) {
-        // Vertices
-        let selected_vertices = self
-            .force_graph
+    fn vertices_under(
+        &self,
+        position: Vec2<f32>,
+    ) -> impl Iterator<Item = (&VertexId, &ForceVertex<Point>)> {
+        self.force_graph
             .graph
             .vertices
             .iter()
-            .filter(|(_, vertex)| (vertex.body.position - position).len() <= vertex.vertex.radius)
-            .map(|(&id, _)| id)
-            .collect();
+            .filter(move |(_, vertex)| {
+                (vertex.body.position - position).len() <= vertex.vertex.radius
+            })
+    }
 
-        // Edges
-        let selected_edges = self
-            .force_graph
+    fn edges_under(
+        &self,
+        position: Vec2<f32>,
+    ) -> impl Iterator<Item = (&EdgeId, &ForceEdge<Arrow<VertexId>>)> {
+        self.force_graph
             .graph
             .edges
             .iter()
-            .filter(|(_, edge)| {
+            .filter(move |(_, edge)| {
                 self.force_graph
                     .graph
                     .vertices
@@ -75,7 +112,7 @@ impl GameState {
                         self.force_graph
                             .graph
                             .vertices
-                            .get(&edge.edge.from)
+                            .get(&edge.edge.to)
                             .map(|vertex| (arrow_start, vertex.body.position))
                     })
                     .map(|(arrow_start, arrow_end)| {
@@ -83,8 +120,14 @@ impl GameState {
                     })
                     .unwrap_or(false)
             })
-            .map(|(&id, _)| id)
-            .collect();
+    }
+
+    fn select_point(&mut self, position: Vec2<f32>, options: SelectionOptions) {
+        // Vertices
+        let selected_vertices = self.vertices_under(position).map(|(&id, _)| id).collect();
+
+        // Edges
+        let selected_edges = self.edges_under(position).map(|(&id, _)| id).collect();
 
         // Add to selection
         self.select(selected_vertices, selected_edges, options);

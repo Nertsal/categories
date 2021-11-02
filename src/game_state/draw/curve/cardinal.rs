@@ -19,19 +19,36 @@ impl CardinalSpline {
 impl CubicHermiteCurve for CardinalSpline {
     fn intervals(&self) -> Vec<CurveInterval> {
         // Tangents
-        let mut m = self
-            .points
-            .iter()
-            .zip(self.points.iter().skip(2))
-            .map(|(&p0, &p2)| (1. - self.tension) * (p2 - p0) / (1. - 0.))
-            .enumerate();
+        let len = self.points.len();
+        let mut m = Vec::with_capacity(len);
+        if len > 1 {
+            m.push((
+                0,
+                (1. - self.tension) * (self.points[1] - self.points[0]) / (1. - 0.),
+            ));
+        }
+        m.extend(
+            self.points
+                .iter()
+                .zip(self.points.iter().skip(2))
+                .map(|(&p0, &p2)| (1. - self.tension) * (p2 - p0) / (1. - 0.))
+                .enumerate()
+                .map(|(i, m)| (i + 1, m)),
+        );
+        if len > 2 {
+            m.push((
+                len - 1,
+                (1. - self.tension) * (self.points[len - 1] - self.points[len - 2]) / (1. - 0.),
+            ));
+        }
+        let mut m = m.into_iter();
 
         let (_, mut prev) = match m.next() {
             Some(first) => first,
             None => return Vec::new(),
         };
 
-        let mut intervals = Vec::with_capacity(self.points.len() - 1);
+        let mut intervals = Vec::with_capacity(len - 1);
         while let Some((index, next)) = m.next() {
             intervals.push(CurveInterval {
                 point_start: self.points[index - 1],

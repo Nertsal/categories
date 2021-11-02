@@ -46,17 +46,22 @@ impl GameState {
         );
 
         // Dragging
-        if let Some(dragging) = &self.dragging {
-            let world_pos = self.camera.screen_to_world(
-                self.framebuffer_size,
-                self.geng.window().mouse_pos().map(|x| x as f32),
-            );
-            self.geng.draw_2d().quad(
-                framebuffer,
-                &self.camera,
-                AABB::from_corners(dragging.world_start_pos, world_pos),
-                SELECTION_COLOR,
-            );
+        match &self.dragging {
+            Some(Dragging::Selection {
+                world_start_pos, ..
+            }) => {
+                let world_pos = self.camera.screen_to_world(
+                    self.framebuffer_size,
+                    self.geng.window().mouse_pos().map(|x| x as f32),
+                );
+                self.geng.draw_2d().quad(
+                    framebuffer,
+                    &self.camera,
+                    AABB::from_corners(*world_start_pos, world_pos),
+                    SELECTION_COLOR,
+                );
+            }
+            _ => (),
         }
 
         // Selection
@@ -182,8 +187,24 @@ impl GameState {
                 let end = to_position - direction_norm * to.vertex.radius * scale_min + offset;
 
                 // Line body
-                let chain = ParabolaCurve::new([start, arrow.body.position, end])
-                    .chain(CURVE_RESOLUTION, arrow.edge.width);
+                let chain = if arrow.bodies.len() > 1 {
+                    Curve::chain(
+                        &CardinalSpline::new(
+                            {
+                                let mut bodies = vec![start];
+                                bodies.extend(arrow.bodies.iter().map(|body| body.position));
+                                bodies.push(end);
+                                bodies
+                            },
+                            0.5,
+                        ),
+                        CURVE_RESOLUTION,
+                        arrow.edge.width,
+                    )
+                } else {
+                    ParabolaCurve::new([start, arrow.bodies[0].position, end])
+                        .chain(CURVE_RESOLUTION, arrow.edge.width)
+                };
                 let end_direction = chain.end_direction().unwrap();
                 match arrow.edge.connection {
                     ArrowConnection::Solid => {

@@ -133,14 +133,13 @@ impl Rule {
             };
             graph
                 .graph
-                .new_edge(ForceEdge {
-                    body: ForceBody {
-                        position: Vec2::ZERO,
-                        mass: ARROW_MASS,
-                        velocity: Vec2::ZERO,
-                    },
-                    edge: new_edge,
-                })
+                .new_edge(ForceEdge::new(
+                    Vec2::ZERO,
+                    Vec2::ZERO,
+                    ARROW_BODIES,
+                    ARROW_MASS,
+                    new_edge,
+                ))
                 .expect("Attempted to connect a non-existent vertex when applying a rule");
         }
     }

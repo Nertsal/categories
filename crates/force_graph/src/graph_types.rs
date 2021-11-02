@@ -4,8 +4,10 @@ use super::*;
 /// Partially borrowed from https://docs.rs/force_graph
 #[derive(Debug)]
 pub struct ForceParameters {
-    pub force_spring: f32,
-    pub force_charge: f32,
+    pub force_spring_vertex: f32,
+    pub force_spring_edge: f32,
+    pub force_charge_vertex: f32,
+    pub force_charge_edge: f32,
     pub force_max: f32,
     pub vertex_speed: f32,
     pub damping_factor: f32,
@@ -15,8 +17,10 @@ pub struct ForceParameters {
 impl Default for ForceParameters {
     fn default() -> Self {
         Self {
-            force_charge: 1000.0,
-            force_spring: 10.0,
+            force_spring_vertex: 10.0,
+            force_spring_edge: 10.0,
+            force_charge_vertex: 1000.0,
+            force_charge_edge: 100.0,
             force_max: 280.0,
             vertex_speed: 5.0,
             damping_factor: 0.95,
@@ -52,8 +56,29 @@ pub struct ForceVertex<V: GraphVertex> {
 /// An edge in the ForceGraph.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForceEdge<E: GraphEdge> {
-    pub body: ForceBody,
+    pub bodies: Vec<ForceBody>,
     pub edge: E,
+}
+
+impl<E: GraphEdge> ForceEdge<E> {
+    pub fn new(
+        vertex_a: Vec2<f32>,
+        vertex_b: Vec2<f32>,
+        bodies_count: usize,
+        mass: f32,
+        edge: E,
+    ) -> Self {
+        let delta = vertex_b - vertex_a;
+        let bodies = (0..bodies_count)
+            .map(|i| ForceBody::new(delta * i as f32 / bodies_count as f32 + vertex_a, mass))
+            .collect();
+        Self { bodies, edge }
+    }
+
+    pub fn get_center_mut(&mut self) -> Option<&mut ForceBody> {
+        let len = self.bodies.len();
+        self.bodies.get_mut(len / 2)
+    }
 }
 
 impl<E: GraphEdge> GraphEdge for ForceEdge<E> {
@@ -71,7 +96,15 @@ pub struct ForceBody {
 }
 
 impl ForceBody {
-    pub(crate) fn attract_force(&self, other: &Self, parameters: &ForceParameters) -> Vec2<f32> {
+    pub fn new(position: Vec2<f32>, mass: f32) -> Self {
+        Self {
+            position,
+            mass,
+            velocity: Vec2::ZERO,
+        }
+    }
+
+    pub(crate) fn attract_force(&self, other: &Self, force_spring: f32) -> Vec2<f32> {
         let delta = other.position - self.position;
 
         let distance = delta.len();
@@ -81,22 +114,27 @@ impl ForceBody {
 
         let direction = delta / distance;
 
-        let strength = 1.0 * parameters.force_spring * distance * 0.5;
+        let strength = 1.0 * force_spring * distance * 0.5;
         direction * strength
     }
 
-    pub(crate) fn repel_force(&self, other: &Self, parameters: &ForceParameters) -> Vec2<f32> {
+    pub(crate) fn repel_force(
+        &self,
+        other: &Self,
+        force_charge: f32,
+        repel_distance_max: f32,
+    ) -> Vec2<f32> {
         let delta = self.position - other.position;
 
         let distance = delta.len();
-        if distance.approx_eq(&0.0) || distance > parameters.repel_distance_max {
+        if distance.approx_eq(&0.0) || distance > repel_distance_max {
             return Vec2::ZERO;
         }
 
         let direction = delta / distance;
 
         let distance_sqrd = distance * distance;
-        let strength = parameters.force_charge * ((self.mass * other.mass) / distance_sqrd);
+        let strength = force_charge * ((self.mass * other.mass) / distance_sqrd);
         direction * strength
     }
 

@@ -43,12 +43,6 @@ pub struct ArrowConstraint<T> {
     pub to: T,
 }
 
-impl<T> ArrowConstraint<T> {
-    pub fn new(from: T, to: T) -> Self {
-        Self { from, to }
-    }
-}
-
 impl<T: PartialEq> Arrow<T> {
     pub fn check_constraint(&self, constraint: &ArrowConstraint<T>) -> bool {
         self.from == constraint.from && self.to == constraint.to
