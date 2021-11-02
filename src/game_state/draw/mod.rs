@@ -1,7 +1,9 @@
 use super::*;
 
+mod curve;
 mod segment;
 
+use curve::*;
 use segment::*;
 
 const ARROW_HEAD_WIDTH: f32 = 0.5;
@@ -10,6 +12,9 @@ const ARROW_LENGTH_MAX_FRAC: f32 = 0.5;
 
 const ARROW_DASHED_DASH_LENGTH: f32 = 0.7;
 const ARROW_DASHED_SPACE_LENGTH: f32 = 0.5;
+const ARROW_DASH_FULL_LENGTH: f32 = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_SPACE_LENGTH;
+
+const CURVE_RESOLUTION: usize = 10;
 
 const SELECTION_COLOR: Color<f32> = Color {
     r: 0.0,
@@ -175,40 +180,28 @@ impl GameState {
                 let start =
                     from_position + direction_norm * from.vertex.radius * scale_min + offset;
                 let end = to_position - direction_norm * to.vertex.radius * scale_min + offset;
-                let normal = direction_norm.rotate_90();
-                let head_length = direction_norm
-                    * ARROW_HEAD_LENGTH.min((end - start).len() * ARROW_LENGTH_MAX_FRAC)
-                    * scale;
-                let head_width = normal * ARROW_HEAD_WIDTH * scale;
-                let head = end - head_length;
 
                 // Line body
+                let chain = ParabolaCurve::new([start, arrow.body.position, end])
+                    .chain(CURVE_RESOLUTION, arrow.edge.width);
+                let end_direction = chain.end_direction().unwrap();
                 match arrow.edge.connection {
                     ArrowConnection::Solid => {
-                        draw_chain(
-                            draw,
-                            framebuffer,
-                            &self.camera,
-                            Chain {
-                                vertices: vec![start, arrow.body.position, head],
-                                width: arrow.edge.width,
-                            },
-                            arrow.edge.color,
-                        );
+                        draw_chain(draw, framebuffer, &self.camera, chain, arrow.edge.color);
                     }
                     ArrowConnection::Dashed => {
-                        draw_dashed_chain(
-                            draw,
-                            framebuffer,
-                            &self.camera,
-                            Chain {
-                                vertices: vec![start, arrow.body.position, head],
-                                width: arrow.edge.width,
-                            },
-                            arrow.edge.color,
-                        );
+                        draw_dashed_chain(draw, framebuffer, &self.camera, chain, arrow.edge.color);
                     }
                 }
+
+                let direction_norm = end_direction.normalize();
+                let normal = direction_norm.rotate_90();
+                let scale = ARROW_HEAD_LENGTH.min((end - start).len() * ARROW_LENGTH_MAX_FRAC)
+                    / ARROW_HEAD_LENGTH
+                    * scale;
+                let head_length = direction_norm * ARROW_HEAD_LENGTH * scale;
+                let head = end - head_length;
+                let head_width = normal * ARROW_HEAD_WIDTH * scale;
 
                 // Line head
                 draw.draw(
@@ -259,23 +252,68 @@ fn draw_dashed_chain(
     chain: Chain,
     color: Color<f32>,
 ) {
+    let mut dash_full_left = 0.0;
     for segment in chain.segments() {
-        draw_dashed_segment(draw_2d, framebuffer, camera, segment, color);
+        let last_len =
+            draw_dashed_segment(draw_2d, framebuffer, camera, segment, color, dash_full_left);
+        dash_full_left = (ARROW_DASH_FULL_LENGTH - last_len).max(0.0);
     }
 }
 
+/// Draws a dashed segment.
+/// Returns the unrendered length of the last dash.
 fn draw_dashed_segment(
     draw_2d: &Rc<geng::Draw2D>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     segment: Segment,
     color: Color<f32>,
-) {
-    let dash_length = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_SPACE_LENGTH;
+    dash_full_left: f32,
+) -> f32 {
     let delta = segment.end - segment.start;
     let delta_len = delta.len();
     let direction_norm = delta / delta_len;
-    let dashes = ((delta_len / dash_length).floor() as usize).max(1);
+    let dashes = ((delta_len / ARROW_DASH_FULL_LENGTH).floor() as usize).max(1);
+
+    if dash_full_left > 0.0 {
+        // Finish drawing the previous dash and offset current segment
+        let dash_full_length = dash_full_left.min(delta_len);
+        let dash_length = dash_full_left - ARROW_DASHED_SPACE_LENGTH;
+        if dash_length > 0.0 {
+            // Finish dash
+            let dash_length = dash_length.min(dash_full_length);
+            let dash_end = segment.start + direction_norm * dash_length;
+            draw_chain(
+                draw_2d,
+                framebuffer,
+                camera,
+                Chain {
+                    vertices: vec![segment.start, dash_end],
+                    width: segment.width,
+                },
+                color,
+            );
+        }
+
+        let dash_left = dash_full_left - dash_full_length;
+        if dash_left > 0.0 {
+            return dash_left;
+        }
+
+        let dash_full_end = segment.start + dash_full_length * direction_norm;
+        return draw_dashed_segment(
+            draw_2d,
+            framebuffer,
+            camera,
+            Segment {
+                start: dash_full_end,
+                ..segment
+            },
+            color,
+            0.0,
+        );
+    }
+
     for i in 0..(dashes - 1) {
         let dash_start = segment.start + direction_norm * i as f32 / dashes as f32 * delta_len;
         draw_chain(
@@ -293,19 +331,20 @@ fn draw_dashed_segment(
         );
     }
 
+    let last_start =
+        segment.start + direction_norm * (dashes - 1) as f32 / dashes as f32 * delta_len;
     draw_chain(
         draw_2d,
         framebuffer,
         camera,
         Chain {
-            vertices: vec![
-                segment.start + direction_norm * (dashes - 1) as f32 / dashes as f32 * delta_len,
-                segment.end,
-            ],
+            vertices: vec![last_start, segment.end],
             width: segment.width,
         },
         color,
     );
+
+    (ARROW_DASH_FULL_LENGTH - (segment.end - last_start).len()).max(0.0)
 }
 
 enum GraphRender {

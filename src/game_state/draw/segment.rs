@@ -1,11 +1,23 @@
 use super::*;
 
+#[derive(Debug, Clone)]
 pub struct Chain {
     pub vertices: Vec<Vec2<f32>>,
     pub width: f32,
 }
 
 impl Chain {
+    /// Returns the direction (not normalized) from the vertex before the last one to the last vertex.
+    /// Returns None if there are less than 2 vertices
+    pub fn end_direction(&self) -> Option<Vec2<f32>> {
+        let length = self.vertices.len();
+        if length < 2 {
+            return None;
+        }
+
+        Some(self.vertices[length - 1] - self.vertices[length - 2])
+    }
+
     pub fn segments(self) -> Vec<Segment> {
         let length = self.vertices.len();
         if length < 2 {
@@ -61,6 +73,12 @@ pub struct Segment {
     pub start: Vec2<f32>,
     pub end: Vec2<f32>,
     pub width: f32,
+}
+
+impl Segment {
+    pub fn len(&self) -> f32 {
+        (self.end - self.start).len()
+    }
 }
 
 impl From<Segment> for Chain {
