@@ -19,10 +19,10 @@ impl Default for ForceParameters {
         Self {
             force_spring_vertex: 10.0,
             force_spring_edge: 10.0,
-            force_charge_vertex: 1000.0,
+            force_charge_vertex: 500.0,
             force_charge_edge: 100.0,
             force_max: 280.0,
-            vertex_speed: 5.0,
+            vertex_speed: 10.0,
             damping_factor: 0.95,
             repel_distance_max: 30.0,
         }
