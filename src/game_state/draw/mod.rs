@@ -79,7 +79,7 @@ impl GameState {
                 SELECTED_COLOR,
             )
         }
-        for (edge, from, to) in self.selection.edges.iter().filter_map(|edge| {
+        for edge_points in self.selection.edges.iter().filter_map(|edge| {
             self.force_graph.graph.edges.get(edge).and_then(|arrow| {
                 self.force_graph
                     .graph
@@ -90,7 +90,13 @@ impl GameState {
                             .graph
                             .vertices
                             .get(&arrow.edge.to)
-                            .map(|to| (arrow, from, to))
+                            .map(|to| {
+                                let mut points = Vec::with_capacity(arrow.bodies.len() + 2);
+                                points.push(from.body.position);
+                                points.extend(arrow.bodies.iter().map(|body| body.position));
+                                points.push(to.body.position);
+                                points
+                            })
                     })
             })
         }) {
@@ -98,10 +104,14 @@ impl GameState {
                 self.geng.draw_2d(),
                 framebuffer,
                 &self.camera,
-                Chain {
-                    vertices: vec![from.body.position, to.body.position],
-                    width: ARROW_WIDTH + SELECTED_RADIUS,
-                },
+                Curve::chain(
+                    &CardinalSpline {
+                        points: edge_points,
+                        tension: 0.5,
+                    },
+                    CURVE_RESOLUTION,
+                    ARROW_WIDTH + SELECTED_RADIUS,
+                ),
                 SELECTED_COLOR,
             );
         }
