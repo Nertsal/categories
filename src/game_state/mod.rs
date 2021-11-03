@@ -5,7 +5,9 @@ use graphs::{EdgeId, VertexId};
 
 use super::*;
 
+mod chain;
 mod constants;
+mod curve;
 mod draw;
 mod graph_types;
 mod handle_event;
@@ -13,7 +15,9 @@ mod rule;
 mod selection;
 mod update;
 
+use chain::*;
 use constants::*;
+use curve::*;
 use graph_types::*;
 use rule::*;
 use selection::*;
@@ -111,9 +115,6 @@ impl GameState {
                 connect(4, 2, ArrowConnection::Regular);
                 connect(3, 1, ArrowConnection::Unique);
                 connect(4, 3, ArrowConnection::Unique);
-
-                connect(0, 2, ArrowConnection::Unique);
-                connect(0, 2, ArrowConnection::Unique);
 
                 graph
             },
