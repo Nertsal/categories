@@ -1,5 +1,5 @@
 use force_graph::{ForceBody, ForceEdge, ForceParameters, ForceVertex};
-use geng::Camera2d;
+use geng::{prelude::rand::thread_rng, Camera2d};
 
 use graphs::{EdgeId, VertexId};
 
@@ -43,16 +43,12 @@ impl GameState {
                     Arrow {
                         from: 2,
                         to: 0,
-                        color: Color::GREEN,
-                        width: ARROW_WIDTH,
-                        connection: ArrowConnection::Solid,
+                        connection: ArrowConnection::Best,
                     },
                     Arrow {
                         from: 2,
                         to: 1,
-                        color: Color::GREEN,
-                        width: ARROW_WIDTH,
-                        connection: ArrowConnection::Solid,
+                        connection: ArrowConnection::Best,
                     },
                 ],
             )
@@ -65,13 +61,15 @@ impl GameState {
             force_graph: {
                 let mut graph = Graph::new(ForceParameters::default());
 
+                let mut rng = thread_rng();
+
                 let mut point = |position: Vec2<f32>, color: Color<f32>, anchor: bool| {
                     (
                         position,
                         graph.graph.new_vertex(ForceVertex {
                             is_anchor: anchor,
                             body: ForceBody {
-                                position,
+                                position: position + vec2(rng.gen(), rng.gen()),
                                 mass: POINT_MASS,
                                 velocity: Vec2::ZERO,
                             },
@@ -87,32 +85,35 @@ impl GameState {
                     point(vec2(-10.0, 0.0), Color::WHITE, false),
                     point(vec2(0.0, 0.0), Color::GREEN, true),
                     point(vec2(10.0, 0.0), Color::WHITE, false),
-                    point(vec2(0.0, 10.0), Color::BLUE, false),
+                    point(vec2(0.0, 10.0), Color::MAGENTA, false),
+                    point(vec2(0.0, 20.0), Color::BLUE, false),
                 ];
 
-                let mut connect =
-                    |from: usize, to: usize, color: Color<f32>, connection: ArrowConnection| {
-                        graph.graph.new_edge(ForceEdge::new(
-                            vertices[from].0,
-                            vertices[to].0,
-                            ARROW_BODIES,
-                            ARROW_MASS,
-                            Arrow {
-                                from: vertices[from].1,
-                                to: vertices[to].1,
-                                width: ARROW_WIDTH,
-                                color,
-                                connection,
-                            },
-                        ))
-                    };
+                let mut connect = |from: usize, to: usize, connection: ArrowConnection| {
+                    graph.graph.new_edge(ForceEdge::new(
+                        vertices[from].0 + vec2(rng.gen(), rng.gen()),
+                        vertices[to].0 + vec2(rng.gen(), rng.gen()),
+                        ARROW_BODIES,
+                        ARROW_MASS,
+                        Arrow {
+                            from: vertices[from].1,
+                            to: vertices[to].1,
+                            connection,
+                        },
+                    ))
+                };
 
-                connect(1, 0, Color::GREEN, ArrowConnection::Solid);
-                connect(1, 2, Color::GREEN, ArrowConnection::Solid);
-                connect(3, 0, Color::BLUE, ArrowConnection::Solid);
-                connect(3, 2, Color::BLUE, ArrowConnection::Solid);
-                connect(3, 1, Color::RED, ArrowConnection::Dashed);
-                connect(3, 1, Color::RED, ArrowConnection::Dashed);
+                connect(1, 0, ArrowConnection::Best);
+                connect(1, 2, ArrowConnection::Best);
+                connect(3, 0, ArrowConnection::Regular);
+                connect(3, 2, ArrowConnection::Regular);
+                connect(4, 0, ArrowConnection::Regular);
+                connect(4, 2, ArrowConnection::Regular);
+                connect(3, 1, ArrowConnection::Unique);
+                connect(4, 3, ArrowConnection::Unique);
+
+                connect(0, 2, ArrowConnection::Unique);
+                connect(0, 2, ArrowConnection::Unique);
 
                 graph
             },

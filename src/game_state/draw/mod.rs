@@ -100,7 +100,7 @@ impl GameState {
                 &self.camera,
                 Chain {
                     vertices: vec![from.body.position, to.body.position],
-                    width: edge.edge.width + SELECTED_RADIUS,
+                    width: ARROW_WIDTH + SELECTED_RADIUS,
                 },
                 SELECTED_COLOR,
             );
@@ -181,7 +181,11 @@ impl GameState {
                 let from_position = from.body.position * scale;
                 let delta = to_position - from_position;
                 let delta_len = delta.len();
-                let direction_norm = delta / delta_len;
+                let direction_norm = if delta_len.approx_eq(&0.0) {
+                    Vec2::ZERO
+                } else {
+                    delta / delta_len
+                };
                 let start =
                     from_position + direction_norm * from.vertex.radius * scale_min + offset;
                 let end = to_position - direction_norm * to.vertex.radius * scale_min + offset;
@@ -199,19 +203,28 @@ impl GameState {
                             0.5,
                         ),
                         CURVE_RESOLUTION,
-                        arrow.edge.width,
+                        ARROW_WIDTH,
                     )
                 } else {
                     ParabolaCurve::new([start, arrow.bodies[0].position, end])
-                        .chain(CURVE_RESOLUTION, arrow.edge.width)
+                        .chain(CURVE_RESOLUTION, ARROW_WIDTH)
                 };
                 let end_direction = chain.end_direction().unwrap();
                 match arrow.edge.connection {
-                    ArrowConnection::Solid => {
-                        draw_chain(draw, framebuffer, &self.camera, chain, arrow.edge.color);
+                    ArrowConnection::Best => {
+                        draw_chain(draw, framebuffer, &self.camera, chain, arrow.edge.color());
                     }
-                    ArrowConnection::Dashed => {
-                        draw_dashed_chain(draw, framebuffer, &self.camera, chain, arrow.edge.color);
+                    ArrowConnection::Regular => {
+                        draw_chain(draw, framebuffer, &self.camera, chain, arrow.edge.color());
+                    }
+                    ArrowConnection::Unique => {
+                        draw_dashed_chain(
+                            draw,
+                            framebuffer,
+                            &self.camera,
+                            chain,
+                            arrow.edge.color(),
+                        );
                     }
                 }
 
@@ -229,7 +242,7 @@ impl GameState {
                     framebuffer,
                     &self.camera,
                     &[end, head + head_width, head - head_width],
-                    arrow.edge.color,
+                    arrow.edge.color(),
                     ugli::DrawMode::Triangles,
                 );
             } else {

@@ -60,6 +60,13 @@ impl<V: GraphVertex, E: GraphEdge> ForceGraph<V, E> {
                         self.parameters.repel_distance_max,
                     );
                 }
+                for other in self.graph.vertices.iter().map(|(_, vertex)| &vertex.body) {
+                    force += bodies[i].repel_force(
+                        other,
+                        self.parameters.force_charge_edge_vertex,
+                        self.parameters.repel_distance_max,
+                    );
+                }
 
                 forces.push(force.clamp(self.parameters.force_max));
             }

@@ -20,9 +20,17 @@ impl Point {
 pub struct Arrow<T> {
     pub from: T,
     pub to: T,
-    pub color: Color<f32>,
-    pub width: f32,
     pub connection: ArrowConnection,
+}
+
+impl<T> Arrow<T> {
+    pub fn color(&self) -> Color<f32> {
+        match self.connection {
+            ArrowConnection::Best => ARROW_BEST_COLOR,
+            ArrowConnection::Regular => ARROW_REGULAR_COLOR,
+            ArrowConnection::Unique => ARROW_UNIQUE_COLOR,
+        }
+    }
 }
 
 impl graphs::GraphEdge for Arrow<VertexId> {
@@ -33,8 +41,9 @@ impl graphs::GraphEdge for Arrow<VertexId> {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ArrowConnection {
-    Solid,
-    Dashed,
+    Best,
+    Regular,
+    Unique,
 }
 
 #[derive(Debug, Clone, PartialEq)]

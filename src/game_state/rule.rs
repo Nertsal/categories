@@ -127,8 +127,6 @@ impl Rule {
             let new_edge = Arrow {
                 from: vertices[new_edge.from],
                 to: vertices[new_edge.to],
-                color: new_edge.color,
-                width: new_edge.width,
                 connection: new_edge.connection,
             };
             graph

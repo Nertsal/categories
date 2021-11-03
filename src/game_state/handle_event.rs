@@ -50,8 +50,7 @@ impl GameState {
         }
     }
 
-    fn drag_move(&mut self, _mouse_position: Vec2<f64>, _mouse_delta: Vec2<f64>) {
-    }
+    fn drag_move(&mut self, _mouse_position: Vec2<f64>, _mouse_delta: Vec2<f64>) {}
 
     fn drag_stop(&mut self, mouse_position: Vec2<f64>, _mouse_button: geng::MouseButton) {
         if let Some(dragging) = self.dragging.take() {
@@ -116,7 +115,7 @@ impl GameState {
                             .map(|vertex| (arrow_start, vertex.body.position))
                     })
                     .map(|(arrow_start, arrow_end)| {
-                        distance_point_segment(position, arrow_start, arrow_end) <= edge.edge.width
+                        distance_point_segment(position, arrow_start, arrow_end) <= ARROW_WIDTH
                     })
                     .unwrap_or(false)
             })
