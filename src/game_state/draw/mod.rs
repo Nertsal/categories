@@ -136,9 +136,8 @@ fn draw_dashed_chain(
 ) {
     let mut dash_full_left = 0.0;
     for segment in chain.segments() {
-        let last_len =
+        dash_full_left =
             draw_dashed_segment(draw_2d, framebuffer, camera, segment, color, dash_full_left);
-        dash_full_left = (ARROW_DASH_FULL_LENGTH - last_len).max(0.0);
     }
 }
 
@@ -148,14 +147,17 @@ fn draw_dashed_segment(
     draw_2d: &Rc<geng::Draw2D>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    segment: Segment,
+    mut segment: Segment,
     color: Color<f32>,
     dash_full_left: f32,
 ) -> f32 {
     let delta = segment.end - segment.start;
     let delta_len = delta.len();
-    let direction_norm = delta / delta_len;
-    let dashes = ((delta_len / ARROW_DASH_FULL_LENGTH).floor() as usize).max(1);
+    let direction_norm = if delta.len().approx_eq(&0.0) {
+        return dash_full_left;
+    } else {
+        delta / delta_len
+    };
 
     if dash_full_left > 0.0 {
         // Finish drawing the previous dash and offset current segment
@@ -165,6 +167,7 @@ fn draw_dashed_segment(
             // Finish dash
             let dash_length = dash_length.min(dash_full_length);
             let dash_end = segment.start + direction_norm * dash_length;
+            assert!(dash_length <= delta_len);
             draw_chain(
                 draw_2d,
                 framebuffer,
@@ -177,27 +180,21 @@ fn draw_dashed_segment(
             );
         }
 
+        // Finish space
         let dash_left = dash_full_left - dash_full_length;
         if dash_left > 0.0 {
             return dash_left;
         }
 
-        let dash_full_end = segment.start + dash_full_length * direction_norm;
-        return draw_dashed_segment(
-            draw_2d,
-            framebuffer,
-            camera,
-            Segment {
-                start: dash_full_end,
-                ..segment
-            },
-            color,
-            0.0,
-        );
+        // Offset
+        segment.start += dash_full_length * direction_norm
     }
 
-    for i in 0..(dashes - 1) {
-        let dash_start = segment.start + direction_norm * i as f32 / dashes as f32 * delta_len;
+    // Recalculate delta
+    let delta_len = (segment.end - segment.start).len();
+    let dashes = (delta_len / ARROW_DASH_FULL_LENGTH).floor() as usize;
+    for i in 0..dashes {
+        let dash_start = segment.start + direction_norm * i as f32 * ARROW_DASH_FULL_LENGTH;
         draw_chain(
             draw_2d,
             framebuffer,
@@ -213,8 +210,8 @@ fn draw_dashed_segment(
         );
     }
 
-    let last_start =
-        segment.start + direction_norm * (dashes - 1) as f32 / dashes as f32 * delta_len;
+    let last_start = segment.start + direction_norm * dashes as f32 * ARROW_DASH_FULL_LENGTH;
+    let last_len = (segment.end - last_start).len();
     draw_chain(
         draw_2d,
         framebuffer,
@@ -225,8 +222,7 @@ fn draw_dashed_segment(
         },
         color,
     );
-
-    (ARROW_DASH_FULL_LENGTH - (segment.end - last_start).len()).max(0.0)
+    (ARROW_DASH_FULL_LENGTH - last_len).max(0.0)
 }
 
 enum GraphRender {
