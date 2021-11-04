@@ -86,19 +86,16 @@ impl GameState {
 
                 // Line body
                 let chain = if arrow.bodies.len() > 1 {
-                    Curve::chain(
-                        &CardinalSpline::new(
-                            {
-                                let mut bodies = vec![start];
-                                bodies.extend(arrow.bodies.iter().map(|body| body.position));
-                                bodies.push(end);
-                                bodies
-                            },
-                            0.5,
-                        ),
-                        CURVE_RESOLUTION,
-                        ARROW_WIDTH,
+                    CardinalSpline::new(
+                        {
+                            let mut bodies = vec![start];
+                            bodies.extend(arrow.bodies.iter().map(|body| body.position));
+                            bodies.push(end);
+                            bodies
+                        },
+                        0.5,
                     )
+                    .chain(CURVE_RESOLUTION, ARROW_WIDTH)
                 } else {
                     ParabolaCurve::new([start, arrow.bodies[0].position, end])
                         .chain(CURVE_RESOLUTION, ARROW_WIDTH)

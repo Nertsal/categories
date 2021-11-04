@@ -15,9 +15,9 @@ pub trait Curve {
 pub trait CubicHermiteCurve {
     /// Get the intervals of the curve.
     fn intervals(&self) -> Vec<CurveInterval>;
+}
 
-    /// Convert to a chain (list of segments).
-    /// Resolution defines the number of line segments per curve interval.
+impl<T: CubicHermiteCurve> Curve for T {
     fn chain(&self, resolution: usize, width: f32) -> Chain {
         let intervals = self.intervals();
         let mut vertices = Vec::with_capacity(resolution * intervals.len());
@@ -31,12 +31,6 @@ pub trait CubicHermiteCurve {
         }
 
         Chain { vertices, width }
-    }
-}
-
-impl<T: CubicHermiteCurve> Curve for T {
-    fn chain(&self, resolution: usize, width: f32) -> Chain {
-        self.chain(resolution, width)
     }
 }
 

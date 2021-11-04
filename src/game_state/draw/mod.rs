@@ -100,14 +100,11 @@ impl GameState {
                 self.geng.draw_2d(),
                 framebuffer,
                 &self.camera,
-                Curve::chain(
-                    &CardinalSpline {
-                        points: edge_points,
-                        tension: 0.5,
-                    },
-                    CURVE_RESOLUTION,
-                    ARROW_WIDTH + SELECTED_RADIUS,
-                ),
+                CardinalSpline {
+                    points: edge_points,
+                    tension: 0.5,
+                }
+                .chain(CURVE_RESOLUTION, ARROW_WIDTH + SELECTED_RADIUS),
                 SELECTED_COLOR,
             );
         }
