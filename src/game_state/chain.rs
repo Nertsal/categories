@@ -18,7 +18,7 @@ impl Chain {
         Some(self.vertices[length - 1] - self.vertices[length - 2])
     }
 
-    pub fn segments(self) -> Vec<Segment> {
+    pub fn segments(&self) -> Vec<Segment> {
         let length = self.vertices.len();
         if length < 2 {
             return vec![];
@@ -38,34 +38,54 @@ impl Chain {
     }
 
     pub fn triangle_strip(&self) -> Vec<Vec2<f32>> {
-        let length = self.vertices.len();
-        if length < 2 {
+        let len = self.vertices.len();
+        if len < 2 {
             return vec![];
         }
 
-        let length = length * 2;
-        let mut polygon = Vec::with_capacity(length);
-        let mut prev = self.vertices[0];
-        for vertex in self
-            .vertices
-            .iter()
-            .skip(1)
-            .copied()
-            .chain(std::iter::once(prev))
-        {
-            let normal = (vertex - prev).rotate_90();
+        let mut polygon = Vec::with_capacity(len * 2);
+
+        fn add(polygon: &mut Vec<Vec2<f32>>, vertex: Vec2<f32>, direction: Vec2<f32>, width: f32) {
+            let normal = direction.rotate_90();
             let len = normal.len();
             let normal = if len.approx_eq(&0.0) {
                 Vec2::ZERO
             } else {
                 normal / len
             };
-            let shift = normal * self.width / 2.0;
-            polygon.push(prev + shift);
-            polygon.push(prev - shift);
-            prev = vertex;
+            let shift = normal * width / 2.0;
+            polygon.push(vertex + shift);
+            polygon.push(vertex - shift);
         }
-        polygon.to_vec()
+
+        // Start
+        add(
+            &mut polygon,
+            self.vertices[0],
+            self.vertices[1] - self.vertices[0],
+            self.width,
+        );
+
+        // Middle
+        for ((prev, current), next) in self
+            .vertices
+            .iter()
+            .copied()
+            .zip(self.vertices.iter().copied().skip(1))
+            .zip(self.vertices.iter().copied().skip(2))
+        {
+            add(&mut polygon, current, next - prev, self.width);
+        }
+
+        // End
+        add(
+            &mut polygon,
+            self.vertices[len - 1],
+            self.vertices[len - 1] - self.vertices[len - 2],
+            self.width,
+        );
+
+        polygon
     }
 }
 

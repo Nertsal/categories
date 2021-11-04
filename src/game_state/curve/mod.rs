@@ -6,7 +6,9 @@ mod parabola;
 pub use cardinal::CardinalSpline;
 pub use parabola::ParabolaCurve;
 
+/// A trait representing a generic curve.
 pub trait Curve {
+    /// Converts a curve into a chain (a list of segments) for rendering and collision detection.
     fn chain(&self, resolution: usize, width: f32) -> Chain;
 }
 
