@@ -1,6 +1,8 @@
 use super::*;
 
 pub type Graph = force_graph::ForceGraph<Point, Arrow<VertexId>>;
+pub type Vertex = ForceVertex<Point>;
+pub type Edge = ForceEdge<Arrow<VertexId>>;
 
 #[derive(Debug, Clone)]
 pub struct Point {

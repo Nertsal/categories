@@ -7,10 +7,10 @@ const ARROW_HEAD_LENGTH: f32 = 2.0;
 const ARROW_LENGTH_MAX_FRAC: f32 = 0.5;
 
 const ARROW_DASHED_DASH_LENGTH: f32 = 0.7;
-const ARROW_DASHED_SPACE_LENGTH: f32 = 0.5;
+const ARROW_DASHED_SPACE_LENGTH: f32 = 0.3;
 const ARROW_DASH_FULL_LENGTH: f32 = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_SPACE_LENGTH;
 
-const CURVE_RESOLUTION: usize = 10;
+const CURVE_RESOLUTION: usize = 5;
 
 const SELECTION_COLOR: Color<f32> = Color {
     r: 0.0,
@@ -42,22 +42,22 @@ impl GameState {
         );
 
         // Dragging
-        match &self.dragging {
-            Some(Dragging::Selection {
-                world_start_pos, ..
-            }) => {
-                let world_pos = self.camera.screen_to_world(
-                    self.framebuffer_size,
-                    self.geng.window().mouse_pos().map(|x| x as f32),
-                );
-                self.geng.draw_2d().quad(
-                    framebuffer,
-                    &self.camera,
-                    AABB::from_corners(*world_start_pos, world_pos),
-                    SELECTION_COLOR,
-                );
+        if let Some(dragging) = &self.dragging {
+            match &dragging.action {
+                DragAction::Selection => {
+                    let world_pos = self.camera.screen_to_world(
+                        self.framebuffer_size,
+                        self.geng.window().mouse_pos().map(|x| x as f32),
+                    );
+                    self.geng.draw_2d().quad(
+                        framebuffer,
+                        &self.camera,
+                        AABB::from_corners(dragging.world_start_position, world_pos),
+                        SELECTION_COLOR,
+                    );
+                }
+                _ => (),
             }
-            _ => (),
         }
 
         // Selection

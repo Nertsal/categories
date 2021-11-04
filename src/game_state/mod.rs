@@ -139,15 +139,14 @@ impl geng::State for GameState {
     }
 }
 
-enum Dragging {
-    MoveVertex {
-        vertex: VertexId,
-    },
-    MoveEdge {
-        edge: EdgeId,
-    },
-    Selection {
-        mouse_start_pos: Vec2<f64>,
-        world_start_pos: Vec2<f32>,
-    },
+struct Dragging {
+    mouse_start_position: Vec2<f64>,
+    world_start_position: Vec2<f32>,
+    action: DragAction,
+}
+
+enum DragAction {
+    MoveVertex { vertex: VertexId },
+    MoveEdge { edge: EdgeId },
+    Selection,
 }

@@ -4,8 +4,8 @@ impl GameState {
     pub fn update_impl(&mut self, _delta_time: f32) {
         if let Some(dragging) = &mut self.dragging {
             let mouse_position = self.geng.window().mouse_pos();
-            match dragging {
-                Dragging::MoveVertex { vertex } => {
+            match &dragging.action {
+                DragAction::MoveVertex { vertex } => {
                     let world_pos = self
                         .camera
                         .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
@@ -18,7 +18,7 @@ impl GameState {
                         }
                     }
                 }
-                Dragging::MoveEdge { edge } => {
+                DragAction::MoveEdge { edge } => {
                     let world_pos = self
                         .camera
                         .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));

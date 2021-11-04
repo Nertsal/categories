@@ -1,5 +1,11 @@
 use super::*;
 
+mod geom;
+mod select;
+
+use geom::*;
+pub use select::*;
+
 pub struct Selection {
     pub vertices: HashSet<VertexId>,
     pub edges: HashSet<EdgeId>,
