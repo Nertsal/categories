@@ -57,15 +57,15 @@ impl GameState {
             {
                 let to_position = to.body.position;
                 let from_position = from.body.position;
-                let delta = to_position - from_position;
-                let delta_len = delta.len();
-                let direction_norm = if delta_len.approx_eq(&0.0) {
-                    Vec2::ZERO
-                } else {
-                    delta / delta_len
-                };
-                let start = from_position + direction_norm * from.vertex.radius + offset;
-                let end = to_position - direction_norm * to.vertex.radius + offset;
+                // let delta = to_position - from_position;
+                // let delta_len = delta.len();
+                // let direction_norm = if delta_len.approx_eq(&0.0) {
+                //     Vec2::ZERO
+                // } else {
+                //     delta / delta_len
+                // };
+                let start = from_position + offset; // + direction_norm * from.vertex.radius;
+                let end = to_position + offset; // - direction_norm * to.vertex.radius;
 
                 // Line body
                 let chain = if arrow.bodies.len() > 1 {
@@ -83,7 +83,23 @@ impl GameState {
                     ParabolaCurve::new([start, arrow.bodies[0].position, end])
                         .chain(CURVE_RESOLUTION, ARROW_WIDTH)
                 };
+
                 let end_direction = chain.end_direction().unwrap();
+                let direction_norm = end_direction.normalize();
+                let normal = direction_norm.rotate_90();
+                let scale = ARROW_HEAD_LENGTH.min((end - start).len() * ARROW_LENGTH_MAX_FRAC)
+                    / ARROW_HEAD_LENGTH;
+                let head_length = ARROW_HEAD_LENGTH * scale;
+                let head_offset = direction_norm * (head_length + to.vertex.radius);
+                let head = end - head_offset;
+                let head_width = normal * ARROW_HEAD_WIDTH * scale;
+
+                let chain_len = chain.length();
+                let chain = chain.take_range_ratio(
+                    from.vertex.radius / chain_len
+                        ..=1.0 - (to.vertex.radius + head_length) / chain_len,
+                );
+
                 match arrow.edge.connection {
                     ArrowConnection::Best => {
                         draw_chain(draw, framebuffer, camera, chain, arrow.edge.color());
@@ -96,19 +112,15 @@ impl GameState {
                     }
                 }
 
-                let direction_norm = end_direction.normalize();
-                let normal = direction_norm.rotate_90();
-                let scale = ARROW_HEAD_LENGTH.min((end - start).len() * ARROW_LENGTH_MAX_FRAC)
-                    / ARROW_HEAD_LENGTH;
-                let head_length = direction_norm * ARROW_HEAD_LENGTH * scale;
-                let head = end - head_length;
-                let head_width = normal * ARROW_HEAD_WIDTH * scale;
-
                 // Line head
                 draw.draw(
                     framebuffer,
                     camera,
-                    &[end, head + head_width, head - head_width],
+                    &[
+                        end - direction_norm * to.vertex.radius,
+                        head + head_width,
+                        head - head_width,
+                    ],
                     arrow.edge.color(),
                     ugli::DrawMode::Triangles,
                 );
