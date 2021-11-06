@@ -116,6 +116,7 @@ impl Rule {
                     velocity: Vec2::ZERO,
                 },
                 vertex: Point {
+                    label: "".to_owned(),
                     radius: POINT_RADIUS,
                     color: Color::WHITE,
                 },
@@ -125,6 +126,7 @@ impl Rule {
         // Add connections
         for new_edge in &self.new_edges {
             let new_edge = Arrow {
+                label: "".to_owned(),
                 from: vertices[new_edge.from],
                 to: vertices[new_edge.to],
                 connection: new_edge.connection,

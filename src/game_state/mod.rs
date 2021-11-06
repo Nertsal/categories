@@ -45,11 +45,13 @@ impl GameState {
                 1,
                 vec![
                     Arrow {
+                        label: "".to_owned(),
                         from: 2,
                         to: 0,
                         connection: ArrowConnection::Best,
                     },
                     Arrow {
+                        label: "".to_owned(),
                         from: 2,
                         to: 1,
                         connection: ArrowConnection::Best,
@@ -67,54 +69,50 @@ impl GameState {
 
                 let mut rng = thread_rng();
 
-                let mut point = |position: Vec2<f32>, color: Color<f32>, anchor: bool| {
-                    (
-                        position,
-                        graph.graph.new_vertex(ForceVertex {
-                            is_anchor: anchor,
-                            body: ForceBody {
-                                position: position + vec2(rng.gen(), rng.gen()),
-                                mass: POINT_MASS,
-                                velocity: Vec2::ZERO,
-                            },
-                            vertex: Point {
-                                radius: POINT_RADIUS,
-                                color,
-                            },
-                        }),
-                    )
+                let mut point = |label: &str, color: Color<f32>, anchor: bool| {
+                    graph.graph.new_vertex(ForceVertex {
+                        is_anchor: anchor,
+                        body: ForceBody {
+                            position: vec2(rng.gen(), rng.gen()),
+                            mass: POINT_MASS,
+                            velocity: Vec2::ZERO,
+                        },
+                        vertex: Point {
+                            label: label.to_owned(),
+                            radius: POINT_RADIUS,
+                            color,
+                        },
+                    })
                 };
 
                 let vertices = vec![
-                    point(vec2(-10.0, 0.0), Color::WHITE, false),
-                    point(vec2(0.0, 0.0), Color::GREEN, true),
-                    point(vec2(10.0, 0.0), Color::WHITE, false),
-                    point(vec2(0.0, 10.0), Color::MAGENTA, false),
-                    point(vec2(0.0, 20.0), Color::BLUE, false),
+                    point("A", Color::WHITE, false),
+                    point("AxB", Color::GREEN, false),
+                    point("B", Color::WHITE, false),
+                    point("", Color::BLUE, false),
                 ];
 
-                let mut connect = |from: usize, to: usize, connection: ArrowConnection| {
-                    graph.graph.new_edge(ForceEdge::new(
-                        vertices[from].0 + vec2(rng.gen(), rng.gen()),
-                        vertices[to].0 + vec2(rng.gen(), rng.gen()),
-                        ARROW_BODIES,
-                        ARROW_MASS,
-                        Arrow {
-                            from: vertices[from].1,
-                            to: vertices[to].1,
-                            connection,
-                        },
-                    ))
-                };
+                let mut connect =
+                    |label: &str, from: usize, to: usize, connection: ArrowConnection| {
+                        graph.graph.new_edge(ForceEdge::new(
+                            vec2(rng.gen(), rng.gen()),
+                            vec2(rng.gen(), rng.gen()),
+                            ARROW_BODIES,
+                            ARROW_MASS,
+                            Arrow {
+                                label: label.to_owned(),
+                                from: vertices[from],
+                                to: vertices[to],
+                                connection,
+                            },
+                        ))
+                    };
 
-                connect(1, 0, ArrowConnection::Best);
-                connect(1, 2, ArrowConnection::Best);
-                connect(3, 0, ArrowConnection::Regular);
-                connect(3, 2, ArrowConnection::Regular);
-                connect(4, 0, ArrowConnection::Regular);
-                connect(4, 2, ArrowConnection::Regular);
-                connect(3, 1, ArrowConnection::Unique);
-                connect(4, 3, ArrowConnection::Unique);
+                connect("a", 1, 0, ArrowConnection::Best);
+                connect("b", 1, 2, ArrowConnection::Best);
+                connect("", 3, 0, ArrowConnection::Regular);
+                connect("", 3, 2, ArrowConnection::Regular);
+                connect("", 3, 1, ArrowConnection::Unique);
 
                 graph
             },

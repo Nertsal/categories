@@ -4,10 +4,10 @@ impl GameState {
     pub(super) fn draw_graph(
         &self,
         framebuffer: &mut ugli::Framebuffer,
+        camera: &Camera2d,
         graph: &Graph,
         offset: Vec2<f32>,
         align: Option<Vec2<f32>>,
-        render: GraphRender,
     ) {
         let draw = self.geng.draw_2d();
 
@@ -35,26 +35,10 @@ impl GameState {
                 (size * (vec2(1.0, 1.0) - align), size)
             });
 
-        let scale = match render {
-            GraphRender::ScaledAligned { scale } => scale,
-            GraphRender::Fit { size, scale } => align_offset
-                .map(|(_, graph_size)| match scale {
-                    GraphFitScale::Fit => size / graph_size,
-                    GraphFitScale::KeepRatio => {
-                        let scale = size / graph_size;
-                        let scale = scale.x.min(scale.y);
-                        vec2(scale, scale)
-                    }
-                })
-                .unwrap_or(vec2(1.0, 1.0)),
-        };
-
         let offset = match align_offset {
-            Some((graph_offset, _)) => offset + graph_offset * scale,
+            Some((graph_offset, _)) => offset + graph_offset,
             None => offset,
         };
-
-        let scale_min = scale.x.min(scale.y);
 
         // Edges
         for (_, arrow) in graph.graph.edges.iter() {
@@ -71,8 +55,8 @@ impl GameState {
                         .map(|to| (from, to))
                 })
             {
-                let to_position = to.body.position * scale;
-                let from_position = from.body.position * scale;
+                let to_position = to.body.position;
+                let from_position = from.body.position;
                 let delta = to_position - from_position;
                 let delta_len = delta.len();
                 let direction_norm = if delta_len.approx_eq(&0.0) {
@@ -80,9 +64,8 @@ impl GameState {
                 } else {
                     delta / delta_len
                 };
-                let start =
-                    from_position + direction_norm * from.vertex.radius * scale_min + offset;
-                let end = to_position - direction_norm * to.vertex.radius * scale_min + offset;
+                let start = from_position + direction_norm * from.vertex.radius + offset;
+                let end = to_position - direction_norm * to.vertex.radius + offset;
 
                 // Line body
                 let chain = if arrow.bodies.len() > 1 {
@@ -103,27 +86,20 @@ impl GameState {
                 let end_direction = chain.end_direction().unwrap();
                 match arrow.edge.connection {
                     ArrowConnection::Best => {
-                        draw_chain(draw, framebuffer, &self.camera, chain, arrow.edge.color());
+                        draw_chain(draw, framebuffer, camera, chain, arrow.edge.color());
                     }
                     ArrowConnection::Regular => {
-                        draw_chain(draw, framebuffer, &self.camera, chain, arrow.edge.color());
+                        draw_chain(draw, framebuffer, camera, chain, arrow.edge.color());
                     }
                     ArrowConnection::Unique => {
-                        draw_dashed_chain(
-                            draw,
-                            framebuffer,
-                            &self.camera,
-                            chain,
-                            arrow.edge.color(),
-                        );
+                        draw_dashed_chain(draw, framebuffer, camera, chain, arrow.edge.color());
                     }
                 }
 
                 let direction_norm = end_direction.normalize();
                 let normal = direction_norm.rotate_90();
                 let scale = ARROW_HEAD_LENGTH.min((end - start).len() * ARROW_LENGTH_MAX_FRAC)
-                    / ARROW_HEAD_LENGTH
-                    * scale;
+                    / ARROW_HEAD_LENGTH;
                 let head_length = direction_norm * ARROW_HEAD_LENGTH * scale;
                 let head = end - head_length;
                 let head_width = normal * ARROW_HEAD_WIDTH * scale;
@@ -131,7 +107,7 @@ impl GameState {
                 // Line head
                 draw.draw(
                     framebuffer,
-                    &self.camera,
+                    camera,
                     &[end, head + head_width, head - head_width],
                     arrow.edge.color(),
                     ugli::DrawMode::Triangles,
@@ -145,11 +121,45 @@ impl GameState {
         for (_, vertex) in graph.graph.vertices.iter() {
             draw.circle(
                 framebuffer,
-                &self.camera,
-                vertex.body.position * scale + offset,
-                vertex.vertex.radius * scale_min,
+                camera,
+                vertex.body.position + offset,
+                vertex.vertex.radius,
                 vertex.vertex.color,
+            );
+
+            draw_fit_text(
+                self.geng.default_font(),
+                framebuffer,
+                camera,
+                &vertex.vertex.label,
+                vertex.body.position + offset,
+                geng::TextAlign::CENTER,
+                vertex.vertex.radius * 1.5,
+                Color::GRAY,
             );
         }
     }
+}
+
+fn draw_fit_text(
+    font: &geng::Font,
+    framebuffer: &mut ugli::Framebuffer,
+    camera: &impl geng::AbstractCamera2d,
+    text: &str,
+    mut pos: Vec2<f32>,
+    align: geng::TextAlign,
+    fit_width: f32,
+    color: Color<f32>,
+) {
+    let mut size = 10.0;
+    let aabb = font.measure(text, size);
+
+    let width = aabb.width();
+    if width.approx_eq(&0.0) {
+        return;
+    }
+
+    size *= fit_width / width;
+    pos.y -= size / 4.0; // Align vertically
+    font.draw(framebuffer, camera, text, pos, align, size, color);
 }

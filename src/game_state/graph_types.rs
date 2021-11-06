@@ -6,6 +6,7 @@ pub type Edge = ForceEdge<Arrow<VertexId>>;
 
 #[derive(Debug, Clone)]
 pub struct Point {
+    pub label: String,
     pub radius: f32,
     pub color: Color<f32>,
 }
@@ -20,6 +21,7 @@ impl Point {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Arrow<T> {
+    pub label: String,
     pub from: T,
     pub to: T,
     pub connection: ArrowConnection,

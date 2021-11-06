@@ -33,12 +33,10 @@ impl GameState {
         // Graph
         self.draw_graph(
             framebuffer,
+            &self.camera,
             &self.force_graph,
             vec2(0.0, 0.0),
             None,
-            GraphRender::ScaledAligned {
-                scale: vec2(1.0, 1.0),
-            },
         );
 
         // Dragging
@@ -223,19 +221,4 @@ fn draw_dashed_segment(
         color,
     );
     (ARROW_DASH_FULL_LENGTH - last_len).max(0.0)
-}
-
-enum GraphRender {
-    Fit {
-        size: Vec2<f32>,
-        scale: GraphFitScale,
-    },
-    ScaledAligned {
-        scale: Vec2<f32>,
-    },
-}
-
-enum GraphFitScale {
-    KeepRatio,
-    Fit,
 }
