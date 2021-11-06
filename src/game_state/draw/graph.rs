@@ -162,6 +162,7 @@ impl GameState {
                 vertex.body.position + offset,
                 geng::TextAlign::CENTER,
                 vertex.vertex.radius * 1.5,
+                Some(vertex.vertex.radius * 1.5),
                 Color::GRAY,
             );
         }
@@ -176,6 +177,7 @@ fn draw_fit_text(
     mut pos: Vec2<f32>,
     align: geng::TextAlign,
     fit_width: f32,
+    fit_height: Option<f32>,
     color: Color<f32>,
 ) {
     let mut size = 10.0;
@@ -186,7 +188,14 @@ fn draw_fit_text(
         return;
     }
 
-    size *= fit_width / width;
+    let mut scale = fit_width / width;
+
+    if let Some(fit_height) = fit_height {
+        let height = aabb.height();
+        scale = scale.min(fit_height / height);
+    }
+
+    size *= scale;
     pos.y -= size / 4.0; // Align vertically
     font.draw(framebuffer, camera, text, pos, align, size, color);
 }
