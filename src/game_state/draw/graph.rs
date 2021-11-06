@@ -112,6 +112,19 @@ impl GameState {
                     arrow.edge.color(),
                     ugli::DrawMode::Triangles,
                 );
+
+                // Label
+                if let Some(center) = arrow.bodies.get(arrow.bodies.len() / 2) {
+                    self.geng.default_font().draw(
+                        framebuffer,
+                        camera,
+                        &arrow.edge.label,
+                        center.position + offset,
+                        geng::TextAlign::CENTER,
+                        ARROW_LABEL_FONT_SIZE,
+                        Color::GRAY,
+                    );
+                }
             } else {
                 warn!("Edge connects a non-existent vertex, edge = {:?}", arrow);
             }
@@ -119,6 +132,7 @@ impl GameState {
 
         // Vertices
         for (_, vertex) in graph.graph.vertices.iter() {
+            // Vertex
             draw.circle(
                 framebuffer,
                 camera,
@@ -127,6 +141,7 @@ impl GameState {
                 vertex.vertex.color,
             );
 
+            // Label
             draw_fit_text(
                 self.geng.default_font(),
                 framebuffer,

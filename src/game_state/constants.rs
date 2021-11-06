@@ -11,3 +11,5 @@ pub const ARROW_REGULAR_COLOR: Color<f32> = Color::BLUE;
 pub const ARROW_UNIQUE_COLOR: Color<f32> = Color::RED;
 
 pub const SELECTION_RADIUS: f32 = 0.5;
+
+pub const ARROW_LABEL_FONT_SIZE: f32 = 2.0;
