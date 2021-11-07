@@ -25,7 +25,7 @@ impl GameState {
             .collect();
 
         // Check & apply the rule
-        let rule = &self.rules[rule_index];
+        let rule = &self.rules[rule_index].0;
         rule.check_constraints(&input_vertices, &input_edges)
             .map(|vertices| rule.apply(&mut self.force_graph, vertices))
             .is_some()
@@ -37,6 +37,7 @@ pub struct Rule {
     input_edges: Vec<ArrowConstraint<usize>>,
     new_vertices: usize,
     new_edges: Vec<Arrow<usize>>,
+    graph: Graph,
 }
 
 impl Rule {
@@ -65,11 +66,68 @@ impl Rule {
         }
 
         Ok(Self {
+            graph: {
+                let mut rng = thread_rng();
+                let mut random_pos = || vec2(rng.gen(), rng.gen());
+                let mut graph = Graph::new(ForceParameters::default());
+                // Vertices
+                let vertices = (0..input_vertices + new_vertices)
+                    .map(|i| {
+                        graph.graph.new_vertex(ForceVertex {
+                            is_anchor: false,
+                            body: ForceBody::new(random_pos(), POINT_MASS),
+                            vertex: Point {
+                                label: i.to_string(),
+                                radius: POINT_RADIUS,
+                                color: Color::WHITE,
+                            },
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                // Edges
+                for edge in &input_edges {
+                    graph.graph.new_edge(ForceEdge::new(
+                        random_pos(),
+                        random_pos(),
+                        ARROW_BODIES,
+                        ARROW_MASS,
+                        Arrow {
+                            label: "".to_owned(),
+                            from: vertices[edge.from],
+                            to: vertices[edge.to],
+                            connection: edge.connection,
+                        },
+                    ));
+                }
+                for edge in &new_edges {
+                    graph.graph.new_edge(ForceEdge::new(
+                        random_pos(),
+                        random_pos(),
+                        ARROW_BODIES,
+                        ARROW_MASS,
+                        Arrow {
+                            label: "".to_owned(),
+                            from: vertices[edge.from],
+                            to: vertices[edge.to],
+                            connection: edge.connection,
+                        },
+                    ));
+                }
+                graph
+            },
             input_vertices,
             input_edges,
             new_vertices,
             new_edges,
         })
+    }
+
+    pub fn graph(&self) -> &Graph {
+        &self.graph
+    }
+
+    pub fn update_graph(&mut self, delta_time: f32) {
+        self.graph.update(delta_time);
     }
 
     /// Checks that input meets the rule's constraints.
@@ -91,6 +149,7 @@ impl Rule {
             let constraint = ArrowConstraint {
                 from: vertices[edge.from],
                 to: vertices[edge.to],
+                connection: edge.connection,
             };
             if !input_edges
                 .iter()

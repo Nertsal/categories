@@ -54,6 +54,7 @@ pub enum ArrowConnection {
 pub struct ArrowConstraint<T> {
     pub from: T,
     pub to: T,
+    pub connection: ArrowConnection,
 }
 
 impl<T: PartialEq> Arrow<T> {

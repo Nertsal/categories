@@ -1,6 +1,18 @@
 use super::*;
 
+mod chain;
 mod graph;
+mod rule;
+
+use chain::*;
+use graph::*;
+
+const RULES_WIDTH: f32 = 20.0;
+const RULE_RESOLUTION: Vec2<usize> = vec2(640, 360);
+const RULES_SECTION_SEPARATION_WIDTH: f32 = 1.0;
+const RULE_SEPARATION_WIDTH: f32 = 0.2;
+const RULES_SECTION_SEPARATION_COLOR: Color<f32> = Color::GRAY;
+const RULE_SEPARATION_COLOR: Color<f32> = Color::CYAN;
 
 const ARROW_HEAD_WIDTH: f32 = 0.5;
 const ARROW_HEAD_LENGTH: f32 = 2.0;
@@ -28,16 +40,20 @@ const SELECTED_COLOR: Color<f32> = Color {
 
 impl GameState {
     pub fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer) {
+        self.framebuffer_size = framebuffer.size().map(|x| x as f32);
         ugli::clear(framebuffer, Some(Color::BLACK), None);
 
-        // Graph
-        self.draw_graph(
+        // Main graph
+        draw_graph(
+            self.geng.draw_2d(),
+            self.geng.default_font(),
             framebuffer,
             &self.camera,
             &self.force_graph,
-            vec2(0.0, 0.0),
-            None,
         );
+
+        // Rules
+        self.draw_rules(framebuffer);
 
         // Dragging
         if let Some(dragging) = &self.dragging {
@@ -109,116 +125,11 @@ impl GameState {
     }
 }
 
-fn draw_chain(
-    draw_2d: &Rc<geng::Draw2D>,
-    framebuffer: &mut ugli::Framebuffer,
-    camera: &Camera2d,
-    chain: Chain,
-    color: Color<f32>,
-) {
-    draw_2d.draw(
-        framebuffer,
-        camera,
-        &chain.triangle_strip(),
-        color,
-        ugli::DrawMode::TriangleStrip,
-    );
-}
-
-fn draw_dashed_chain(
-    draw_2d: &Rc<geng::Draw2D>,
-    framebuffer: &mut ugli::Framebuffer,
-    camera: &Camera2d,
-    chain: Chain,
-    color: Color<f32>,
-) {
-    let mut dash_full_left = 0.0;
-    for segment in chain.segments() {
-        dash_full_left =
-            draw_dashed_segment(draw_2d, framebuffer, camera, segment, color, dash_full_left);
-    }
-}
-
-/// Draws a dashed segment.
-/// Returns the unrendered length of the last dash.
-fn draw_dashed_segment(
-    draw_2d: &Rc<geng::Draw2D>,
-    framebuffer: &mut ugli::Framebuffer,
-    camera: &Camera2d,
-    mut segment: Segment,
-    color: Color<f32>,
-    dash_full_left: f32,
-) -> f32 {
-    let delta = segment.end - segment.start;
-    let delta_len = delta.len();
-    let direction_norm = if delta.len().approx_eq(&0.0) {
-        return dash_full_left;
-    } else {
-        delta / delta_len
-    };
-
-    if dash_full_left > 0.0 {
-        // Finish drawing the previous dash and offset current segment
-        let dash_full_length = dash_full_left.min(delta_len);
-        let dash_length = dash_full_left - ARROW_DASHED_SPACE_LENGTH;
-        if dash_length > 0.0 {
-            // Finish dash
-            let dash_length = dash_length.min(dash_full_length);
-            let dash_end = segment.start + direction_norm * dash_length;
-            assert!(dash_length <= delta_len);
-            draw_chain(
-                draw_2d,
-                framebuffer,
-                camera,
-                Chain {
-                    vertices: vec![segment.start, dash_end],
-                    width: segment.width,
-                },
-                color,
-            );
-        }
-
-        // Finish space
-        let dash_left = dash_full_left - dash_full_length;
-        if dash_left > 0.0 {
-            return dash_left;
-        }
-
-        // Offset
-        segment.start += dash_full_length * direction_norm
-    }
-
-    // Recalculate delta
-    let delta_len = (segment.end - segment.start).len();
-    let dashes = (delta_len / ARROW_DASH_FULL_LENGTH).floor() as usize;
-    for i in 0..dashes {
-        let dash_start = segment.start + direction_norm * i as f32 * ARROW_DASH_FULL_LENGTH;
-        draw_chain(
-            draw_2d,
-            framebuffer,
-            camera,
-            Chain {
-                vertices: vec![
-                    dash_start,
-                    dash_start + direction_norm * ARROW_DASHED_DASH_LENGTH,
-                ],
-                width: segment.width,
-            },
-            color,
-        );
-    }
-
-    let last_start = segment.start + direction_norm * dashes as f32 * ARROW_DASH_FULL_LENGTH;
-    let last_len = (segment.end - last_start).len();
-    draw_chain(
-        draw_2d,
-        framebuffer,
-        camera,
-        Chain {
-            vertices: vec![last_start, segment.end],
-            width: segment.width,
-        },
-        color,
-    );
-    (ARROW_DASH_FULL_LENGTH - last_len).max(0.0)
+fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {
+    AABB::point(camera.center).extend_symmetric(
+        vec2(
+            camera.fov / framebuffer_size.y * framebuffer_size.x,
+            camera.fov,
+        ) / 2.0,
+    )
 }

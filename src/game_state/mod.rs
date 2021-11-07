@@ -29,7 +29,7 @@ pub struct GameState {
     force_graph: Graph,
     dragging: Option<Dragging>,
     selection: Selection,
-    rules: Vec<Rule>,
+    rules: Vec<(Rule, Camera2d)>,
 }
 
 impl GameState {
@@ -39,31 +39,38 @@ impl GameState {
             dragging: None,
             framebuffer_size: vec2(1.0, 1.0),
             selection: Selection::new(),
-            rules: vec![Rule::new(
-                2,
-                vec![],
-                1,
-                vec![
-                    Arrow {
-                        label: "".to_owned(),
-                        from: 2,
-                        to: 0,
-                        connection: ArrowConnection::Best,
-                    },
-                    Arrow {
-                        label: "".to_owned(),
-                        from: 2,
-                        to: 1,
-                        connection: ArrowConnection::Best,
-                    },
-                ],
-            )
-            .unwrap()],
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
                 fov: 100.0,
             },
+            rules: vec![(
+                Rule::new(
+                    2,
+                    vec![],
+                    1,
+                    vec![
+                        Arrow {
+                            label: "".to_owned(),
+                            from: 2,
+                            to: 0,
+                            connection: ArrowConnection::Best,
+                        },
+                        Arrow {
+                            label: "".to_owned(),
+                            from: 2,
+                            to: 1,
+                            connection: ArrowConnection::Best,
+                        },
+                    ],
+                )
+                .unwrap(),
+                Camera2d {
+                    center: Vec2::ZERO,
+                    rotation: 0.0,
+                    fov: 30.0,
+                },
+            )],
             force_graph: {
                 let mut graph = Graph::new(ForceParameters::default());
 
@@ -123,12 +130,10 @@ impl GameState {
 impl geng::State for GameState {
     fn update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32;
-        self.force_graph.update(delta_time);
         self.update_impl(delta_time);
     }
 
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        self.framebuffer_size = framebuffer.size().map(|x| x as f32);
         self.draw_impl(framebuffer);
     }
 

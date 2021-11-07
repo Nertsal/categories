@@ -1,7 +1,12 @@
 use super::*;
 
 impl GameState {
-    pub fn update_impl(&mut self, _delta_time: f32) {
+    pub fn update_impl(&mut self, delta_time: f32) {
+        self.force_graph.update(delta_time);
+        for (rule, _) in &mut self.rules {
+            rule.update_graph(delta_time);
+        }
+
         if let Some(dragging) = &mut self.dragging {
             let mouse_position = self.geng.window().mouse_pos();
             match &dragging.action {
