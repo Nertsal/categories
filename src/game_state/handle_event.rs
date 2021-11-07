@@ -82,7 +82,6 @@ impl GameState {
                         self.select(vec![*vertex], vec![], SelectionOptions::New);
                     }
                 }
-                _ => (),
             }
         }
     }
