@@ -1,6 +1,22 @@
 use super::*;
 
 impl GameState {
+    pub fn rules_layout<'a>(&'a self) -> impl Iterator<Item = AABB<f32>> + 'a {
+        let camera_view = camera_view(&self.camera, self.framebuffer_size);
+
+        let rule_height = RULES_WIDTH / RULE_RESOLUTION.x as f32 * RULE_RESOLUTION.y as f32;
+        let rule_aabb_base = AABB::point(camera_view.top_right())
+            .extend_left(RULES_WIDTH)
+            .extend_down(rule_height);
+
+        self.rules
+            .iter()
+            .enumerate()
+            .map(move |(rule_index, (_, _))| {
+                rule_aabb_base.translate(vec2(0.0, -rule_height * rule_index as f32))
+            })
+    }
+
     pub fn draw_rules(&mut self, framebuffer: &mut ugli::Framebuffer) {
         let camera_view = camera_view(&self.camera, self.framebuffer_size);
 
@@ -20,14 +36,13 @@ impl GameState {
             RULES_SECTION_SEPARATION_COLOR,
         );
 
-        let rule_height = RULES_WIDTH / RULE_RESOLUTION.x as f32 * RULE_RESOLUTION.y as f32;
-        let rule_aabb_base = AABB::point(camera_view.top_right())
-            .extend_left(RULES_WIDTH)
-            .extend_down(rule_height);
-
-        for (rule_index, (rule, camera)) in self.rules.iter().enumerate() {
-            let rule_aabb = rule_aabb_base.translate(vec2(0.0, -rule_height * rule_index as f32));
-
+        for (rule_index, ((rule, camera), rule_aabb)) in
+            self.rules.iter().zip(self.rules_layout()).enumerate()
+        {
+            let texture_color = match self.focused_rule {
+                Some(index) if index == rule_index => RULE_SELECTION_COLOR,
+                _ => Color::BLACK,
+            };
             // Separation line
             draw_chain(
                 self.geng.draw_2d(),
@@ -42,7 +57,7 @@ impl GameState {
 
             // Render to temporary texture
             let mut texture =
-                ugli::Texture2d::new_with(self.geng.ugli(), RULE_RESOLUTION, |_| Color::BLACK);
+                ugli::Texture2d::new_with(self.geng.ugli(), RULE_RESOLUTION, |_| texture_color);
             let mut temp_framebuffer = ugli::Framebuffer::new_color(
                 self.geng.ugli(),
                 ugli::ColorAttachment::Texture(&mut texture),

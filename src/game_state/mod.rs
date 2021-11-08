@@ -30,6 +30,7 @@ pub struct GameState {
     dragging: Option<Dragging>,
     selection: Selection,
     rules: Vec<(Rule, Camera2d)>,
+    focused_rule: Option<usize>,
 }
 
 impl GameState {
@@ -39,6 +40,7 @@ impl GameState {
             dragging: None,
             framebuffer_size: vec2(1.0, 1.0),
             selection: Selection::new(),
+            focused_rule: None,
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
@@ -152,4 +154,13 @@ enum DragAction {
     MoveVertex { vertex: VertexId },
     MoveEdge { edge: EdgeId },
     Selection,
+}
+
+fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {
+    AABB::point(camera.center).extend_symmetric(
+        vec2(
+            camera.fov / framebuffer_size.y * framebuffer_size.x,
+            camera.fov,
+        ) / 2.0,
+    )
 }

@@ -12,7 +12,13 @@ const RULE_RESOLUTION: Vec2<usize> = vec2(640, 360);
 const RULES_SECTION_SEPARATION_WIDTH: f32 = 1.0;
 const RULE_SEPARATION_WIDTH: f32 = 0.2;
 const RULES_SECTION_SEPARATION_COLOR: Color<f32> = Color::GRAY;
-const RULE_SEPARATION_COLOR: Color<f32> = Color::CYAN;
+const RULE_SEPARATION_COLOR: Color<f32> = Color::GRAY;
+const RULE_SELECTION_COLOR: Color<f32> = Color {
+    r: 0.2,
+    g: 0.2,
+    b: 0.2,
+    a: 1.0,
+};
 
 const ARROW_HEAD_WIDTH: f32 = 0.5;
 const ARROW_HEAD_LENGTH: f32 = 2.0;
@@ -123,13 +129,4 @@ impl GameState {
             );
         }
     }
-}
-
-fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {
-    AABB::point(camera.center).extend_symmetric(
-        vec2(
-            camera.fov / framebuffer_size.y * framebuffer_size.x,
-            camera.fov,
-        ) / 2.0,
-    )
 }
