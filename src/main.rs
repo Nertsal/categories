@@ -18,7 +18,11 @@ fn main() {
         }
     }
 
-    let geng = Geng::new("Categories");
+    let geng = Geng::new_with(geng::ContextOptions {
+        title: "Categories".to_owned(),
+        antialias: true,
+        ..default()
+    });
     let state = game_state::GameState::new(&geng);
 
     geng::run(&geng, state);

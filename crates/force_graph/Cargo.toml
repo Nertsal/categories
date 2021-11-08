@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 graphs = { path = "../graphs" }
-geng = "0.8.0"
+geng = { version = "0.8.0", git = "https://github.com/kuviman/geng" }
