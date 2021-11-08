@@ -25,7 +25,7 @@ impl GameState {
             .collect();
 
         // Check & apply the rule
-        let rule = &self.rules[rule_index].0;
+        let rule = self.rules.get_rule(rule_index).unwrap();
         rule.check_constraints(&input_vertices, &input_edges)
             .map(|vertices| rule.apply(&mut self.force_graph, vertices))
             .is_some()

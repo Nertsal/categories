@@ -4,12 +4,11 @@ impl GameState {
     pub fn update_impl(&mut self, delta_time: f32) {
         // Update graphs
         self.force_graph.update(delta_time);
-        for (rule, _) in &mut self.rules {
-            rule.update_graph(delta_time);
-        }
+        self.rules.update(delta_time);
 
         // Focus
-        self.focused_rule = self.focused_rule();
+        let focused = self.focused_rule();
+        self.rules.focus(focused);
 
         // Drag
         if let Some(dragging) = &mut self.dragging {
@@ -52,7 +51,8 @@ impl GameState {
             .camera
             .screen_to_world(self.framebuffer_size, mouse_pos);
 
-        self.rules_layout()
+        self.rules
+            .layout(&self.camera, self.framebuffer_size)
             .enumerate()
             .find(|(_, rule_aabb)| rule_aabb.contains(world_pos))
             .map(|(index, _)| index)

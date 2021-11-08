@@ -11,7 +11,7 @@ mod curve;
 mod draw;
 mod graph_types;
 mod handle_event;
-mod rule;
+mod rules;
 mod selection;
 mod update;
 
@@ -19,7 +19,7 @@ use chain::*;
 use constants::*;
 use curve::*;
 use graph_types::*;
-use rule::*;
+use rules::*;
 use selection::*;
 
 pub struct GameState {
@@ -29,8 +29,7 @@ pub struct GameState {
     force_graph: Graph,
     dragging: Option<Dragging>,
     selection: Selection,
-    rules: Vec<(Rule, Camera2d)>,
-    focused_rule: Option<usize>,
+    rules: Rules,
 }
 
 impl GameState {
@@ -40,14 +39,14 @@ impl GameState {
             dragging: None,
             framebuffer_size: vec2(1.0, 1.0),
             selection: Selection::new(),
-            focused_rule: None,
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
                 fov: 100.0,
             },
-            rules: vec![(
-                Rule::new(
+            rules: Rules::new(
+                geng,
+                vec![Rule::new(
                     2,
                     vec![],
                     1,
@@ -66,13 +65,8 @@ impl GameState {
                         },
                     ],
                 )
-                .unwrap(),
-                Camera2d {
-                    center: Vec2::ZERO,
-                    rotation: 0.0,
-                    fov: 30.0,
-                },
-            )],
+                .unwrap()],
+            ),
             force_graph: {
                 let mut graph = Graph::new(ForceParameters::default());
 

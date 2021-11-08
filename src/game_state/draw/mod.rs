@@ -1,48 +1,11 @@
 use super::*;
 
-mod chain;
-mod graph;
+pub mod chain;
+pub mod graph;
 mod rule;
 
 use chain::*;
 use graph::*;
-
-const RULES_WIDTH: f32 = 20.0;
-const RULE_RESOLUTION: Vec2<usize> = vec2(640, 360);
-const RULES_SECTION_SEPARATION_WIDTH: f32 = 1.0;
-const RULE_SEPARATION_WIDTH: f32 = 0.2;
-const RULES_SECTION_SEPARATION_COLOR: Color<f32> = Color::GRAY;
-const RULE_SEPARATION_COLOR: Color<f32> = Color::GRAY;
-const RULE_SELECTION_COLOR: Color<f32> = Color {
-    r: 0.2,
-    g: 0.2,
-    b: 0.2,
-    a: 1.0,
-};
-
-const ARROW_HEAD_WIDTH: f32 = 0.5;
-const ARROW_HEAD_LENGTH: f32 = 2.0;
-const ARROW_LENGTH_MAX_FRAC: f32 = 0.5;
-
-const ARROW_DASHED_DASH_LENGTH: f32 = 0.7;
-const ARROW_DASHED_SPACE_LENGTH: f32 = 0.3;
-const ARROW_DASH_FULL_LENGTH: f32 = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_SPACE_LENGTH;
-
-const CURVE_RESOLUTION: usize = 5;
-
-const SELECTION_COLOR: Color<f32> = Color {
-    r: 0.0,
-    g: 0.0,
-    b: 0.5,
-    a: 0.5,
-};
-const SELECTED_RADIUS: f32 = 0.5;
-const SELECTED_COLOR: Color<f32> = Color {
-    r: 0.7,
-    g: 0.7,
-    b: 0.7,
-    a: 0.5,
-};
 
 impl GameState {
     pub fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer) {
