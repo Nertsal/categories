@@ -23,8 +23,8 @@ impl Default for ForceParameters {
             force_charge_vertex: 500.0,
             force_charge_edge: 100.0,
             force_charge_edge_vertex: 20.0,
-            force_max: 280.0,
-            vertex_speed: 10.0,
+            force_max: 100.0,
+            vertex_speed: 5.0,
             damping_factor: 0.95,
             repel_distance_max: 30.0,
         }

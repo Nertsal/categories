@@ -21,6 +21,7 @@ fn main() {
     let geng = Geng::new_with(geng::ContextOptions {
         title: "Categories".to_owned(),
         antialias: true,
+        max_delta_time: 0.05,
         ..default()
     });
     let state = game_state::GameState::new(&geng);

@@ -35,7 +35,7 @@ impl GameState {
 pub struct Rule {
     input_vertices: usize,
     input_edges: Vec<ArrowConstraint<usize>>,
-    new_vertices: usize,
+    new_vertices: Vec<VertexId>,
     new_edges: Vec<Arrow<usize>>,
     graph: Graph,
 }
@@ -65,59 +65,67 @@ impl Rule {
             }
         }
 
+        let mut rng = thread_rng();
+        let mut random_pos = || vec2(rng.gen(), rng.gen());
+        let mut graph = Graph::new(ForceParameters::default());
+        // Vertices
+        let mut i = 0;
+        let mut new_vertex = || {
+            let id = graph.graph.new_vertex(ForceVertex {
+                is_anchor: false,
+                body: ForceBody::new(random_pos(), POINT_MASS),
+                vertex: Point {
+                    label: i.to_string(),
+                    radius: POINT_RADIUS,
+                    color: Color::WHITE,
+                },
+            });
+            i += 1;
+            id
+        };
+        let input_vertex_ids = (0..input_vertices)
+            .map(|_| new_vertex())
+            .collect::<Vec<_>>();
+        let new_vertex_ids = (0..new_vertices).map(|_| new_vertex()).collect::<Vec<_>>();
+        // Edges
+        for edge in &input_edges {
+            graph.graph.new_edge(ForceEdge::new(
+                random_pos(),
+                random_pos(),
+                ARROW_BODIES,
+                ARROW_MASS,
+                Arrow {
+                    label: "".to_owned(),
+                    from: input_vertex_ids[edge.from],
+                    to: input_vertex_ids[edge.to],
+                    connection: edge.connection,
+                },
+            ));
+        }
+        for edge in &new_edges {
+            graph.graph.new_edge(ForceEdge::new(
+                random_pos(),
+                random_pos(),
+                ARROW_BODIES,
+                ARROW_MASS,
+                Arrow {
+                    label: "".to_owned(),
+                    from: *input_vertex_ids
+                        .get(edge.from)
+                        .unwrap_or_else(|| &new_vertex_ids[edge.from - input_vertices]),
+                    to: *input_vertex_ids
+                        .get(edge.to)
+                        .unwrap_or_else(|| &new_vertex_ids[edge.to - input_vertices]),
+                    connection: edge.connection,
+                },
+            ));
+        }
+
         Ok(Self {
-            graph: {
-                let mut rng = thread_rng();
-                let mut random_pos = || vec2(rng.gen(), rng.gen());
-                let mut graph = Graph::new(ForceParameters::default());
-                // Vertices
-                let vertices = (0..input_vertices + new_vertices)
-                    .map(|i| {
-                        graph.graph.new_vertex(ForceVertex {
-                            is_anchor: false,
-                            body: ForceBody::new(random_pos(), POINT_MASS),
-                            vertex: Point {
-                                label: i.to_string(),
-                                radius: POINT_RADIUS,
-                                color: Color::WHITE,
-                            },
-                        })
-                    })
-                    .collect::<Vec<_>>();
-                // Edges
-                for edge in &input_edges {
-                    graph.graph.new_edge(ForceEdge::new(
-                        random_pos(),
-                        random_pos(),
-                        ARROW_BODIES,
-                        ARROW_MASS,
-                        Arrow {
-                            label: "".to_owned(),
-                            from: vertices[edge.from],
-                            to: vertices[edge.to],
-                            connection: edge.connection,
-                        },
-                    ));
-                }
-                for edge in &new_edges {
-                    graph.graph.new_edge(ForceEdge::new(
-                        random_pos(),
-                        random_pos(),
-                        ARROW_BODIES,
-                        ARROW_MASS,
-                        Arrow {
-                            label: "".to_owned(),
-                            from: vertices[edge.from],
-                            to: vertices[edge.to],
-                            connection: edge.connection,
-                        },
-                    ));
-                }
-                graph
-            },
+            new_vertices: new_vertex_ids,
+            graph,
             input_vertices,
             input_edges,
-            new_vertices,
             new_edges,
         })
     }
@@ -166,11 +174,11 @@ impl Rule {
     fn apply(&self, graph: &mut Graph, mut vertices: Vec<VertexId>) {
         // Apply rule
         // Spawn new vertices
-        for _ in 0..self.new_vertices {
+        for id in &self.new_vertices {
             vertices.push(graph.graph.new_vertex(ForceVertex {
                 is_anchor: false,
                 body: ForceBody {
-                    position: Vec2::ZERO,
+                    position: graph.graph.vertices.get(id).unwrap().body.position,
                     mass: POINT_MASS,
                     velocity: Vec2::ZERO,
                 },
@@ -193,8 +201,20 @@ impl Rule {
             graph
                 .graph
                 .new_edge(ForceEdge::new(
-                    Vec2::ZERO,
-                    Vec2::ZERO,
+                    graph
+                        .graph
+                        .vertices
+                        .get(&new_edge.from)
+                        .unwrap()
+                        .body
+                        .position,
+                    graph
+                        .graph
+                        .vertices
+                        .get(&new_edge.to)
+                        .unwrap()
+                        .body
+                        .position,
                     ARROW_BODIES,
                     ARROW_MASS,
                     new_edge,
