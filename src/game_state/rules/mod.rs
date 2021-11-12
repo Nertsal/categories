@@ -12,6 +12,7 @@ pub struct Rules {
     pub width: f32,
     rules: Vec<Rule>,
     cameras: Vec<Camera2d>,
+    textures: Vec<RuleTexture>,
     focused_rule: Option<usize>,
 }
 
@@ -19,7 +20,7 @@ impl Rules {
     pub fn new(geng: &Geng, rules: Vec<Rule>) -> Self {
         Self {
             geng: geng.clone(),
-            width: 30.0,
+            width: 20.0,
             focused_rule: None,
             cameras: (0..rules.len())
                 .map(|_| Camera2d {
@@ -28,7 +29,11 @@ impl Rules {
                     fov: 50.0,
                 })
                 .collect(),
-            rules: rules,
+            textures: rules
+                .iter()
+                .map(|_| RuleTexture::new_with(geng.ugli(), RULE_RESOLUTION, |_| Color::BLACK))
+                .collect(),
+            rules,
         }
     }
 

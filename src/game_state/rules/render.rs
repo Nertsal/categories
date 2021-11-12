@@ -1,20 +1,24 @@
 use super::*;
 
 impl Rules {
-    pub fn render<'a>(&'a self) -> impl Iterator<Item = RuleTexture> + 'a {
-        self.rules.iter().zip(self.cameras.iter()).enumerate().map(
-            |(rule_index, (rule, camera))| {
+    pub fn render(&mut self) {
+        self.rules
+            .iter()
+            .zip(self.cameras.iter())
+            .zip(self.textures.iter_mut())
+            .enumerate()
+            .for_each(|(rule_index, ((rule, camera), texture))| {
                 let texture_color = match self.focused_rule {
                     Some(index) if index == rule_index => RULE_SELECTION_COLOR,
                     _ => Color::BLACK,
                 };
 
-                let mut texture =
-                    RuleTexture::new_with(self.geng.ugli(), RULE_RESOLUTION, |_| texture_color);
                 let mut temp_framebuffer = ugli::Framebuffer::new_color(
                     self.geng.ugli(),
-                    ugli::ColorAttachment::Texture(&mut texture),
+                    ugli::ColorAttachment::Texture(texture),
                 );
+                ugli::clear(&mut temp_framebuffer, Some(texture_color), None);
+
                 draw::graph::draw_graph(
                     self.geng.draw_2d(),
                     self.geng.default_font(),
@@ -22,19 +26,18 @@ impl Rules {
                     camera,
                     rule.graph(),
                 );
-                texture
-            },
-        )
+            })
     }
 
     pub fn draw(&mut self, camera: &Camera2d, framebuffer: &mut ugli::Framebuffer) {
+        self.render();
         for (rule_aabb, rule_texture) in layout(
             self.width,
             self.rules_count(),
             camera,
             framebuffer.size().map(|x| x as f32),
         )
-        .zip(self.render())
+        .zip(self.textures.iter())
         {
             // Separation line
             draw::chain::draw_chain(
