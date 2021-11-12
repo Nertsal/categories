@@ -25,7 +25,7 @@ impl Rules {
                 .map(|_| Camera2d {
                     center: Vec2::ZERO,
                     rotation: 0.0,
-                    fov: 30.0,
+                    fov: 50.0,
                 })
                 .collect(),
             rules: rules,

@@ -145,9 +145,13 @@ struct Dragging {
 }
 
 enum DragAction {
-    MoveVertex { vertex: VertexId },
-    MoveEdge { edge: EdgeId },
+    Move { target: DragTarget },
     Selection,
+}
+
+enum DragTarget {
+    Vertex { id: VertexId },
+    Edge { id: EdgeId },
 }
 
 fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {

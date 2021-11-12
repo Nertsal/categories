@@ -27,12 +27,16 @@ impl GameState {
                 let action = self
                     .vertices_under_point(world_pos)
                     .next()
-                    .map(|(&vertex, _)| DragAction::MoveVertex { vertex })
+                    .map(|(&id, _)| DragAction::Move {
+                        target: DragTarget::Vertex { id },
+                    })
                     .or_else(|| {
                         // Drag edge
                         self.edges_under_point(world_pos)
                             .next()
-                            .map(|(&edge, _)| DragAction::MoveEdge { edge })
+                            .map(|(&id, _)| DragAction::Move {
+                                target: DragTarget::Edge { id },
+                            })
                     })
                     .unwrap_or_else(|| DragAction::Selection);
                 Some(action)
@@ -68,18 +72,15 @@ impl GameState {
                         );
                     }
                 }
-                DragAction::MoveEdge { edge } => {
+                DragAction::Move { target } => {
                     let delta = world_pos - dragging.world_start_position;
                     if delta.len().approx_eq(&0.0) {
                         // Select
-                        self.select(vec![], vec![*edge], SelectionOptions::New);
-                    }
-                }
-                DragAction::MoveVertex { vertex } => {
-                    let delta = world_pos - dragging.world_start_position;
-                    if delta.len().approx_eq(&0.0) {
-                        // Select
-                        self.select(vec![*vertex], vec![], SelectionOptions::New);
+                        let (vertices, edges) = match target {
+                            DragTarget::Vertex { id } => (vec![*id], vec![]),
+                            DragTarget::Edge { id } => (vec![], vec![*id]),
+                        };
+                        self.select(vertices, edges, SelectionOptions::New);
                     }
                 }
             }
