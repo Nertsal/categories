@@ -4,7 +4,7 @@ pub fn draw_chain(
     draw_2d: &Rc<geng::Draw2D>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    chain: Chain,
+    chain: &Chain,
     color: Color<f32>,
 ) {
     draw_2d.draw(
@@ -20,7 +20,7 @@ pub fn draw_dashed_chain(
     draw_2d: &Rc<geng::Draw2D>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    chain: Chain,
+    chain: &Chain,
     color: Color<f32>,
 ) {
     let mut dash_full_left = 0.0;
@@ -61,7 +61,7 @@ pub fn draw_dashed_segment(
                 draw_2d,
                 framebuffer,
                 camera,
-                Chain {
+                &Chain {
                     vertices: vec![segment.start, dash_end],
                     width: segment.width,
                 },
@@ -88,7 +88,7 @@ pub fn draw_dashed_segment(
             draw_2d,
             framebuffer,
             camera,
-            Chain {
+            &Chain {
                 vertices: vec![
                     dash_start,
                     dash_start + direction_norm * ARROW_DASHED_DASH_LENGTH,
@@ -105,7 +105,7 @@ pub fn draw_dashed_segment(
         draw_2d,
         framebuffer,
         camera,
-        Chain {
+        &Chain {
             vertices: vec![last_start, segment.end],
             width: segment.width,
         },

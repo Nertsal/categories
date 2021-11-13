@@ -10,7 +10,7 @@ impl GameState {
             self.geng.draw_2d(),
             framebuffer,
             &self.camera,
-            Chain {
+            &Chain {
                 vertices: vec![
                     camera_view.top_right() - line_offset,
                     camera_view.bottom_right() - line_offset,

@@ -49,19 +49,22 @@ pub fn draw_graph(
             let head_width = normal * ARROW_HEAD_WIDTH * scale;
 
             let chain_len = chain.length();
-            let chain = chain.take_range_ratio(
+            let mut chain = chain.take_range_ratio(
                 from.vertex.radius / chain_len..=1.0 - (to.vertex.radius + head_length) / chain_len,
             );
 
+            // Outline
+            let width = chain.width;
+            chain.width += CHAIN_OUTLINE_WIDTH;
+            draw_chain(draw_2d, framebuffer, camera, &chain, CHAIN_OUTLINE_COLOR);
+            chain.width = width;
+
             match arrow.edge.connection {
-                ArrowConnection::Best => {
-                    draw_chain(draw_2d, framebuffer, camera, chain, arrow.edge.color());
-                }
-                ArrowConnection::Regular => {
-                    draw_chain(draw_2d, framebuffer, camera, chain, arrow.edge.color());
+                ArrowConnection::Best | ArrowConnection::Regular => {
+                    draw_chain(draw_2d, framebuffer, camera, &chain, arrow.edge.color());
                 }
                 ArrowConnection::Unique => {
-                    draw_dashed_chain(draw_2d, framebuffer, camera, chain, arrow.edge.color());
+                    draw_dashed_chain(draw_2d, framebuffer, camera, &chain, arrow.edge.color());
                 }
             }
 

@@ -83,7 +83,7 @@ impl GameState {
                 self.geng.draw_2d(),
                 framebuffer,
                 &self.camera,
-                CardinalSpline {
+                &CardinalSpline {
                     points: edge_points,
                     tension: 0.5,
                 }
