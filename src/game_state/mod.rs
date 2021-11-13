@@ -9,6 +9,7 @@ mod chain;
 mod constants;
 mod curve;
 mod draw;
+mod focus;
 mod graph_types;
 mod handle_event;
 mod rules;
@@ -18,6 +19,7 @@ mod update;
 use chain::*;
 use constants::*;
 use curve::*;
+use focus::*;
 use graph_types::*;
 use rules::*;
 use selection::*;
@@ -26,10 +28,11 @@ pub struct GameState {
     geng: Geng,
     camera: Camera2d,
     framebuffer_size: Vec2<f32>,
-    force_graph: Graph,
+    main_graph: Graph,
+    rules: Rules,
+    focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
     selection: Selection,
-    rules: Rules,
 }
 
 impl GameState {
@@ -39,6 +42,7 @@ impl GameState {
             dragging: None,
             framebuffer_size: vec2(1.0, 1.0),
             selection: Selection::new(),
+            focused_graph: FocusedGraph::Main,
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
@@ -67,7 +71,7 @@ impl GameState {
                 )
                 .unwrap()],
             ),
-            force_graph: {
+            main_graph: {
                 let mut graph = Graph::new(ForceParameters::default());
 
                 let mut rng = thread_rng();
@@ -150,8 +154,8 @@ enum DragAction {
 }
 
 enum DragTarget {
-    Vertex { id: VertexId },
-    Edge { id: EdgeId },
+    Vertex { graph: FocusedGraph, id: VertexId },
+    Edge { graph: FocusedGraph, id: EdgeId },
 }
 
 fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {

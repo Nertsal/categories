@@ -24,18 +24,31 @@ impl GameState {
         let action = match mouse_button {
             geng::MouseButton::Left => {
                 // Drag vertex
-                let action = self
-                    .vertices_under_point(world_pos)
+                let (graph, graph_pos) = match self.focused_graph {
+                    FocusedGraph::Main => (&self.main_graph, world_pos),
+                    FocusedGraph::Rule { index } => (
+                        self.rules.get_rule(index).unwrap().graph(),
+                        self.world_to_rule_pos(world_pos, index),
+                    ),
+                };
+
+                let action = Self::vertices_under_point(graph, graph_pos)
                     .next()
                     .map(|(&id, _)| DragAction::Move {
-                        target: DragTarget::Vertex { id },
+                        target: DragTarget::Vertex {
+                            id,
+                            graph: self.focused_graph,
+                        },
                     })
                     .or_else(|| {
                         // Drag edge
-                        self.edges_under_point(world_pos)
+                        Self::edges_under_point(graph, graph_pos)
                             .next()
                             .map(|(&id, _)| DragAction::Move {
-                                target: DragTarget::Edge { id },
+                                target: DragTarget::Edge {
+                                    id,
+                                    graph: self.focused_graph,
+                                },
                             })
                     })
                     .unwrap_or_else(|| DragAction::Selection);
@@ -77,8 +90,13 @@ impl GameState {
                     if delta.len().approx_eq(&0.0) {
                         // Select
                         let (vertices, edges) = match target {
-                            DragTarget::Vertex { id } => (vec![*id], vec![]),
-                            DragTarget::Edge { id } => (vec![], vec![*id]),
+                            DragTarget::Vertex { graph, id } if graph.is_main() => {
+                                (vec![*id], vec![])
+                            }
+                            DragTarget::Edge { graph, id } if graph.is_main() => {
+                                (vec![], vec![*id])
+                            }
+                            _ => return,
                         };
                         self.select(vertices, edges, SelectionOptions::New);
                     }
@@ -87,16 +105,29 @@ impl GameState {
         }
     }
 
+    pub fn world_to_rule_pos(&self, world_pos: Vec2<f32>, rule_index: usize) -> Vec2<f32> {
+        let rule_aabb = self
+            .rules
+            .layout(&self.camera, self.framebuffer_size)
+            .nth(rule_index)
+            .unwrap();
+        let framebuffer_size = RULE_RESOLUTION.map(|x| x as f32);
+        let mut screen_pos =
+            (world_pos - rule_aabb.bottom_left()) / vec2(rule_aabb.width(), rule_aabb.height());
+        // screen_pos.y *= -1.0;
+        screen_pos *= framebuffer_size;
+        let camera = self.rules.get_camera(rule_index).unwrap();
+        camera.screen_to_world(framebuffer_size, screen_pos)
+    }
+
     fn select_point(&mut self, position: Vec2<f32>, options: SelectionOptions) {
         // Vertices
-        let selected_vertices = self
-            .vertices_under_point(position)
+        let selected_vertices = Self::vertices_under_point(&self.main_graph, position)
             .map(|(&id, _)| id)
             .collect();
 
         // Edges
-        let selected_edges = self
-            .edges_under_point(position)
+        let selected_edges = Self::edges_under_point(&self.main_graph, position)
             .map(|(&id, _)| id)
             .collect();
 
@@ -109,7 +140,9 @@ impl GameState {
         let selected_vertices = self.vertices_in_area(area).map(|(&id, _)| id).collect();
 
         // Edges
-        let selected_edges = self.edges_in_area(area).map(|(&id, _)| id).collect();
+        let selected_edges = Self::edges_in_area(&self.main_graph, area)
+            .map(|(&id, _)| id)
+            .collect();
 
         // Add to selection
         self.select(selected_vertices, selected_edges, options);

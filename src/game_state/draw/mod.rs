@@ -18,7 +18,7 @@ impl GameState {
             self.geng.default_font(),
             framebuffer,
             &self.camera,
-            &self.force_graph,
+            &self.main_graph,
         );
 
         // Rules
@@ -48,7 +48,7 @@ impl GameState {
             .selection
             .vertices
             .iter()
-            .filter_map(|vertex| self.force_graph.graph.vertices.get(vertex))
+            .filter_map(|vertex| self.main_graph.graph.vertices.get(vertex))
         {
             self.geng.draw_2d().circle(
                 framebuffer,
@@ -59,13 +59,13 @@ impl GameState {
             )
         }
         for edge_points in self.selection.edges.iter().filter_map(|edge| {
-            self.force_graph.graph.edges.get(edge).and_then(|arrow| {
-                self.force_graph
+            self.main_graph.graph.edges.get(edge).and_then(|arrow| {
+                self.main_graph
                     .graph
                     .vertices
                     .get(&arrow.edge.from)
                     .and_then(|from| {
-                        self.force_graph
+                        self.main_graph
                             .graph
                             .vertices
                             .get(&arrow.edge.to)

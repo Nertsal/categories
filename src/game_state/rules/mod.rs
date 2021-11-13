@@ -37,8 +37,16 @@ impl Rules {
         }
     }
 
+    pub fn get_camera(&self, index: usize) -> Option<&Camera2d> {
+        self.cameras.get(index)
+    }
+
     pub fn get_rule(&self, index: usize) -> Option<&Rule> {
         self.rules.get(index)
+    }
+
+    pub fn get_rule_mut(&mut self, index: usize) -> Option<&mut Rule> {
+        self.rules.get_mut(index)
     }
 
     pub fn rules_count(&self) -> usize {

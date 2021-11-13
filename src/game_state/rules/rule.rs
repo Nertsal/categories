@@ -10,7 +10,7 @@ impl GameState {
             .vertices
             .iter()
             .filter_map(|id| {
-                self.force_graph
+                self.main_graph
                     .graph
                     .vertices
                     .get(id)
@@ -21,13 +21,13 @@ impl GameState {
             .selection
             .edges
             .iter()
-            .filter_map(|id| self.force_graph.graph.edges.get(id).map(|edge| &edge.edge))
+            .filter_map(|id| self.main_graph.graph.edges.get(id).map(|edge| &edge.edge))
             .collect();
 
         // Check & apply the rule
         let rule = self.rules.get_rule(rule_index).unwrap();
         rule.check_constraints(&input_vertices, &input_edges)
-            .map(|vertices| rule.apply(&mut self.force_graph, vertices))
+            .map(|vertices| rule.apply(&mut self.main_graph, vertices))
             .is_some()
     }
 }
@@ -132,6 +132,10 @@ impl Rule {
 
     pub fn graph(&self) -> &Graph {
         &self.graph
+    }
+
+    pub fn graph_mut(&mut self) -> &mut Graph {
+        &mut self.graph
     }
 
     pub fn update_graph(&mut self, delta_time: f32) {

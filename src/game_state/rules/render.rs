@@ -44,7 +44,7 @@ impl Rules {
                 self.geng.draw_2d(),
                 framebuffer,
                 camera,
-                Chain {
+                &Chain {
                     vertices: vec![rule_aabb.top_left(), rule_aabb.top_right()],
                     width: RULE_SEPARATION_WIDTH,
                 },

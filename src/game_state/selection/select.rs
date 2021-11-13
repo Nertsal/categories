@@ -2,20 +2,19 @@ use super::*;
 
 impl GameState {
     pub fn vertices_under_point(
-        &self,
+        graph: &Graph,
         position: Vec2<f32>,
     ) -> impl Iterator<Item = (&VertexId, &Vertex)> {
-        self.force_graph
-            .graph
-            .vertices
-            .iter()
-            .filter(move |(_, vertex)| {
-                (vertex.body.position - position).len() <= vertex.vertex.radius
-            })
+        graph.graph.vertices.iter().filter(move |(_, vertex)| {
+            (vertex.body.position - position).len() <= vertex.vertex.radius
+        })
     }
 
-    pub fn edges_under_point(&self, position: Vec2<f32>) -> impl Iterator<Item = (&EdgeId, &Edge)> {
-        self.edges_points()
+    pub fn edges_under_point(
+        graph: &Graph,
+        position: Vec2<f32>,
+    ) -> impl Iterator<Item = (&EdgeId, &Edge)> {
+        Self::edges_points(graph)
             .filter(move |(_, _, points)| {
                 points
                     .iter()
@@ -29,7 +28,7 @@ impl GameState {
     }
 
     pub fn vertices_in_area(&self, area: AABB<f32>) -> impl Iterator<Item = (&VertexId, &Vertex)> {
-        self.force_graph
+        self.main_graph
             .graph
             .vertices
             .iter()
@@ -38,8 +37,8 @@ impl GameState {
             })
     }
 
-    pub fn edges_in_area(&self, area: AABB<f32>) -> impl Iterator<Item = (&EdgeId, &Edge)> {
-        self.edges_points()
+    pub fn edges_in_area(graph: &Graph, area: AABB<f32>) -> impl Iterator<Item = (&EdgeId, &Edge)> {
+        Self::edges_points(graph)
             .filter(move |(_, _, points)| {
                 points
                     .iter()
@@ -49,32 +48,28 @@ impl GameState {
             .map(|(id, edge, _)| (id, edge))
     }
 
-    fn edges_points(&self) -> impl Iterator<Item = (&EdgeId, &Edge, Vec<Vec2<f32>>)> {
-        self.force_graph
-            .graph
-            .edges
-            .iter()
-            .filter_map(|(id, edge)| {
-                self.force_graph
-                    .graph
-                    .vertices
-                    .get(&edge.edge.from)
-                    .map(|vertex| vertex.body.position)
-                    .and_then(|arrow_start| {
-                        self.force_graph
-                            .graph
-                            .vertices
-                            .get(&edge.edge.to)
-                            .map(|vertex| (arrow_start, vertex.body.position))
-                    })
-                    .map(|(arrow_start, arrow_end)| {
-                        let mut points = Vec::with_capacity(edge.bodies.len() + 2);
-                        points.push(arrow_start);
-                        points.extend(edge.bodies.iter().map(|body| body.position));
-                        points.push(arrow_end);
-                        points
-                    })
-                    .map(|points| (id, edge, points))
-            })
+    fn edges_points(graph: &Graph) -> impl Iterator<Item = (&EdgeId, &Edge, Vec<Vec2<f32>>)> {
+        graph.graph.edges.iter().filter_map(|(id, edge)| {
+            graph
+                .graph
+                .vertices
+                .get(&edge.edge.from)
+                .map(|vertex| vertex.body.position)
+                .and_then(|arrow_start| {
+                    graph
+                        .graph
+                        .vertices
+                        .get(&edge.edge.to)
+                        .map(|vertex| (arrow_start, vertex.body.position))
+                })
+                .map(|(arrow_start, arrow_end)| {
+                    let mut points = Vec::with_capacity(edge.bodies.len() + 2);
+                    points.push(arrow_start);
+                    points.extend(edge.bodies.iter().map(|body| body.position));
+                    points.push(arrow_end);
+                    points
+                })
+                .map(|points| (id, edge, points))
+        })
     }
 }
