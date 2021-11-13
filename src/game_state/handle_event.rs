@@ -114,7 +114,6 @@ impl GameState {
         let framebuffer_size = RULE_RESOLUTION.map(|x| x as f32);
         let mut screen_pos =
             (world_pos - rule_aabb.bottom_left()) / vec2(rule_aabb.width(), rule_aabb.height());
-        // screen_pos.y *= -1.0;
         screen_pos *= framebuffer_size;
         let camera = self.rules.get_camera(rule_index).unwrap();
         camera.screen_to_world(framebuffer_size, screen_pos)
