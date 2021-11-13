@@ -5,7 +5,7 @@ impl GameState {
         let camera_view = camera_view(&self.camera, self.framebuffer_size);
 
         // Separation line
-        let line_offset = vec2(self.rules.width + RULES_SECTION_SEPARATION_WIDTH, 0.0);
+        let line_offset = vec2(self.rules.width + RULES_SECTION_SEPARATION_WIDTH / 2.0, 0.0);
         draw_chain(
             self.geng.draw_2d(),
             framebuffer,

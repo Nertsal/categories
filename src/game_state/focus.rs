@@ -16,21 +16,29 @@ impl FocusedGraph {
 }
 
 impl GameState {
-    /// Returns the graph and a local position in it
+    /// Returns the graph, a local position in it, and an aabb representing it
     pub fn get_graph_mut(
         &mut self,
         graph: &FocusedGraph,
         position: Vec2<f32>,
-    ) -> Option<(&mut Graph, Vec2<f32>)> {
+    ) -> Option<(&mut Graph, Vec2<f32>, AABB<f32>)> {
         match graph {
-            FocusedGraph::Main => Some((&mut self.main_graph, position)),
+            FocusedGraph::Main => {
+                let aabb = self.main_graph_aabb();
+                Some((&mut self.main_graph, position, aabb))
+            }
             FocusedGraph::Rule { index } => {
-                let pos = self.world_to_rule_pos(position, *index);
+                let (pos, aabb) = self.world_to_rule_pos(position, *index);
                 self.rules
                     .get_rule_mut(*index)
-                    .map(|rule| (rule.graph_mut(), pos))
+                    .map(|rule| (rule.graph_mut(), pos, aabb))
             }
         }
+    }
+
+    fn main_graph_aabb(&self) -> AABB<f32> {
+        camera_view(&self.camera, self.framebuffer_size)
+            .extend_right(-RULES_SECTION_SEPARATION_WIDTH - self.rules.width)
     }
 
     /// Updates the focus. Returns the focused graph.

@@ -17,6 +17,7 @@ pub const SELECTION_RADIUS: f32 = 0.5;
 
 pub const ARROW_LABEL_FONT_SIZE: f32 = 2.0;
 
+pub const RULES_WIDTH: f32 = 20.0;
 pub const RULE_RESOLUTION: Vec2<usize> = vec2(512, 512);
 pub const RULES_SECTION_SEPARATION_WIDTH: f32 = 1.0;
 pub const RULE_SEPARATION_WIDTH: f32 = 0.2;

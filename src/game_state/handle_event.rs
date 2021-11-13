@@ -28,7 +28,7 @@ impl GameState {
                     FocusedGraph::Main => (&self.main_graph, world_pos),
                     FocusedGraph::Rule { index } => (
                         self.rules.get_rule(index).unwrap().graph(),
-                        self.world_to_rule_pos(world_pos, index),
+                        self.world_to_rule_pos(world_pos, index).0,
                     ),
                 };
 
@@ -105,7 +105,12 @@ impl GameState {
         }
     }
 
-    pub fn world_to_rule_pos(&self, world_pos: Vec2<f32>, rule_index: usize) -> Vec2<f32> {
+    /// Returns a local position inside the rule's graph and its aabb.
+    pub fn world_to_rule_pos(
+        &self,
+        world_pos: Vec2<f32>,
+        rule_index: usize,
+    ) -> (Vec2<f32>, AABB<f32>) {
         let rule_aabb = self
             .rules
             .layout(&self.camera, self.framebuffer_size)
@@ -116,7 +121,10 @@ impl GameState {
             (world_pos - rule_aabb.bottom_left()) / vec2(rule_aabb.width(), rule_aabb.height());
         screen_pos *= framebuffer_size;
         let camera = self.rules.get_camera(rule_index).unwrap();
-        camera.screen_to_world(framebuffer_size, screen_pos)
+        (
+            camera.screen_to_world(framebuffer_size, screen_pos),
+            camera_view(camera, framebuffer_size),
+        )
     }
 
     fn select_point(&mut self, position: Vec2<f32>, options: SelectionOptions) {
