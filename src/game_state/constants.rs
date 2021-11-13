@@ -6,7 +6,7 @@ pub const ARROW_WIDTH: f32 = 0.4;
 pub const ARROW_MASS: f32 = 1.0;
 pub const ARROW_BODIES: usize = 3;
 
-pub const CHAIN_OUTLINE_WIDTH: f32 = 0.4;
+pub const CHAIN_OUTLINE_WIDTH: f32 = 0.8;
 pub const CHAIN_OUTLINE_COLOR: Color<f32> = Color::BLACK;
 
 pub const ARROW_BEST_COLOR: Color<f32> = Color::GREEN;
