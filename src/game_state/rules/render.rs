@@ -30,6 +30,9 @@ impl Rules {
     }
 
     pub fn draw(&mut self, camera: &Camera2d, framebuffer: &mut ugli::Framebuffer) {
+        let line_width = camera_view(camera, framebuffer.size().map(|x| x as f32)).height()
+            * RULE_SEPARATION_WIDTH_FRAC;
+
         self.render();
         for (rule_aabb, rule_texture) in layout(
             self.width,
@@ -46,7 +49,7 @@ impl Rules {
                 camera,
                 &Chain {
                     vertices: vec![rule_aabb.top_left(), rule_aabb.top_right()],
-                    width: RULE_SEPARATION_WIDTH,
+                    width: line_width,
                 },
                 RULE_SEPARATION_COLOR,
             );

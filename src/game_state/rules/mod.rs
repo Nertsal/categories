@@ -20,7 +20,7 @@ impl Rules {
     pub fn new(geng: &Geng, rules: Vec<Rule>) -> Self {
         Self {
             geng: geng.clone(),
-            width: RULES_WIDTH,
+            width: 1.0,
             focused_rule: None,
             cameras: (0..rules.len())
                 .map(|_| Camera2d {

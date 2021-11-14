@@ -5,6 +5,10 @@ impl GameState {
         // Focus
         self.focus();
 
+        // Resize
+        self.rules.width =
+            camera_view(&self.camera, self.framebuffer_size).width() * RULES_WIDTH_FRAC;
+
         // Update graphs
         self.main_graph.update(delta_time);
         self.rules.update(delta_time);

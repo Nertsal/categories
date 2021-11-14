@@ -37,8 +37,10 @@ impl GameState {
     }
 
     fn main_graph_aabb(&self) -> AABB<f32> {
-        camera_view(&self.camera, self.framebuffer_size)
-            .extend_right(-RULES_SECTION_SEPARATION_WIDTH - self.rules.width)
+        let camera_view = camera_view(&self.camera, self.framebuffer_size);
+        camera_view.extend_right(
+            -camera_view.width() * RULES_SECTION_SEPARATION_WIDTH_FRAC - self.rules.width,
+        )
     }
 
     /// Updates the focus. Returns the focused graph.

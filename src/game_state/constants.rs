@@ -1,5 +1,9 @@
 use super::*;
 
+pub const ZOOM_SPEED: f32 = 1.0;
+pub const CAMERA_FOV_MIN: f32 = 25.0;
+pub const CAMERA_FOV_MAX: f32 = 200.0;
+
 pub const POINT_RADIUS: f32 = 2.0;
 pub const POINT_MASS: f32 = 10.0;
 pub const ARROW_WIDTH: f32 = 0.4;
@@ -17,10 +21,10 @@ pub const SELECTION_RADIUS: f32 = 0.5;
 
 pub const ARROW_LABEL_FONT_SIZE: f32 = 2.0;
 
-pub const RULES_WIDTH: f32 = 20.0;
 pub const RULE_RESOLUTION: Vec2<usize> = vec2(512, 512);
-pub const RULES_SECTION_SEPARATION_WIDTH: f32 = 1.0;
-pub const RULE_SEPARATION_WIDTH: f32 = 0.2;
+pub const RULES_WIDTH_FRAC: f32 = 0.15;
+pub const RULES_SECTION_SEPARATION_WIDTH_FRAC: f32 = 0.005;
+pub const RULE_SEPARATION_WIDTH_FRAC: f32 = 0.005;
 pub const RULES_SECTION_SEPARATION_COLOR: Color<f32> = Color::GRAY;
 pub const RULE_SEPARATION_COLOR: Color<f32> = Color::GRAY;
 pub const RULE_SELECTION_COLOR: Color<f32> = Color {
