@@ -56,7 +56,6 @@ pub fn draw_dashed_segment(
             // Finish dash
             let dash_length = dash_length.min(dash_full_length);
             let dash_end = segment.start + direction_norm * dash_length;
-            assert!(dash_length <= delta_len);
             draw_chain(
                 draw_2d,
                 framebuffer,
@@ -101,15 +100,17 @@ pub fn draw_dashed_segment(
 
     let last_start = segment.start + direction_norm * dashes as f32 * ARROW_DASH_FULL_LENGTH;
     let last_len = (segment.end - last_start).len();
+    let dash_len = last_len.min(ARROW_DASHED_DASH_LENGTH);
+    let last_end = last_start + direction_norm * dash_len;
     draw_chain(
         draw_2d,
         framebuffer,
         camera,
         &Chain {
-            vertices: vec![last_start, segment.end],
+            vertices: vec![last_start, last_end],
             width: segment.width,
         },
         color,
     );
-    (ARROW_DASH_FULL_LENGTH - last_len).max(0.0)
+    ARROW_DASH_FULL_LENGTH - last_len
 }
