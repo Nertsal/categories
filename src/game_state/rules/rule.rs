@@ -6,7 +6,6 @@ impl GameState {
     pub fn apply_rule(&mut self, selection: RuleSelection) -> bool {
         let rule = self.rules.get_rule(selection.rule()).unwrap();
         if !rule.check_constraints(&self.main_graph, selection.selection()) {
-            println!("false");
             return false;
         }
 
@@ -173,6 +172,7 @@ impl Rule {
         }
 
         // Add connections
+        let mut rng = thread_rng();
         for new_edge in &self.new_edges {
             let new_edge = Arrow {
                 label: "".to_owned(),
@@ -196,7 +196,8 @@ impl Rule {
                         .get(&new_edge.to)
                         .unwrap()
                         .body
-                        .position,
+                        .position
+                        + vec2(rng.gen(), rng.gen()),
                     ARROW_BODIES,
                     ARROW_MASS,
                     new_edge,
