@@ -19,6 +19,7 @@ impl GameState {
             framebuffer,
             &self.camera,
             &self.main_graph,
+            Color::BLACK,
         );
 
         // Rules

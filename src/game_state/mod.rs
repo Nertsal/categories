@@ -94,9 +94,9 @@ impl GameState {
 
                 let vertices = vec![
                     point("A", Color::WHITE, false),
-                    point("AxB", Color::GREEN, false),
                     point("B", Color::WHITE, false),
-                    point("", Color::BLUE, false),
+                    point("AxB", Color::GREEN, false),
+                    point("BxA", Color::GREEN, false),
                 ];
 
                 let mut connect =
@@ -115,11 +115,10 @@ impl GameState {
                         ))
                     };
 
-                connect("", 1, 0, ArrowConnection::Best);
-                connect("", 1, 2, ArrowConnection::Best);
-                connect("", 3, 0, ArrowConnection::Regular);
-                connect("", 3, 2, ArrowConnection::Regular);
-                connect("", 3, 1, ArrowConnection::Unique);
+                connect("", 2, 0, ArrowConnection::Best);
+                connect("", 2, 1, ArrowConnection::Best);
+                connect("", 3, 0, ArrowConnection::Best);
+                connect("", 3, 1, ArrowConnection::Best);
 
                 graph
             },

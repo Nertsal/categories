@@ -5,7 +5,19 @@ mod rule;
 
 pub use rule::*;
 
-type RuleTexture = ugli::Texture2d<Color<f32>>;
+struct RuleTexture {
+    pub inner: ugli::Texture2d<Color<f32>>,
+    pub background_color: Color<f32>,
+}
+
+impl RuleTexture {
+    pub fn new(ugli: &Rc<Ugli>, size: Vec2<usize>, color: Color<f32>) -> Self {
+        Self {
+            inner: ugli::Texture2d::new_with(ugli, size, |_| color),
+            background_color: color,
+        }
+    }
+}
 
 pub struct Rules {
     geng: Geng,
@@ -31,7 +43,7 @@ impl Rules {
                 .collect(),
             textures: rules
                 .iter()
-                .map(|_| RuleTexture::new_with(geng.ugli(), RULE_RESOLUTION, |_| Color::BLACK))
+                .map(|_| RuleTexture::new(geng.ugli(), RULE_RESOLUTION, Color::BLACK))
                 .collect(),
             rules,
         }

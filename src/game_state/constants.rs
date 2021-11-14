@@ -11,7 +11,6 @@ pub const ARROW_MASS: f32 = 1.0;
 pub const ARROW_BODIES: usize = 3;
 
 pub const CHAIN_OUTLINE_WIDTH: f32 = 0.8;
-pub const CHAIN_OUTLINE_COLOR: Color<f32> = Color::BLACK;
 
 pub const ARROW_BEST_COLOR: Color<f32> = Color::GREEN;
 pub const ARROW_REGULAR_COLOR: Color<f32> = Color::BLUE;
@@ -21,7 +20,7 @@ pub const SELECTION_RADIUS: f32 = 0.5;
 
 pub const ARROW_LABEL_FONT_SIZE: f32 = 2.0;
 
-pub const RULE_RESOLUTION: Vec2<usize> = vec2(512, 512);
+pub const RULE_RESOLUTION: Vec2<usize> = vec2(1024, 768);
 pub const RULES_WIDTH_FRAC: f32 = 0.3;
 pub const RULES_SECTION_SEPARATION_WIDTH_FRAC: f32 = 0.005;
 pub const RULE_SEPARATION_WIDTH_FRAC: f32 = 0.005;

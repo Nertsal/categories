@@ -6,6 +6,7 @@ pub fn draw_graph(
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     graph: &Graph,
+    background_color: Color<f32>,
 ) {
     // Edges
     for (_, arrow) in graph.graph.edges.iter() {
@@ -56,7 +57,7 @@ pub fn draw_graph(
             // Outline
             let width = chain.width;
             chain.width += CHAIN_OUTLINE_WIDTH;
-            draw_chain(draw_2d, framebuffer, camera, &chain, CHAIN_OUTLINE_COLOR);
+            draw_chain(draw_2d, framebuffer, camera, &chain, background_color);
             chain.width = width;
 
             match arrow.edge.connection {

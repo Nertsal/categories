@@ -12,10 +12,11 @@ impl Rules {
                     Some(index) if index == rule_index => RULE_SELECTION_COLOR,
                     _ => Color::BLACK,
                 };
+                texture.background_color = texture_color;
 
                 let mut temp_framebuffer = ugli::Framebuffer::new_color(
                     self.geng.ugli(),
-                    ugli::ColorAttachment::Texture(texture),
+                    ugli::ColorAttachment::Texture(&mut texture.inner),
                 );
                 ugli::clear(&mut temp_framebuffer, Some(texture_color), None);
 
@@ -25,6 +26,7 @@ impl Rules {
                     &mut temp_framebuffer,
                     camera,
                     rule.graph(),
+                    texture.background_color,
                 );
             })
     }
@@ -81,7 +83,7 @@ impl Rules {
                         a_vt: vec2(1.0, 1.0),
                     },
                 ],
-                &rule_texture,
+                &rule_texture.inner,
                 Color::WHITE,
                 ugli::DrawMode::TriangleFan,
             );
