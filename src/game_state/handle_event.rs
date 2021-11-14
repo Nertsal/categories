@@ -13,7 +13,7 @@ impl GameState {
                 self.drag_stop(position, button);
             }
             geng::Event::Wheel { delta } => {
-                let delta = delta as f32 * ZOOM_SPEED;
+                let delta = -delta as f32 * ZOOM_SPEED;
                 let camera = match self.focused_graph {
                     FocusedGraph::Main => &mut self.camera,
                     FocusedGraph::Rule { index } => self.rules.get_camera_mut(index).unwrap(),
