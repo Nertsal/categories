@@ -9,13 +9,14 @@ pub struct RuleSelection {
 
 impl RuleSelection {
     pub fn new(rule_index: usize, rule: &Rule) -> Self {
-        let rule_vertices = rule
+        let mut rule_vertices = rule
             .graph()
             .graph
             .vertices
             .iter()
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
+        rule_vertices.sort();
         RuleSelection {
             selected_vertices: Vec::with_capacity(rule_vertices.len()),
             current_selection: 0,

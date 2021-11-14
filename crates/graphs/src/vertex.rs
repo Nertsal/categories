@@ -9,7 +9,7 @@ pub struct Vertices<V: GraphVertex> {
     next_id: VertexId,
 }
 
-#[derive(Hash, PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(Hash, PartialOrd, Ord, PartialEq, Eq, Debug, Clone, Copy)]
 pub struct VertexId(u64);
 
 impl<V: GraphVertex> Vertices<V> {
