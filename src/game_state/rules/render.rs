@@ -1,7 +1,7 @@
 use super::*;
 
 impl Rules {
-    pub fn render(&mut self) {
+    fn render(&mut self, selection: &Option<RuleSelection>) {
         self.rules
             .iter()
             .zip(self.cameras.iter())
@@ -20,6 +20,12 @@ impl Rules {
                 );
                 ugli::clear(&mut temp_framebuffer, Some(texture_color), None);
 
+                let mut selected = Vec::new();
+                if let Some(selection) = &selection {
+                    if selection.rule() == rule_index {
+                        selected.push(selection.rule_vertices()[selection.current()]);
+                    }
+                }
                 draw::graph::draw_graph(
                     self.geng.draw_2d(),
                     self.geng.default_font(),
@@ -27,15 +33,21 @@ impl Rules {
                     camera,
                     rule.graph(),
                     texture.background_color,
+                    Some(&selected),
                 );
             })
     }
 
-    pub fn draw(&mut self, camera: &Camera2d, framebuffer: &mut ugli::Framebuffer) {
+    pub fn draw(
+        &mut self,
+        selection: &Option<RuleSelection>,
+        camera: &Camera2d,
+        framebuffer: &mut ugli::Framebuffer,
+    ) {
         let line_width = camera_view(camera, framebuffer.size().map(|x| x as f32)).height()
             * RULE_SEPARATION_WIDTH_FRAC;
 
-        self.render();
+        self.render(selection);
         for (rule_aabb, rule_texture) in layout(
             self.width,
             self.rules_count(),

@@ -20,6 +20,7 @@ impl GameState {
             &self.camera,
             &self.main_graph,
             Color::BLACK,
+            None,
         );
 
         // Rules
@@ -42,55 +43,6 @@ impl GameState {
                 }
                 _ => (),
             }
-        }
-
-        // Selection
-        for vertex in self
-            .selection
-            .vertices
-            .iter()
-            .filter_map(|vertex| self.main_graph.graph.vertices.get(vertex))
-        {
-            self.geng.draw_2d().circle(
-                framebuffer,
-                &self.camera,
-                vertex.body.position,
-                vertex.vertex.radius + SELECTED_RADIUS,
-                SELECTED_COLOR,
-            )
-        }
-        for edge_points in self.selection.edges.iter().filter_map(|edge| {
-            self.main_graph.graph.edges.get(edge).and_then(|arrow| {
-                self.main_graph
-                    .graph
-                    .vertices
-                    .get(&arrow.edge.from)
-                    .and_then(|from| {
-                        self.main_graph
-                            .graph
-                            .vertices
-                            .get(&arrow.edge.to)
-                            .map(|to| {
-                                let mut points = Vec::with_capacity(arrow.bodies.len() + 2);
-                                points.push(from.body.position);
-                                points.extend(arrow.bodies.iter().map(|body| body.position));
-                                points.push(to.body.position);
-                                points
-                            })
-                    })
-            })
-        }) {
-            draw_chain(
-                self.geng.draw_2d(),
-                framebuffer,
-                &self.camera,
-                &CardinalSpline {
-                    points: edge_points,
-                    tension: 0.5,
-                }
-                .chain(CURVE_RESOLUTION, ARROW_WIDTH + SELECTED_RADIUS),
-                SELECTED_COLOR,
-            );
         }
     }
 }

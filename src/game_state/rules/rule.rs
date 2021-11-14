@@ -3,32 +3,15 @@ use super::*;
 impl GameState {
     /// Attempts to apply a rule.
     /// Returns whether the rule was applied successfully.
-    pub fn apply_rule(&mut self, rule_index: usize) -> bool {
-        // Collect input
-        let input_vertices = self
-            .selection
-            .vertices
-            .iter()
-            .filter_map(|id| {
-                self.main_graph
-                    .graph
-                    .vertices
-                    .get(id)
-                    .map(|vertex| (id, &vertex.vertex))
-            })
-            .collect();
-        let input_edges = self
-            .selection
-            .edges
-            .iter()
-            .filter_map(|id| self.main_graph.graph.edges.get(id).map(|edge| &edge.edge))
-            .collect();
+    pub fn apply_rule(&mut self, selection: RuleSelection) -> bool {
+        let rule = self.rules.get_rule(selection.rule()).unwrap();
+        if !rule.check_constraints(&self.main_graph, selection.selection()) {
+            println!("false");
+            return false;
+        }
 
-        // Check & apply the rule
-        let rule = self.rules.get_rule(rule_index).unwrap();
-        rule.check_constraints(&input_vertices, &input_edges)
-            .map(|vertices| rule.apply(&mut self.main_graph, vertices))
-            .is_some()
+        rule.apply(&mut self.main_graph, selection.to_selection());
+        true
     }
 }
 
@@ -143,35 +126,30 @@ impl Rule {
     }
 
     /// Checks that input meets the rule's constraints.
-    /// Returns Some(input_vertices) if the rule can be applied, otherwise returns None.
-    fn check_constraints(
-        &self,
-        input_vertices: &Vec<(&VertexId, &Point)>,
-        input_edges: &Vec<&Arrow<VertexId>>,
-    ) -> Option<Vec<VertexId>> {
+    fn check_constraints(&self, graph: &Graph, selected_vertices: &Vec<VertexId>) -> bool {
         // Check vertices
-        if input_vertices.len() != self.input_vertices {
-            return None;
+        if selected_vertices.len() != self.input_vertices {
+            return false;
         }
-
-        let vertices: Vec<_> = input_vertices.iter().map(|(&id, _)| id).collect();
 
         // Check edges
         for edge in &self.input_edges {
             let constraint = ArrowConstraint {
-                from: vertices[edge.from],
-                to: vertices[edge.to],
+                from: selected_vertices[edge.from],
+                to: selected_vertices[edge.to],
                 connection: edge.connection,
             };
-            if !input_edges
+            if !graph
+                .graph
+                .edges
                 .iter()
-                .any(|edge| edge.check_constraint(&constraint))
+                .any(|(_, edge)| edge.edge.check_constraint(&constraint))
             {
-                return None;
+                return false;
             }
         }
 
-        Some(vertices)
+        true
     }
 
     /// Applies the rule

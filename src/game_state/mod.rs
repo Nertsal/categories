@@ -32,7 +32,7 @@ pub struct GameState {
     rules: Rules,
     focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
-    selection: Selection,
+    selection: Option<RuleSelection>,
 }
 
 impl GameState {
@@ -41,7 +41,7 @@ impl GameState {
             geng: geng.clone(),
             dragging: None,
             framebuffer_size: vec2(1.0, 1.0),
-            selection: Selection::new(),
+            selection: None,
             focused_graph: FocusedGraph::Main,
             camera: Camera2d {
                 center: Vec2::ZERO,

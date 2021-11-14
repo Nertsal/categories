@@ -7,6 +7,7 @@ pub fn draw_graph(
     camera: &Camera2d,
     graph: &Graph,
     background_color: Color<f32>,
+    selected_vertices: Option<&Vec<VertexId>>,
 ) {
     // Edges
     for (_, arrow) in graph.graph.edges.iter() {
@@ -96,6 +97,20 @@ pub fn draw_graph(
             }
         } else {
             warn!("Edge connects a non-existent vertex, edge = {:?}", arrow);
+        }
+    }
+
+    // Selection
+    if let Some(selection) = selected_vertices {
+        for vertex in selection {
+            let vertex = graph.graph.vertices.get(vertex).unwrap();
+            draw_2d.circle(
+                framebuffer,
+                camera,
+                vertex.body.position,
+                vertex.vertex.radius + SELECTED_RADIUS,
+                SELECTED_COLOR,
+            );
         }
     }
 

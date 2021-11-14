@@ -2,8 +2,10 @@ use super::*;
 
 mod render;
 mod rule;
+mod selection;
 
 pub use rule::*;
+pub use selection::*;
 
 struct RuleTexture {
     pub inner: ugli::Texture2d<Color<f32>>,

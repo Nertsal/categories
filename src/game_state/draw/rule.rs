@@ -20,6 +20,6 @@ impl GameState {
             },
             RULES_SECTION_SEPARATION_COLOR,
         );
-        self.rules.draw(&self.camera, framebuffer);
+        self.rules.draw(&self.selection, &self.camera, framebuffer);
     }
 }
