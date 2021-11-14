@@ -51,23 +51,36 @@ impl GameState {
             rules: Rules::new(
                 geng,
                 vec![Rule::new(
-                    2,
-                    vec![],
-                    1,
+                    4,
                     vec![
-                        Arrow {
-                            label: "".to_owned(),
+                        ArrowConstraint {
                             from: 2,
                             to: 0,
                             connection: ArrowConnection::Best,
                         },
-                        Arrow {
-                            label: "".to_owned(),
+                        ArrowConstraint {
                             from: 2,
                             to: 1,
                             connection: ArrowConnection::Best,
                         },
+                        ArrowConstraint {
+                            from: 3,
+                            to: 0,
+                            connection: ArrowConnection::Regular,
+                        },
+                        ArrowConstraint {
+                            from: 3,
+                            to: 1,
+                            connection: ArrowConnection::Regular,
+                        },
                     ],
+                    0,
+                    vec![Arrow {
+                        label: "".to_owned(),
+                        from: 3,
+                        to: 2,
+                        connection: ArrowConnection::Unique,
+                    }],
                 )
                 .unwrap()],
             ),
