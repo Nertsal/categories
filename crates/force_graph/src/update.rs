@@ -26,7 +26,7 @@ impl<V: GraphVertex, E: GraphEdge> ForceGraph<V, E> {
                     self.parameters.repel_distance_max,
                 );
             }
-            force_vertices.push((id, force.clamp(self.parameters.force_max)));
+            force_vertices.push((id, force.clamp_len(..=self.parameters.force_max)));
         }
         // Edges
         let mut force_edges = Vec::with_capacity(self.graph.edges.len());
@@ -68,7 +68,7 @@ impl<V: GraphVertex, E: GraphEdge> ForceGraph<V, E> {
                     );
                 }
 
-                forces.push(force.clamp(self.parameters.force_max));
+                forces.push(force.clamp_len(..=self.parameters.force_max));
             }
 
             force_edges.push((id, forces));
