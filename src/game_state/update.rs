@@ -30,7 +30,8 @@ impl GameState {
                             initial_camera_pos,
                             initial_mouse_pos,
                         } => {
-                            let (_, graph_pos, _) = self.get_graph_mut(&graph, world_pos).unwrap();
+                            let (_, graph_pos, graph_aabb) =
+                                self.get_graph_mut(&graph, world_pos).unwrap();
                             let (camera, framebuffer_size) = match graph {
                                 FocusedGraph::Main => (&mut self.camera, self.framebuffer_size),
                                 FocusedGraph::Rule { index } => (
@@ -40,7 +41,7 @@ impl GameState {
                             };
                             let initial =
                                 camera.screen_to_world(framebuffer_size, initial_mouse_pos);
-                            let delta = initial - graph_pos;
+                            let delta = initial - clamp(graph_pos, graph_aabb);
                             camera.center = initial_camera_pos + delta;
                             true
                         }
