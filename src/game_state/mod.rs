@@ -22,7 +22,6 @@ use curve::*;
 use focus::*;
 use graph_types::*;
 use rules::*;
-use selection::*;
 
 pub struct GameState {
     geng: Geng,

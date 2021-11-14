@@ -27,27 +27,6 @@ impl GameState {
             .map(|(id, edge, _)| (id, edge))
     }
 
-    pub fn vertices_in_area(&self, area: AABB<f32>) -> impl Iterator<Item = (&VertexId, &Vertex)> {
-        self.main_graph
-            .graph
-            .vertices
-            .iter()
-            .filter(move |(_, vertex)| {
-                vertex.vertex.distance_to_aabb(vertex.body.position, &area) <= 0.0
-            })
-    }
-
-    pub fn edges_in_area(graph: &Graph, area: AABB<f32>) -> impl Iterator<Item = (&EdgeId, &Edge)> {
-        Self::edges_points(graph)
-            .filter(move |(_, _, points)| {
-                points
-                    .iter()
-                    .zip(points.iter().skip(1))
-                    .any(|(&start, &end)| overlap_aabb_segment(&area, start, end))
-            })
-            .map(|(id, edge, _)| (id, edge))
-    }
-
     fn edges_points(graph: &Graph) -> impl Iterator<Item = (&EdgeId, &Edge, Vec<Vec2<f32>>)> {
         graph.graph.edges.iter().filter_map(|(id, edge)| {
             graph

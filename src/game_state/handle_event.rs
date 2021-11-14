@@ -114,25 +114,10 @@ impl GameState {
                             ));
                         }
                     }
-                    // // Drag
-                    // self.select_area(
-                    //     AABB::from_corners(dragging.world_start_position, world_pos),
-                    //     SelectionOptions::New,
-                    // );
                 }
                 DragAction::Move { target } => {
                     let delta = world_pos - dragging.world_start_position;
                     if delta.len().approx_eq(&0.0) {
-                        // Select
-                        // let (vertices, edges) = match target {
-                        //     DragTarget::Vertex { graph, id } if graph.is_main() => {
-                        //         (vec![*id], vec![])
-                        //     }
-                        //     DragTarget::Edge { graph, id } if graph.is_main() => {
-                        //         (vec![], vec![*id])
-                        //     }
-                        //     _ => return,
-                        // };
                         if let &DragTarget::Vertex { id, .. } = target {
                             if let Some(selection) = &mut self.selection {
                                 if selection.select(id).is_none() {
@@ -169,68 +154,4 @@ impl GameState {
             camera_view(camera, framebuffer_size),
         )
     }
-
-    fn select_point(&mut self, position: Vec2<f32>) {
-        // Vertices
-        let vertex = Self::vertices_under_point(&self.main_graph, position)
-            .map(|(&id, _)| id)
-            .next();
-
-        // // Edges
-        // let selected_edges = Self::edges_under_point(&self.main_graph, position)
-        //     .map(|(&id, _)| id)
-        //     .collect();
-
-        // Add to selection
-        if let Some(vertex) = vertex {
-            if let Some(selection) = &mut self.selection {
-                if selection.select(vertex).is_none() {
-                    let selection = self.selection.take().unwrap();
-                    self.apply_rule(selection);
-                }
-            }
-        }
-    }
-
-    // fn select_area(&mut self, area: AABB<f32>, options: SelectionOptions) {
-    //     // Vertices
-    //     let selected_vertices = self.vertices_in_area(area).map(|(&id, _)| id).collect();
-
-    //     // Edges
-    //     let selected_edges = Self::edges_in_area(&self.main_graph, area)
-    //         .map(|(&id, _)| id)
-    //         .collect();
-
-    //     // Add to selection
-    //     self.select(selected_vertices, selected_edges, options);
-    // }
-
-    // fn select(&mut self, vertices: Vec<VertexId>, edges: Vec<EdgeId>, options: SelectionOptions) {
-    //     match options {
-    //         SelectionOptions::New => {
-    //             self.selection.clear_all();
-    //             self.selection.select_vertices(vertices.into_iter());
-    //             self.selection.select_edges(edges.into_iter());
-    //         }
-    //         SelectionOptions::Add => {
-    //             self.selection.select_vertices(vertices.into_iter());
-    //             self.selection.select_edges(edges.into_iter());
-    //         }
-    //         SelectionOptions::Change => {
-    //             self.selection.change_vertices(vertices.into_iter());
-    //             self.selection.change_edges(edges.into_iter());
-    //         }
-    //     }
-
-    //     self.apply_rule(0);
-    // }
 }
-
-// enum SelectionOptions {
-//     /// Clear previous selection
-//     New,
-//     /// Add the items in the area to the selection
-//     Add,
-//     /// Change the selection of the items in the area
-//     Change,
-// }

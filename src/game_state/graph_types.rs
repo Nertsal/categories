@@ -11,14 +11,6 @@ pub struct Point {
     pub color: Color<f32>,
 }
 
-impl Point {
-    pub fn distance_to_aabb(&self, position: Vec2<f32>, aabb: &AABB<f32>) -> f32 {
-        let dx = (aabb.x_min - position.x - self.radius).max(position.x - self.radius - aabb.x_max);
-        let dy = (aabb.y_min - position.y - self.radius).max(position.y - self.radius - aabb.y_max);
-        dx.max(dy)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Arrow<T> {
     pub label: String,

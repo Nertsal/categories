@@ -6,15 +6,6 @@ pub enum FocusedGraph {
     Rule { index: usize },
 }
 
-impl FocusedGraph {
-    pub fn is_main(&self) -> bool {
-        match self {
-            FocusedGraph::Main => true,
-            _ => false,
-        }
-    }
-}
-
 impl GameState {
     /// Returns the graph, a local position in it, and an aabb representing it
     pub fn get_graph_mut(
