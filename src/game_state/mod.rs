@@ -154,8 +154,19 @@ enum DragAction {
 }
 
 enum DragTarget {
-    Vertex { graph: FocusedGraph, id: VertexId },
-    Edge { graph: FocusedGraph, id: EdgeId },
+    GraphCamera {
+        graph: FocusedGraph,
+        initial_mouse_pos: Vec2<f32>,
+        initial_camera_pos: Vec2<f32>,
+    },
+    Vertex {
+        graph: FocusedGraph,
+        id: VertexId,
+    },
+    Edge {
+        graph: FocusedGraph,
+        id: EdgeId,
+    },
 }
 
 fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {

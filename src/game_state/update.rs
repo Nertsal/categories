@@ -25,6 +25,25 @@ impl GameState {
                         .camera
                         .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
                     let updated = match target {
+                        &DragTarget::GraphCamera {
+                            graph,
+                            initial_camera_pos,
+                            initial_mouse_pos,
+                        } => {
+                            let (_, graph_pos, _) = self.get_graph_mut(&graph, world_pos).unwrap();
+                            let (camera, framebuffer_size) = match graph {
+                                FocusedGraph::Main => (&mut self.camera, self.framebuffer_size),
+                                FocusedGraph::Rule { index } => (
+                                    self.rules.get_camera_mut(index).unwrap(),
+                                    RULE_RESOLUTION.map(|x| x as f32),
+                                ),
+                            };
+                            let initial =
+                                camera.screen_to_world(framebuffer_size, initial_mouse_pos);
+                            let delta = initial - graph_pos;
+                            camera.center = initial_camera_pos + delta;
+                            true
+                        }
                         &DragTarget::Vertex { graph, id } => {
                             let (graph, graph_pos, graph_aabb) =
                                 self.get_graph_mut(&graph, world_pos).unwrap();

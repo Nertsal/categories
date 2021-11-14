@@ -41,6 +41,10 @@ impl Rules {
         self.cameras.get(index)
     }
 
+    pub fn get_camera_mut(&mut self, index: usize) -> Option<&mut Camera2d> {
+        self.cameras.get_mut(index)
+    }
+
     pub fn get_rule(&self, index: usize) -> Option<&Rule> {
         self.rules.get(index)
     }

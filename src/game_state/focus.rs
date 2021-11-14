@@ -28,7 +28,7 @@ impl GameState {
                 Some((&mut self.main_graph, position, aabb))
             }
             FocusedGraph::Rule { index } => {
-                let (pos, aabb) = self.world_to_rule_pos(position, *index);
+                let (_, pos, aabb) = self.world_to_rule_pos(position, *index);
                 self.rules
                     .get_rule_mut(*index)
                     .map(|rule| (rule.graph_mut(), pos, aabb))

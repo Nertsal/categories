@@ -22,13 +22,36 @@ impl GameState {
             .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
 
         let action = match mouse_button {
+            mouse
+                if mouse == geng::MouseButton::Left
+                    && self.geng.window().is_key_pressed(geng::Key::LCtrl)
+                    || mouse == geng::MouseButton::Right =>
+            {
+                // Drag camera
+                let (mouse_pos, camera_pos) = match self.focused_graph {
+                    FocusedGraph::Main => (mouse_position.map(|x| x as f32), self.camera.center),
+                    FocusedGraph::Rule { index } => {
+                        let (mouse, _, _) = self.world_to_rule_pos(world_pos, index);
+                        (mouse, self.rules.get_camera(index).unwrap().center)
+                    }
+                };
+
+                let action = DragAction::Move {
+                    target: DragTarget::GraphCamera {
+                        graph: self.focused_graph,
+                        initial_mouse_pos: mouse_pos,
+                        initial_camera_pos: camera_pos,
+                    },
+                };
+                Some(action)
+            }
             geng::MouseButton::Left => {
                 // Drag vertex
                 let (graph, graph_pos) = match self.focused_graph {
                     FocusedGraph::Main => (&self.main_graph, world_pos),
                     FocusedGraph::Rule { index } => (
                         self.rules.get_rule(index).unwrap().graph(),
-                        self.world_to_rule_pos(world_pos, index).0,
+                        self.world_to_rule_pos(world_pos, index).1,
                     ),
                 };
 
@@ -105,12 +128,12 @@ impl GameState {
         }
     }
 
-    /// Returns a local position inside the rule's graph and its aabb.
+    /// Returns a local screen position, a local world position inside the rule's graph, and its aabb.
     pub fn world_to_rule_pos(
         &self,
         world_pos: Vec2<f32>,
         rule_index: usize,
-    ) -> (Vec2<f32>, AABB<f32>) {
+    ) -> (Vec2<f32>, Vec2<f32>, AABB<f32>) {
         let rule_aabb = self
             .rules
             .layout(&self.camera, self.framebuffer_size)
@@ -122,6 +145,7 @@ impl GameState {
         screen_pos *= framebuffer_size;
         let camera = self.rules.get_camera(rule_index).unwrap();
         (
+            screen_pos,
             camera.screen_to_world(framebuffer_size, screen_pos),
             camera_view(camera, framebuffer_size),
         )
