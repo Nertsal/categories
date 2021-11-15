@@ -49,39 +49,90 @@ impl GameState {
             },
             rules: Rules::new(
                 geng,
-                vec![Rule::new(
-                    4,
-                    vec![
-                        ArrowConstraint {
-                            from: 2,
-                            to: 0,
-                            connection: ArrowConnection::Best,
-                        },
-                        ArrowConstraint {
-                            from: 2,
-                            to: 1,
-                            connection: ArrowConnection::Best,
-                        },
-                        ArrowConstraint {
-                            from: 3,
-                            to: 0,
+                vec![
+                    // Regular composition
+                    Rule::new(
+                        3,
+                        vec![
+                            ArrowConstraint {
+                                from: 0,
+                                to: 1,
+                                connection: ArrowConnection::Regular,
+                            },
+                            ArrowConstraint {
+                                from: 1,
+                                to: 2,
+                                connection: ArrowConnection::Regular,
+                            },
+                        ],
+                        0,
+                        vec![Arrow {
+                            label: "".to_owned(),
+                            from: 0,
+                            to: 2,
                             connection: ArrowConnection::Regular,
-                        },
-                        ArrowConstraint {
+                        }],
+                    )
+                    .unwrap(),
+                    // Unique composition
+                    Rule::new(
+                        3,
+                        vec![
+                            ArrowConstraint {
+                                from: 0,
+                                to: 1,
+                                connection: ArrowConnection::Unique,
+                            },
+                            ArrowConstraint {
+                                from: 1,
+                                to: 2,
+                                connection: ArrowConnection::Unique,
+                            },
+                        ],
+                        0,
+                        vec![Arrow {
+                            label: "".to_owned(),
+                            from: 0,
+                            to: 2,
+                            connection: ArrowConnection::Unique,
+                        }],
+                    )
+                    .unwrap(),
+                    // Cone
+                    Rule::new(
+                        4,
+                        vec![
+                            ArrowConstraint {
+                                from: 2,
+                                to: 0,
+                                connection: ArrowConnection::Best,
+                            },
+                            ArrowConstraint {
+                                from: 2,
+                                to: 1,
+                                connection: ArrowConnection::Best,
+                            },
+                            ArrowConstraint {
+                                from: 3,
+                                to: 0,
+                                connection: ArrowConnection::Regular,
+                            },
+                            ArrowConstraint {
+                                from: 3,
+                                to: 1,
+                                connection: ArrowConnection::Regular,
+                            },
+                        ],
+                        0,
+                        vec![Arrow {
+                            label: "".to_owned(),
                             from: 3,
-                            to: 1,
-                            connection: ArrowConnection::Regular,
-                        },
-                    ],
-                    0,
-                    vec![Arrow {
-                        label: "".to_owned(),
-                        from: 3,
-                        to: 2,
-                        connection: ArrowConnection::Unique,
-                    }],
-                )
-                .unwrap()],
+                            to: 2,
+                            connection: ArrowConnection::Unique,
+                        }],
+                    )
+                    .unwrap(),
+                ],
             ),
             main_graph: {
                 let mut graph = Graph::new(ForceParameters::default());
