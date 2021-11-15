@@ -56,7 +56,7 @@ impl Rules {
     }
 
     pub fn scroll(&mut self, delta: f32) {
-        self.scroll_offset += delta;
+        self.scroll_offset = (self.scroll_offset + delta).clamp(0.0, self.layout_max_offset());
     }
 
     pub fn get_camera(&self, index: usize) -> Option<&Camera2d> {
@@ -101,6 +101,11 @@ impl Rules {
             camera,
             framebuffer_size,
         )
+    }
+
+    fn layout_max_offset(&self) -> f32 {
+        let rule_height = self.width / RULE_RESOLUTION.x as f32 * RULE_RESOLUTION.y as f32;
+        self.rules.len() as f32 * rule_height
     }
 }
 
