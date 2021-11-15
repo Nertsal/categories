@@ -2,9 +2,11 @@ use super::*;
 
 mod render;
 mod rule;
+mod rule_builder;
 mod selection;
 
 pub use rule::*;
+pub use rule_builder::*;
 pub use selection::*;
 
 struct RuleTexture {

@@ -51,87 +51,42 @@ impl GameState {
                 geng,
                 vec![
                     // Regular composition
-                    Rule::new(
-                        3,
-                        vec![
-                            ArrowConstraint {
-                                from: 0,
-                                to: 1,
-                                connection: ArrowConnection::Regular,
-                            },
-                            ArrowConstraint {
-                                from: 1,
-                                to: 2,
-                                connection: ArrowConnection::Regular,
-                            },
-                        ],
-                        0,
-                        vec![Arrow {
-                            label: "".to_owned(),
-                            from: 0,
-                            to: 2,
-                            connection: ArrowConnection::Regular,
-                        }],
-                    )
-                    .unwrap(),
+                    RuleBuilder::new(3)
+                        .with_edge_constraints(
+                            [
+                                ArrowConstraint::new(0, 1, ArrowConnection::Regular),
+                                ArrowConstraint::new(1, 2, ArrowConnection::Regular),
+                            ]
+                            .into_iter(),
+                        )
+                        .with_new_edges(
+                            [Arrow::new("", 0, 2, ArrowConnection::Regular)].into_iter(),
+                        )
+                        .build(),
                     // Unique composition
-                    Rule::new(
-                        3,
-                        vec![
-                            ArrowConstraint {
-                                from: 0,
-                                to: 1,
-                                connection: ArrowConnection::Unique,
-                            },
-                            ArrowConstraint {
-                                from: 1,
-                                to: 2,
-                                connection: ArrowConnection::Unique,
-                            },
-                        ],
-                        0,
-                        vec![Arrow {
-                            label: "".to_owned(),
-                            from: 0,
-                            to: 2,
-                            connection: ArrowConnection::Unique,
-                        }],
-                    )
-                    .unwrap(),
-                    // Cone
-                    Rule::new(
-                        4,
-                        vec![
-                            ArrowConstraint {
-                                from: 2,
-                                to: 0,
-                                connection: ArrowConnection::Best,
-                            },
-                            ArrowConstraint {
-                                from: 2,
-                                to: 1,
-                                connection: ArrowConnection::Best,
-                            },
-                            ArrowConstraint {
-                                from: 3,
-                                to: 0,
-                                connection: ArrowConnection::Regular,
-                            },
-                            ArrowConstraint {
-                                from: 3,
-                                to: 1,
-                                connection: ArrowConnection::Regular,
-                            },
-                        ],
-                        0,
-                        vec![Arrow {
-                            label: "".to_owned(),
-                            from: 3,
-                            to: 2,
-                            connection: ArrowConnection::Unique,
-                        }],
-                    )
-                    .unwrap(),
+                    RuleBuilder::new(3)
+                        .with_edge_constraints(
+                            [
+                                ArrowConstraint::new(0, 1, ArrowConnection::Unique),
+                                ArrowConstraint::new(1, 2, ArrowConnection::Unique),
+                            ]
+                            .into_iter(),
+                        )
+                        .with_new_edges([Arrow::new("", 0, 2, ArrowConnection::Unique)].into_iter())
+                        .build(),
+                    // Best Cone
+                    RuleBuilder::new(4)
+                        .with_edge_constraints(
+                            [
+                                ArrowConstraint::new(2, 0, ArrowConnection::Best),
+                                ArrowConstraint::new(2, 1, ArrowConnection::Best),
+                                ArrowConstraint::new(3, 0, ArrowConnection::Regular),
+                                ArrowConstraint::new(3, 1, ArrowConnection::Regular),
+                            ]
+                            .into_iter(),
+                        )
+                        .with_new_edges([Arrow::new("", 3, 2, ArrowConnection::Unique)].into_iter())
+                        .build(),
                 ],
             ),
             main_graph: {
@@ -169,12 +124,7 @@ impl GameState {
                             vec2(rng.gen(), rng.gen()),
                             ARROW_BODIES,
                             ARROW_MASS,
-                            Arrow {
-                                label: label.to_owned(),
-                                from: vertices[from],
-                                to: vertices[to],
-                                connection,
-                            },
+                            Arrow::new(label, vertices[from], vertices[to], connection),
                         ))
                     };
 

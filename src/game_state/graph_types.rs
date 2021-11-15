@@ -20,6 +20,15 @@ pub struct Arrow<T> {
 }
 
 impl<T> Arrow<T> {
+    pub fn new(label: &str, from: T, to: T, connection: ArrowConnection) -> Self {
+        Self {
+            label: label.to_owned(),
+            from,
+            to,
+            connection,
+        }
+    }
+
     pub fn color(&self) -> Color<f32> {
         match self.connection {
             ArrowConnection::Best => ARROW_BEST_COLOR,
@@ -47,6 +56,16 @@ pub struct ArrowConstraint<T> {
     pub from: T,
     pub to: T,
     pub connection: ArrowConnection,
+}
+
+impl<T> ArrowConstraint<T> {
+    pub fn new(from: T, to: T, connection: ArrowConnection) -> Self {
+        Self {
+            from,
+            to,
+            connection,
+        }
+    }
 }
 
 impl<T: PartialEq> Arrow<T> {

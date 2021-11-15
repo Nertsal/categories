@@ -76,12 +76,12 @@ impl Rule {
                 random_pos(),
                 ARROW_BODIES,
                 ARROW_MASS,
-                Arrow {
-                    label: "".to_owned(),
-                    from: input_vertex_ids[edge.from],
-                    to: input_vertex_ids[edge.to],
-                    connection: edge.connection,
-                },
+                Arrow::new(
+                    "",
+                    input_vertex_ids[edge.from],
+                    input_vertex_ids[edge.to],
+                    edge.connection,
+                ),
             ));
         }
         for edge in &new_edges {
@@ -90,16 +90,16 @@ impl Rule {
                 random_pos(),
                 ARROW_BODIES,
                 ARROW_MASS,
-                Arrow {
-                    label: "".to_owned(),
-                    from: *input_vertex_ids
+                Arrow::new(
+                    "",
+                    *input_vertex_ids
                         .get(edge.from)
                         .unwrap_or_else(|| &new_vertex_ids[edge.from - input_vertices]),
-                    to: *input_vertex_ids
+                    *input_vertex_ids
                         .get(edge.to)
                         .unwrap_or_else(|| &new_vertex_ids[edge.to - input_vertices]),
-                    connection: edge.connection,
-                },
+                    edge.connection,
+                ),
             ));
         }
 
@@ -174,12 +174,12 @@ impl Rule {
         // Add connections
         let mut rng = thread_rng();
         for new_edge in &self.new_edges {
-            let new_edge = Arrow {
-                label: "".to_owned(),
-                from: vertices[new_edge.from],
-                to: vertices[new_edge.to],
-                connection: new_edge.connection,
-            };
+            let new_edge = Arrow::new(
+                "",
+                vertices[new_edge.from],
+                vertices[new_edge.to],
+                new_edge.connection,
+            );
             graph
                 .graph
                 .new_edge(ForceEdge::new(
