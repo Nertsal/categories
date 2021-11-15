@@ -18,10 +18,8 @@ pub fn draw_graph(
                 .get(&arrow.edge.to)
                 .map(|to| (from, to))
         }) {
-            let to_position = to.body.position;
-            let from_position = from.body.position;
-            let start = from_position;
-            let end = to_position;
+            let start = from.body.position;
+            let end = to.body.position;
 
             // Line body
             let chain = if arrow.bodies.len() > 1 {
@@ -39,18 +37,18 @@ pub fn draw_graph(
                 ParabolaCurve::new([start, arrow.bodies[0].position, end])
                     .chain(CURVE_RESOLUTION, ARROW_WIDTH)
             };
+            let chain_len = chain.length();
 
             let end_direction = chain.end_direction().unwrap();
-            let direction_norm = end_direction.normalize();
+            let direction_norm = end_direction.normalize_or_zero();
             let normal = direction_norm.rotate_90();
-            let scale = ARROW_HEAD_LENGTH.min((end - start).len() * ARROW_LENGTH_MAX_FRAC)
-                / ARROW_HEAD_LENGTH;
+            let scale =
+                ARROW_HEAD_LENGTH.min(chain_len * ARROW_LENGTH_MAX_FRAC) / ARROW_HEAD_LENGTH;
             let head_length = ARROW_HEAD_LENGTH * scale;
             let head_offset = direction_norm * (head_length + to.vertex.radius);
             let head = end - head_offset;
             let head_width = normal * ARROW_HEAD_WIDTH * scale;
 
-            let chain_len = chain.length();
             let mut chain = chain.take_range_ratio(
                 from.vertex.radius / chain_len..=1.0 - (to.vertex.radius + head_length) / chain_len,
             );
