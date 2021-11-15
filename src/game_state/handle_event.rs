@@ -3,6 +3,28 @@ use super::*;
 impl GameState {
     pub fn handle_event_impl(&mut self, event: geng::Event) {
         match event {
+            geng::Event::KeyDown {
+                key: geng::Key::Space,
+            } => {
+                if let Some(dragging) = &self.dragging {
+                    if let DragAction::Move {
+                        target: DragTarget::Vertex { graph, id },
+                    } = &dragging.action
+                    {
+                        let graph = *graph;
+                        let id = *id;
+                        let vertex = self
+                            .get_graph_mut(&graph, Vec2::ZERO)
+                            .unwrap()
+                            .0
+                            .graph
+                            .vertices
+                            .get_mut(&id)
+                            .unwrap();
+                        vertex.is_anchor = !vertex.is_anchor;
+                    }
+                }
+            }
             geng::Event::MouseDown { position, button } => {
                 self.drag_start(position, button);
             }
