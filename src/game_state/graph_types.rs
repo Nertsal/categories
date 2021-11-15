@@ -51,6 +51,11 @@ pub struct ArrowConstraint<T> {
 
 impl<T: PartialEq> Arrow<T> {
     pub fn check_constraint(&self, constraint: &ArrowConstraint<T>) -> bool {
-        self.from == constraint.from && self.to == constraint.to
+        self.from == constraint.from
+            && self.to == constraint.to
+            && match (constraint.connection, self.connection) {
+                (ArrowConnection::Regular, _) => true,
+                (constraint, connection) => connection == constraint,
+            }
     }
 }
