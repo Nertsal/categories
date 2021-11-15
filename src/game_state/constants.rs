@@ -1,5 +1,7 @@
 use super::*;
 
+pub const SCROLL_SPEED: f32 = 0.1;
+
 pub const ZOOM_SPEED: f32 = 0.1;
 pub const CAMERA_FOV_MIN: f32 = 25.0;
 pub const CAMERA_FOV_MAX: f32 = 200.0;

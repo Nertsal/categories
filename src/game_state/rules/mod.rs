@@ -26,6 +26,7 @@ impl RuleTexture {
 pub struct Rules {
     geng: Geng,
     pub width: f32,
+    scroll_offset: f32,
     rules: Vec<Rule>,
     cameras: Vec<Camera2d>,
     textures: Vec<RuleTexture>,
@@ -38,6 +39,7 @@ impl Rules {
             geng: geng.clone(),
             width: 1.0,
             focused_rule: None,
+            scroll_offset: 0.0,
             cameras: (0..rules.len())
                 .map(|_| Camera2d {
                     center: Vec2::ZERO,
@@ -51,6 +53,10 @@ impl Rules {
                 .collect(),
             rules,
         }
+    }
+
+    pub fn scroll(&mut self, delta: f32) {
+        self.scroll_offset += delta;
     }
 
     pub fn get_camera(&self, index: usize) -> Option<&Camera2d> {
@@ -88,11 +94,18 @@ impl Rules {
         camera: &Camera2d,
         framebuffer_size: Vec2<f32>,
     ) -> impl Iterator<Item = AABB<f32>> {
-        layout(self.width, self.rules_count(), camera, framebuffer_size)
+        layout(
+            vec2(0.0, self.scroll_offset),
+            self.width,
+            self.rules_count(),
+            camera,
+            framebuffer_size,
+        )
     }
 }
 
 fn layout(
+    offset: Vec2<f32>,
     width: f32,
     rules: usize,
     camera: &Camera2d,
@@ -101,7 +114,7 @@ fn layout(
     let camera_view = camera_view(camera, framebuffer_size);
 
     let rule_height = width / RULE_RESOLUTION.x as f32 * RULE_RESOLUTION.y as f32;
-    let rule_aabb_base = AABB::point(camera_view.top_right())
+    let rule_aabb_base = AABB::point(camera_view.top_right() + offset)
         .extend_left(width)
         .extend_down(rule_height);
 

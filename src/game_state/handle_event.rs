@@ -13,12 +13,19 @@ impl GameState {
                 self.drag_stop(position, button);
             }
             geng::Event::Wheel { delta } => {
-                let delta = -delta as f32 * ZOOM_SPEED;
-                let camera = match self.focused_graph {
-                    FocusedGraph::Main => &mut self.camera,
-                    FocusedGraph::Rule { index } => self.rules.get_camera_mut(index).unwrap(),
-                };
-                camera.fov = (camera.fov + delta).clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+                if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+                    // Zoom
+                    let delta = -delta as f32 * ZOOM_SPEED;
+                    let camera = match self.focused_graph {
+                        FocusedGraph::Main => &mut self.camera,
+                        FocusedGraph::Rule { index } => self.rules.get_camera_mut(index).unwrap(),
+                    };
+                    camera.fov = (camera.fov + delta).clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+                } else {
+                    // Scroll
+                    let delta = -delta as f32 * SCROLL_SPEED;
+                    self.rules.scroll(delta);
+                }
             }
             _ => (),
         }

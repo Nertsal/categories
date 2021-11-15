@@ -48,14 +48,30 @@ impl Rules {
             * RULE_SEPARATION_WIDTH_FRAC;
 
         self.render(selection);
-        for (rule_aabb, rule_texture) in layout(
+        let layout = layout(
+            vec2(0.0, self.scroll_offset),
             self.width,
             self.rules_count(),
             camera,
             framebuffer.size().map(|x| x as f32),
         )
-        .zip(self.textures.iter())
-        {
+        .collect::<Vec<_>>();
+
+        if let Some(rule_aabb) = layout.last() {
+            // Separation line
+            draw::chain::draw_chain(
+                self.geng.draw_2d(),
+                framebuffer,
+                camera,
+                &Chain {
+                    vertices: vec![rule_aabb.bottom_left(), rule_aabb.bottom_right()],
+                    width: line_width,
+                },
+                RULE_SEPARATION_COLOR,
+            );
+        }
+
+        for (rule_aabb, rule_texture) in layout.into_iter().zip(self.textures.iter()) {
             // Separation line
             draw::chain::draw_chain(
                 self.geng.draw_2d(),
