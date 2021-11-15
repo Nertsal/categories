@@ -13,7 +13,7 @@ struct RuleTexture {
 }
 
 impl RuleTexture {
-    pub fn new(ugli: &Rc<Ugli>, size: Vec2<usize>, color: Color<f32>) -> Self {
+    pub fn new(ugli: &Ugli, size: Vec2<usize>, color: Color<f32>) -> Self {
         Self {
             inner: ugli::Texture2d::new_with(ugli, size, |_| color),
             background_color: color,
