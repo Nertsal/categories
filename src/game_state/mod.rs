@@ -63,17 +63,6 @@ impl GameState {
                             [Arrow::new("", 0, 2, ArrowConnection::Regular)].into_iter(),
                         )
                         .build(),
-                    // Unique composition
-                    RuleBuilder::new(3)
-                        .with_edge_constraints(
-                            [
-                                ArrowConstraint::new(0, 1, ArrowConnection::Unique),
-                                ArrowConstraint::new(1, 2, ArrowConnection::Unique),
-                            ]
-                            .into_iter(),
-                        )
-                        .with_new_edges([Arrow::new("", 0, 2, ArrowConnection::Unique)].into_iter())
-                        .build(),
                     // Best Cone
                     RuleBuilder::new(4)
                         .with_edge_constraints(
