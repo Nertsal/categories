@@ -49,6 +49,67 @@ impl GameState {
                     self.rules.scroll(delta);
                 }
             }
+            geng::Event::TouchStart { touches } => match &touches[..] {
+                [touch] => {
+                    self.drag_start(touch.position, geng::MouseButton::Left);
+                }
+                [touch0, touch1] => {
+                    let world_pos = self
+                        .camera
+                        .screen_to_world(self.framebuffer_size, touch0.position.map(|x| x as f32));
+                    let world_pos1 = self
+                        .camera
+                        .screen_to_world(self.framebuffer_size, touch1.position.map(|x| x as f32));
+                    let direction = world_pos1 - world_pos;
+                    self.dragging = Some(Dragging {
+                        mouse_start_position: touch0.position,
+                        world_start_position: world_pos,
+                        action: DragAction::TwoTouchMove {
+                            initial_camera_fov: self.camera.fov,
+                            initial_camera_rotation: self.camera.rotation,
+                            initial_touch_distance: direction.len(),
+                            initial_touch_angle: direction.arg(),
+                        },
+                    })
+                }
+                _ => (),
+            },
+            geng::Event::TouchMove { touches } => {
+                if let Some(dragging) = &self.dragging {
+                    if let &DragAction::TwoTouchMove {
+                        initial_camera_rotation,
+                        initial_camera_fov,
+                        initial_touch_distance,
+                        initial_touch_angle,
+                    } = &dragging.action
+                    {
+                        match &touches[..] {
+                            [touch0, touch1] => {
+                                let world_pos = self.camera.screen_to_world(
+                                    self.framebuffer_size,
+                                    touch0.position.map(|x| x as f32),
+                                );
+                                let world_pos1 = self.camera.screen_to_world(
+                                    self.framebuffer_size,
+                                    touch1.position.map(|x| x as f32),
+                                );
+                                let direction = world_pos1 - world_pos;
+                                let distance = direction.len();
+                                let angle = direction.arg();
+
+                                self.camera.fov =
+                                    initial_camera_fov * distance / initial_touch_distance;
+                                self.camera.rotation =
+                                    initial_camera_rotation + angle - initial_touch_angle;
+                            }
+                            _ => (),
+                        }
+                    }
+                }
+            }
+            geng::Event::TouchEnd => {
+                self.dragging = None;
+            }
             _ => (),
         }
     }
@@ -160,6 +221,7 @@ impl GameState {
                         }
                     }
                 }
+                _ => (),
             }
         }
     }

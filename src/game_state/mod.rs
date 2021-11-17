@@ -157,8 +157,16 @@ struct Dragging {
 }
 
 enum DragAction {
-    Move { target: DragTarget },
+    Move {
+        target: DragTarget,
+    },
     Selection,
+    TwoTouchMove {
+        initial_camera_fov: f32,
+        initial_camera_rotation: f32,
+        initial_touch_distance: f32,
+        initial_touch_angle: f32,
+    },
 }
 
 enum DragTarget {
