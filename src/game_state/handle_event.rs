@@ -28,8 +28,8 @@ impl GameState {
             geng::Event::MouseDown { position, button } => {
                 self.drag_start(position, button);
             }
-            geng::Event::MouseMove { position, delta } => {
-                self.drag_move(position, delta);
+            geng::Event::MouseMove { position, .. } => {
+                self.drag_move(position);
             }
             geng::Event::MouseUp { position, button } => {
                 self.drag_stop(position, button);
@@ -74,40 +74,42 @@ impl GameState {
                 }
                 _ => (),
             },
-            geng::Event::TouchMove { touches } => {
-                if let Some(dragging) = &self.dragging {
-                    if let &DragAction::TwoTouchMove {
-                        initial_camera_rotation,
-                        initial_camera_fov,
-                        initial_touch_distance,
-                        initial_touch_angle,
-                    } = &dragging.action
-                    {
-                        match &touches[..] {
-                            [touch0, touch1] => {
-                                let world_pos = self.camera.screen_to_world(
-                                    self.framebuffer_size,
-                                    touch0.position.map(|x| x as f32),
-                                );
-                                let world_pos1 = self.camera.screen_to_world(
-                                    self.framebuffer_size,
-                                    touch1.position.map(|x| x as f32),
-                                );
-                                let direction = world_pos1 - world_pos;
-                                let distance = direction.len();
-                                let angle = direction.arg();
+            geng::Event::TouchMove { touches } => match &touches[..] {
+                [touch] => {
+                    self.drag_move(touch.position);
+                }
+                [touch0, touch1] => {
+                    if let Some(dragging) = &self.dragging {
+                        if let &DragAction::TwoTouchMove {
+                            initial_camera_rotation,
+                            initial_camera_fov,
+                            initial_touch_distance,
+                            initial_touch_angle,
+                        } = &dragging.action
+                        {
+                            let world_pos = self.camera.screen_to_world(
+                                self.framebuffer_size,
+                                touch0.position.map(|x| x as f32),
+                            );
+                            let world_pos1 = self.camera.screen_to_world(
+                                self.framebuffer_size,
+                                touch1.position.map(|x| x as f32),
+                            );
+                            let direction = world_pos1 - world_pos;
+                            let distance = direction.len();
+                            let angle = direction.arg();
 
-                                self.camera.fov =
-                                    initial_camera_fov * distance / initial_touch_distance;
-                                self.camera.rotation =
-                                    initial_camera_rotation + angle - initial_touch_angle;
-                            }
-                            _ => (),
+                            self.camera.fov =
+                                initial_camera_fov * distance / initial_touch_distance;
+                            self.camera.rotation =
+                                initial_camera_rotation + angle - initial_touch_angle;
                         }
                     }
                 }
-            }
+                _ => (),
+            },
             geng::Event::TouchEnd => {
+                // TODO: Detect short and long taps
                 self.dragging = None;
             }
             _ => (),
@@ -185,7 +187,69 @@ impl GameState {
         });
     }
 
-    fn drag_move(&mut self, _mouse_position: Vec2<f64>, _mouse_delta: Vec2<f64>) {}
+    fn drag_move(&mut self, mouse_position: Vec2<f64>) {
+        // Drag
+        if let Some(dragging) = &mut self.dragging {
+            match &dragging.action {
+                DragAction::Move { target } => {
+                    let world_pos = self
+                        .camera
+                        .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
+                    let updated = match target {
+                        &DragTarget::GraphCamera {
+                            graph,
+                            initial_camera_pos,
+                            initial_mouse_pos,
+                        } => {
+                            let (_, graph_pos, graph_aabb) =
+                                self.get_graph_mut(&graph, world_pos).unwrap();
+                            let (camera, framebuffer_size) = match graph {
+                                FocusedGraph::Main => (&mut self.camera, self.framebuffer_size),
+                                FocusedGraph::Rule { index } => (
+                                    self.rules.get_camera_mut(index).unwrap(),
+                                    RULE_RESOLUTION.map(|x| x as f32),
+                                ),
+                            };
+                            let initial =
+                                camera.screen_to_world(framebuffer_size, initial_mouse_pos);
+                            let delta = initial - graph_pos.clamp_aabb(graph_aabb);
+                            camera.center = initial_camera_pos + delta;
+                            true
+                        }
+                        &DragTarget::Vertex { graph, id } => {
+                            let (graph, graph_pos, graph_aabb) =
+                                self.get_graph_mut(&graph, world_pos).unwrap();
+                            graph
+                                .graph
+                                .vertices
+                                .get_mut(&id)
+                                .map(|vertex| {
+                                    vertex.body.position = graph_pos.clamp_aabb(graph_aabb)
+                                })
+                                .is_some()
+                        }
+                        &DragTarget::Edge { graph, id } => {
+                            let (graph, graph_pos, graph_aabb) =
+                                self.get_graph_mut(&graph, world_pos).unwrap();
+                            graph
+                                .graph
+                                .edges
+                                .get_mut(&id)
+                                .map(|edge| {
+                                    edge.get_center_mut().unwrap().position =
+                                        graph_pos.clamp_aabb(graph_aabb)
+                                })
+                                .is_some()
+                        }
+                    };
+                    if !updated {
+                        self.dragging = None;
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
 
     fn drag_stop(&mut self, mouse_position: Vec2<f64>, _mouse_button: geng::MouseButton) {
         if let Some(dragging) = self.dragging.take() {
