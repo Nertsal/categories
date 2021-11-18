@@ -163,9 +163,8 @@ enum DragAction {
     Selection,
     TwoTouchMove {
         initial_camera_fov: f32,
-        initial_camera_rotation: f32,
-        initial_touch_distance: f32,
-        initial_touch_angle: f32,
+        initial_touch: Vec2<f64>,
+        initial_touch_other: Vec2<f64>,
     },
 }
 

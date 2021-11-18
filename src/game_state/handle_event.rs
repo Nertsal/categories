@@ -57,18 +57,14 @@ impl GameState {
                     let world_pos = self
                         .camera
                         .screen_to_world(self.framebuffer_size, touch0.position.map(|x| x as f32));
-                    let world_pos1 = self
-                        .camera
-                        .screen_to_world(self.framebuffer_size, touch1.position.map(|x| x as f32));
-                    let direction = world_pos1 - world_pos;
                     self.dragging = Some(Dragging {
                         mouse_start_position: touch0.position,
                         world_start_position: world_pos,
                         action: DragAction::TwoTouchMove {
                             initial_camera_fov: self.camera.fov,
-                            initial_camera_rotation: self.camera.rotation,
-                            initial_touch_distance: direction.len(),
-                            initial_touch_angle: direction.arg(),
+                            // initial_camera_rotation: self.camera.rotation,
+                            initial_touch: touch0.position,
+                            initial_touch_other: touch1.position,
                         },
                     })
                 }
@@ -81,28 +77,36 @@ impl GameState {
                 [touch0, touch1] => {
                     if let Some(dragging) = &self.dragging {
                         if let &DragAction::TwoTouchMove {
-                            initial_camera_rotation,
+                            // initial_camera_rotation,
                             initial_camera_fov,
-                            initial_touch_distance,
-                            initial_touch_angle,
+                            initial_touch,
+                            initial_touch_other,
                         } = &dragging.action
                         {
-                            let world_pos = self.camera.screen_to_world(
+                            let initial_delta = self.camera.screen_to_world(
+                                self.framebuffer_size,
+                                initial_touch.map(|x| x as f32),
+                            ) - self.camera.screen_to_world(
+                                self.framebuffer_size,
+                                initial_touch_other.map(|x| x as f32),
+                            );
+
+                            let initial_distance = initial_delta.len();
+                            // let initial_angle = initial_delta.arg();
+
+                            let delta = self.camera.screen_to_world(
                                 self.framebuffer_size,
                                 touch0.position.map(|x| x as f32),
-                            );
-                            let world_pos1 = self.camera.screen_to_world(
+                            ) - self.camera.screen_to_world(
                                 self.framebuffer_size,
                                 touch1.position.map(|x| x as f32),
                             );
-                            let direction = world_pos1 - world_pos;
-                            let distance = direction.len();
-                            let angle = direction.arg();
 
-                            self.camera.fov =
-                                initial_camera_fov * distance / initial_touch_distance;
-                            self.camera.rotation =
-                                initial_camera_rotation + angle - initial_touch_angle;
+                            let distance = delta.len();
+                            // let angle = delta.arg();
+
+                            self.camera.fov = initial_camera_fov / distance * initial_distance;
+                            // self.camera.rotation = initial_camera_rotation + angle - initial_angle;
                         }
                     }
                 }
