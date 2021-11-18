@@ -15,11 +15,19 @@ pub fn draw_graph(
             match selection {
                 GraphObject::Vertex { id } => {
                     let vertex = graph.graph.vertices.get(id).unwrap();
-                    draw_vertex(draw_2d, framebuffer, camera, graph, vertex);
+                    draw_vertex(draw_2d, framebuffer, camera, vertex, true);
                 }
                 GraphObject::Edge { id } => {
                     let edge = graph.graph.edges.get(id).unwrap();
-                    draw_edge(draw_2d, framebuffer, camera, background_color, graph, edge);
+                    draw_edge(
+                        draw_2d,
+                        framebuffer,
+                        camera,
+                        background_color,
+                        graph,
+                        edge,
+                        true,
+                    );
                 }
             }
         }
@@ -28,7 +36,15 @@ pub fn draw_graph(
     // Edges
     for (_, edge) in graph.graph.edges.iter() {
         // Edge
-        draw_edge(draw_2d, framebuffer, camera, background_color, graph, edge);
+        draw_edge(
+            draw_2d,
+            framebuffer,
+            camera,
+            background_color,
+            graph,
+            edge,
+            false,
+        );
 
         // Label
         if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
@@ -47,7 +63,7 @@ pub fn draw_graph(
     // Vertices
     for (_, vertex) in graph.graph.vertices.iter() {
         // Vertex
-        draw_vertex(draw_2d, framebuffer, camera, graph, vertex);
+        draw_vertex(draw_2d, framebuffer, camera, vertex, false);
 
         // Label
         draw_fit_text(
@@ -68,15 +84,19 @@ fn draw_vertex(
     draw_2d: &Rc<geng::Draw2D>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    graph: &Graph,
     vertex: &ForceVertex<Point>,
+    is_selected: bool,
 ) {
     draw_2d.circle(
         framebuffer,
         camera,
         vertex.body.position,
-        vertex.vertex.radius,
-        vertex.vertex.color,
+        vertex.vertex.radius + if is_selected { SELECTED_RADIUS } else { 0.0 },
+        if is_selected {
+            SELECTED_COLOR
+        } else {
+            vertex.vertex.color
+        },
     );
 }
 
@@ -87,6 +107,7 @@ fn draw_edge(
     background_color: Color<f32>,
     graph: &Graph,
     edge: &ForceEdge<Arrow<VertexId>>,
+    is_selected: bool,
 ) {
     let (from, to) = graph
         .graph
@@ -112,10 +133,15 @@ fn draw_edge(
             },
             0.5,
         )
-        .chain(CURVE_RESOLUTION, ARROW_WIDTH)
+        .chain(
+            CURVE_RESOLUTION,
+            ARROW_WIDTH + if is_selected { SELECTED_RADIUS } else { 0.0 },
+        )
     } else {
-        ParabolaCurve::new([start, edge.bodies[0].position, end])
-            .chain(CURVE_RESOLUTION, ARROW_WIDTH)
+        ParabolaCurve::new([start, edge.bodies[0].position, end]).chain(
+            CURVE_RESOLUTION,
+            ARROW_WIDTH + if is_selected { SELECTED_RADIUS } else { 0.0 },
+        )
     };
     let chain_len = chain.length();
 
@@ -140,10 +166,30 @@ fn draw_edge(
 
     match edge.edge.connection {
         ArrowConnection::Best | ArrowConnection::Regular => {
-            draw_chain(draw_2d, framebuffer, camera, &chain, edge.edge.color);
+            draw_chain(
+                draw_2d,
+                framebuffer,
+                camera,
+                &chain,
+                if is_selected {
+                    SELECTED_COLOR
+                } else {
+                    edge.edge.color
+                },
+            );
         }
         ArrowConnection::Unique => {
-            draw_dashed_chain(draw_2d, framebuffer, camera, &chain, edge.edge.color);
+            draw_dashed_chain(
+                draw_2d,
+                framebuffer,
+                camera,
+                &chain,
+                if is_selected {
+                    SELECTED_COLOR
+                } else {
+                    edge.edge.color
+                },
+            );
         }
     }
 

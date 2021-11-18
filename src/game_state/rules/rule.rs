@@ -11,7 +11,7 @@ impl GameState {
 
         // TODO: infer
 
-        rule.apply(&mut self.main_graph);
+        rule.apply(&mut self.main_graph, selection.to_selection());
         true
     }
 }
@@ -213,22 +213,63 @@ impl Rule {
     }
 
     /// Applies the rule
-    fn apply(&self, graph: &mut Graph) {
+    fn apply(&self, graph: &mut Graph, selection: Vec<GraphObject>) {
+        let mut vertices = HashMap::new();
+        for input in self.inputs.iter().zip(selection.iter()) {
+            let mut insert_vertex = |label: &str, id: VertexId| {
+                vertices
+                    .insert(label.to_owned(), id)
+                    .map(|old_id| old_id == id)
+                    .unwrap_or(true)
+            };
+
+            let insert = match input {
+                (RuleObject::Vertex { label }, &GraphObject::Vertex { id }) => {
+                    insert_vertex(label, id)
+                }
+                (RuleObject::Edge { constraint, .. }, &GraphObject::Edge { id }) => {
+                    let edge = &graph.graph.edges.get(&id).unwrap().edge;
+                    insert_vertex(&constraint.from, edge.from)
+                        && insert_vertex(&constraint.to, edge.to)
+                }
+                _ => unreachable!("Must be an error in Rule::check_input"),
+            };
+            assert!(insert, "Unexpected: some selections are wrong");
+        }
+
+        fn get_vertex_id(
+            graph: &mut Graph,
+            label: &str,
+            vertices: &mut HashMap<String, VertexId>,
+        ) -> VertexId {
+            *vertices.entry(label.to_owned()).or_insert_with(|| {
+                graph.graph.new_vertex(ForceVertex {
+                    is_anchor: false,
+                    body: ForceBody::new(random_pos(), POINT_MASS),
+                    vertex: Point {
+                        label: "".to_owned(),
+                        radius: POINT_RADIUS,
+                        color: Color::WHITE,
+                    },
+                })
+            })
+        }
+
         for output in &self.outputs {
             match output {
                 RuleObject::Vertex { label } => {
-                    get_vertex_id(graph, label, Ok(None));
+                    get_vertex_id(graph, label, &mut vertices);
                 }
-                RuleObject::Edge { label, constraint } => {
-                    let from = get_vertex_id(graph, &constraint.from, Ok(None));
-                    let to = get_vertex_id(graph, &constraint.to, Ok(None));
+                RuleObject::Edge { constraint, .. } => {
+                    let from = get_vertex_id(graph, &constraint.from, &mut vertices);
+                    let to = get_vertex_id(graph, &constraint.to, &mut vertices);
                     graph.graph.new_edge(ForceEdge::new(
                         random_pos(),
                         random_pos(),
                         ARROW_BODIES,
                         ARROW_MASS,
                         Arrow::new(
-                            label,
+                            "",
                             from,
                             to,
                             constraint.connection,

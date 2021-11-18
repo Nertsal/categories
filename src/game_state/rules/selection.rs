@@ -9,11 +9,10 @@ pub struct RuleSelection {
 
 impl RuleSelection {
     pub fn new(rule_index: usize, rule: &Rule) -> Self {
-        let rule_input: Vec<_> = rule.get_input().iter().copied().collect();
         RuleSelection {
-            selection: Vec::with_capacity(rule_input.len()),
+            rule_input: rule.get_input().iter().copied().collect(),
+            selection: Vec::new(),
             current_selection: 0,
-            rule_input,
             rule_index,
         }
     }
