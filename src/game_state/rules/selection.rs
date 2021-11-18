@@ -28,10 +28,9 @@ impl RuleSelection {
     /// Select a vertex. Returns either the next vertex
     /// from the rule graph to select or None.
     pub fn select(&mut self, selection: GraphObject) -> Option<&GraphObject> {
-        assert!(
-            self.current_selection < self.rule_input.len(),
-            "Tried to select more vertices than needed"
-        );
+        if self.current_selection >= self.rule_input.len() {
+            return None;
+        }
 
         self.selection.push(selection);
         self.current_selection += 1;

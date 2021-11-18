@@ -10,31 +10,23 @@ pub fn draw_graph(
     selection: Option<&Vec<GraphObject>>,
 ) {
     // Selection
+    let mut selected_vertices = HashSet::new();
+    let mut selected_edges = HashSet::new();
     if let Some(selection) = selection {
         for selection in selection {
             match selection {
                 GraphObject::Vertex { id } => {
-                    let vertex = graph.graph.vertices.get(id).unwrap();
-                    draw_vertex(draw_2d, framebuffer, camera, vertex, true);
+                    selected_vertices.insert(id);
                 }
                 GraphObject::Edge { id } => {
-                    let edge = graph.graph.edges.get(id).unwrap();
-                    draw_edge(
-                        draw_2d,
-                        framebuffer,
-                        camera,
-                        background_color,
-                        graph,
-                        edge,
-                        true,
-                    );
+                    selected_edges.insert(id);
                 }
             }
         }
     }
 
     // Edges
-    for (_, edge) in graph.graph.edges.iter() {
+    for (id, edge) in graph.graph.edges.iter() {
         // Edge
         draw_edge(
             draw_2d,
@@ -43,7 +35,7 @@ pub fn draw_graph(
             background_color,
             graph,
             edge,
-            false,
+            selected_edges.contains(id),
         );
 
         // Label
@@ -61,9 +53,15 @@ pub fn draw_graph(
     }
 
     // Vertices
-    for (_, vertex) in graph.graph.vertices.iter() {
+    for (id, vertex) in graph.graph.vertices.iter() {
         // Vertex
-        draw_vertex(draw_2d, framebuffer, camera, vertex, false);
+        draw_vertex(
+            draw_2d,
+            framebuffer,
+            camera,
+            vertex,
+            selected_vertices.contains(id),
+        );
 
         // Label
         draw_fit_text(
@@ -87,16 +85,21 @@ fn draw_vertex(
     vertex: &ForceVertex<Point>,
     is_selected: bool,
 ) {
+    if is_selected {
+        draw_2d.circle(
+            framebuffer,
+            camera,
+            vertex.body.position,
+            vertex.vertex.radius + SELECTED_RADIUS,
+            SELECTED_COLOR,
+        );
+    }
     draw_2d.circle(
         framebuffer,
         camera,
         vertex.body.position,
-        vertex.vertex.radius + if is_selected { SELECTED_RADIUS } else { 0.0 },
-        if is_selected {
-            SELECTED_COLOR
-        } else {
-            vertex.vertex.color
-        },
+        vertex.vertex.radius,
+        vertex.vertex.color,
     );
 }
 
@@ -133,15 +136,10 @@ fn draw_edge(
             },
             0.5,
         )
-        .chain(
-            CURVE_RESOLUTION,
-            ARROW_WIDTH + if is_selected { SELECTED_RADIUS } else { 0.0 },
-        )
+        .chain(CURVE_RESOLUTION, ARROW_WIDTH)
     } else {
-        ParabolaCurve::new([start, edge.bodies[0].position, end]).chain(
-            CURVE_RESOLUTION,
-            ARROW_WIDTH + if is_selected { SELECTED_RADIUS } else { 0.0 },
-        )
+        ParabolaCurve::new([start, edge.bodies[0].position, end])
+            .chain(CURVE_RESOLUTION, ARROW_WIDTH)
     };
     let chain_len = chain.length();
 
@@ -166,30 +164,24 @@ fn draw_edge(
 
     match edge.edge.connection {
         ArrowConnection::Best | ArrowConnection::Regular => {
-            draw_chain(
-                draw_2d,
-                framebuffer,
-                camera,
-                &chain,
-                if is_selected {
-                    SELECTED_COLOR
-                } else {
-                    edge.edge.color
-                },
-            );
+            if is_selected {
+                // Selection
+                let width = chain.width;
+                chain.width += SELECTED_RADIUS;
+                draw_chain(draw_2d, framebuffer, camera, &chain, SELECTED_COLOR);
+                chain.width = width;
+            }
+            draw_chain(draw_2d, framebuffer, camera, &chain, edge.edge.color);
         }
         ArrowConnection::Unique => {
-            draw_dashed_chain(
-                draw_2d,
-                framebuffer,
-                camera,
-                &chain,
-                if is_selected {
-                    SELECTED_COLOR
-                } else {
-                    edge.edge.color
-                },
-            );
+            if is_selected {
+                // Selection
+                let width = chain.width;
+                chain.width += SELECTED_RADIUS;
+                draw_chain(draw_2d, framebuffer, camera, &chain, SELECTED_COLOR);
+                chain.width = width;
+            }
+            draw_dashed_chain(draw_2d, framebuffer, camera, &chain, edge.edge.color);
         }
     }
 

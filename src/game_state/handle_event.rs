@@ -280,6 +280,9 @@ impl GameState {
                             &DragTarget::Vertex { graph, id } if graph.is_main() => {
                                 Some(GraphObject::Vertex { id })
                             }
+                            &DragTarget::Edge { graph, id } if graph.is_main() => {
+                                Some(GraphObject::Edge { id })
+                            }
                             _ => None,
                         };
                         if let Some(selection) = &mut self.selection {

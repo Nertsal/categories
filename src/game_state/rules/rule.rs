@@ -56,6 +56,7 @@ pub struct Rule {
     infer: Vec<RuleObject<String>>,
     outputs: Vec<RuleObject<String>>,
     graph: Graph,
+    graph_input: Vec<GraphObject>,
 }
 
 impl Rule {
@@ -71,27 +72,33 @@ impl Rule {
 
         let mut add_object =
             |object: &RuleObject<&str>, color: Color<f32>, override_color: bool| match object {
-                RuleObject::Vertex { label } => {
-                    get_vertex_id(&mut graph, label, Ok(Some(color)));
-                }
+                RuleObject::Vertex { label } => GraphObject::Vertex {
+                    id: get_vertex_id(&mut graph, label, Ok(Some(color))),
+                },
                 RuleObject::Edge { label, constraint } => {
                     let vertex_color = if override_color { Err(color) } else { Ok(None) };
                     let from = get_vertex_id(&mut graph, &constraint.from, vertex_color);
                     let to = get_vertex_id(&mut graph, &constraint.to, vertex_color);
-                    graph.graph.new_edge(ForceEdge::new(
-                        random_pos(),
-                        random_pos(),
-                        ARROW_BODIES,
-                        ARROW_MASS,
-                        Arrow::new(label, from, to, constraint.connection, color),
-                    ));
+                    GraphObject::Edge {
+                        id: graph
+                            .graph
+                            .new_edge(ForceEdge::new(
+                                random_pos(),
+                                random_pos(),
+                                ARROW_BODIES,
+                                ARROW_MASS,
+                                Arrow::new(label, from, to, constraint.connection, color),
+                            ))
+                            .unwrap(),
+                    }
                 }
             };
 
         // Input
-        for input in &inputs {
-            add_object(input, RULE_INPUT_COLOR, false);
-        }
+        let graph_input = inputs
+            .iter()
+            .map(|input| add_object(input, RULE_INPUT_COLOR, false))
+            .collect();
 
         // TODO: Infer
 
@@ -124,25 +131,12 @@ impl Rule {
             infer: convert(infer),
             outputs: convert(outputs),
             graph,
+            graph_input,
         })
     }
 
-    pub fn get_input(&self) -> Vec<GraphObject> {
-        self.inputs
-            .iter()
-            .filter_map(|input| Self::get_object_by_label(&self.graph, input))
-            .collect()
-    }
-
-    fn get_object_by_label(graph: &Graph, object: &RuleObject<String>) -> Option<GraphObject> {
-        match object {
-            RuleObject::Vertex { label } => {
-                Self::get_vertex_by_label(graph, label).map(|id| GraphObject::Vertex { id })
-            }
-            RuleObject::Edge { label, .. } => {
-                Self::get_edge_by_label(graph, label).map(|id| GraphObject::Edge { id })
-            }
-        }
+    pub fn get_input(&self) -> &Vec<GraphObject> {
+        &self.graph_input
     }
 
     fn get_vertex_by_label(graph: &Graph, label: &str) -> Option<VertexId> {
@@ -151,15 +145,6 @@ impl Rule {
             .vertices
             .iter()
             .find(|(_, vertex)| vertex.vertex.label.eq(label))
-            .map(|(&id, _)| id)
-    }
-
-    fn get_edge_by_label(graph: &Graph, label: &str) -> Option<EdgeId> {
-        graph
-            .graph
-            .edges
-            .iter()
-            .find(|(_, edge)| edge.edge.label.eq(label))
             .map(|(&id, _)| id)
     }
 
