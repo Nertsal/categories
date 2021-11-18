@@ -276,16 +276,19 @@ impl GameState {
                 DragAction::Move { target } => {
                     let delta = world_pos - dragging.world_start_position;
                     if delta.len().approx_eq(&0.0) {
-                        match target {
+                        let selected = match target {
                             &DragTarget::Vertex { graph, id } if graph.is_main() => {
-                                if let Some(selection) = &mut self.selection {
-                                    if selection.select(id).is_none() {
-                                        let selection = self.selection.take().unwrap();
-                                        self.apply_rule(selection);
-                                    }
+                                Some(GraphObject::Vertex { id })
+                            }
+                            _ => None,
+                        };
+                        if let Some(selection) = &mut self.selection {
+                            if let Some(selected) = selected {
+                                if selection.select(selected).is_none() {
+                                    let selection = self.selection.take().unwrap();
+                                    self.apply_rule(selection);
                                 }
                             }
-                            _ => (),
                         }
                     }
                 }

@@ -23,7 +23,7 @@ impl Rules {
                 let mut selected = Vec::new();
                 if let Some(selection) = &selection {
                     if selection.rule() == rule_index {
-                        selected.push(selection.rule_vertices()[selection.current()]);
+                        selected.push(selection.rule_input()[selection.current()]);
                     }
                 }
                 draw::graph::draw_graph(

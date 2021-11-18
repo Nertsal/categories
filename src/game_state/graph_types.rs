@@ -17,23 +17,23 @@ pub struct Arrow<T> {
     pub from: T,
     pub to: T,
     pub connection: ArrowConnection,
+    pub color: Color<f32>,
 }
 
 impl<T> Arrow<T> {
-    pub fn new(label: &str, from: T, to: T, connection: ArrowConnection) -> Self {
+    pub fn new(
+        label: &str,
+        from: T,
+        to: T,
+        connection: ArrowConnection,
+        color: Color<f32>,
+    ) -> Self {
         Self {
             label: label.to_owned(),
             from,
             to,
             connection,
-        }
-    }
-
-    pub fn color(&self) -> Color<f32> {
-        match self.connection {
-            ArrowConnection::Best => ARROW_BEST_COLOR,
-            ArrowConnection::Regular => ARROW_REGULAR_COLOR,
-            ArrowConnection::Unique => ARROW_UNIQUE_COLOR,
+            color,
         }
     }
 }
@@ -51,19 +51,11 @@ pub enum ArrowConnection {
     Unique,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct ArrowConstraint<T> {
-    pub from: T,
-    pub to: T,
-    pub connection: ArrowConnection,
-}
-
-impl<T> ArrowConstraint<T> {
-    pub fn new(from: T, to: T, connection: ArrowConnection) -> Self {
-        Self {
-            from,
-            to,
-            connection,
+impl ArrowConnection {
+    pub fn color(&self) -> Color<f32> {
+        match self {
+            ArrowConnection::Best | ArrowConnection::Regular => ARROW_REGULAR_COLOR,
+            ArrowConnection::Unique => ARROW_UNIQUE_COLOR,
         }
     }
 }

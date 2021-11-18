@@ -1,7 +1,7 @@
 use force_graph::{ForceBody, ForceEdge, ForceParameters, ForceVertex};
 use geng::{prelude::rand::thread_rng, Camera2d};
 
-use graphs::{EdgeId, VertexId};
+use graphs::{EdgeId, GraphObject, VertexId};
 
 use super::*;
 
@@ -50,32 +50,33 @@ impl GameState {
             rules: Rules::new(
                 geng,
                 vec![
-                    // Regular composition
-                    RuleBuilder::new(3)
-                        .with_edge_constraints(
-                            [
-                                ArrowConstraint::new(0, 1, ArrowConnection::Regular),
-                                ArrowConstraint::new(1, 2, ArrowConnection::Regular),
-                            ]
-                            .into_iter(),
-                        )
-                        .with_new_edges(
-                            [Arrow::new("", 0, 2, ArrowConnection::Regular)].into_iter(),
-                        )
-                        .build(),
-                    // Best Cone
-                    RuleBuilder::new(4)
-                        .with_edge_constraints(
-                            [
-                                ArrowConstraint::new(2, 0, ArrowConnection::Best),
-                                ArrowConstraint::new(2, 1, ArrowConnection::Best),
-                                ArrowConstraint::new(3, 0, ArrowConnection::Regular),
-                                ArrowConstraint::new(3, 1, ArrowConnection::Regular),
-                            ]
-                            .into_iter(),
-                        )
-                        .with_new_edges([Arrow::new("", 3, 2, ArrowConnection::Unique)].into_iter())
-                        .build(),
+                    // Identity
+                    Rule::new(
+                        vec![RuleObject::vertex("1")],
+                        vec![],
+                        vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
+                    )
+                    .unwrap(),
+                    // Composition
+                    Rule::new(
+                        vec![
+                            RuleObject::edge("f", "0", "1", ArrowConnection::Regular),
+                            RuleObject::edge("g", "1", "2", ArrowConnection::Regular),
+                        ],
+                        vec![],
+                        vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
+                    )
+                    .unwrap(),
+                    // Product
+                    Rule::new(
+                        vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
+                        vec![],
+                        vec![
+                            RuleObject::edge("p1", "2x3", "2", ArrowConnection::Best),
+                            RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
+                        ],
+                    )
+                    .unwrap(),
                 ],
             ),
             main_graph: {
@@ -116,7 +117,13 @@ impl GameState {
                             vec2(rng.gen(), rng.gen()),
                             ARROW_BODIES,
                             ARROW_MASS,
-                            Arrow::new(label, vertices[from], vertices[to], connection),
+                            Arrow::new(
+                                label,
+                                vertices[from],
+                                vertices[to],
+                                connection,
+                                connection.color(),
+                            ),
                         ))
                     };
 
