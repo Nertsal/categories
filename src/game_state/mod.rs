@@ -136,8 +136,8 @@ impl GameState {
                         ))
                     };
 
-                connect("", 3, 0, ArrowConnection::Regular);
-                connect("", 3, 1, ArrowConnection::Regular);
+                connect("", 3, 0, ArrowConnection::Best);
+                connect("", 3, 1, ArrowConnection::Best);
                 connect("", 4, 1, ArrowConnection::Best);
                 connect("", 4, 2, ArrowConnection::Best);
                 connect("", 5, 3, ArrowConnection::Best);
