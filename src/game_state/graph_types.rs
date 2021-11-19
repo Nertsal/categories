@@ -54,7 +54,8 @@ pub enum ArrowConnection {
 impl ArrowConnection {
     pub fn color(&self) -> Color<f32> {
         match self {
-            ArrowConnection::Best | ArrowConnection::Regular => ARROW_REGULAR_COLOR,
+            ArrowConnection::Best => ARROW_BEST_COLOR,
+            ArrowConnection::Regular => ARROW_REGULAR_COLOR,
             ArrowConnection::Unique => ARROW_UNIQUE_COLOR,
         }
     }
