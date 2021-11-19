@@ -71,9 +71,9 @@ pub fn draw_graph(
             &vertex.vertex.label,
             vertex.body.position,
             geng::TextAlign::CENTER,
-            vertex.vertex.radius * 1.5,
-            Some(vertex.vertex.radius * 1.5),
-            Color::GRAY,
+            (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 1.5,
+            Some((vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 1.5),
+            vertex.vertex.color,
         );
     }
 }
@@ -94,10 +94,11 @@ fn draw_vertex(
             SELECTED_COLOR,
         );
     }
-    draw_2d.circle(
+    draw_2d.circle_with_cut(
         framebuffer,
         camera,
         vertex.body.position,
+        vertex.vertex.radius - POINT_OUTLINE_WIDTH,
         vertex.vertex.radius,
         vertex.vertex.color,
     );

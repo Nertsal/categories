@@ -6,8 +6,10 @@ pub const ZOOM_SPEED: f32 = 0.1;
 pub const CAMERA_FOV_MIN: f32 = 25.0;
 pub const CAMERA_FOV_MAX: f32 = 200.0;
 
+pub const POINT_OUTLINE_WIDTH: f32 = 0.2;
 pub const POINT_RADIUS: f32 = 2.0;
 pub const POINT_MASS: f32 = 10.0;
+
 pub const ARROW_WIDTH: f32 = 0.4;
 pub const ARROW_MASS: f32 = 1.0;
 pub const ARROW_BODIES: usize = 3;
