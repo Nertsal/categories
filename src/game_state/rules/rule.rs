@@ -217,34 +217,58 @@ impl Rule {
         fn infer_vertex<'a>(
             graph: &'a Graph,
             label: &str,
-            inferred_vertices: &'a mut HashMap<String, Vec<VertexId>>,
+            inferred_vertices: &'a mut HashMap<
+                String,
+                (Vec<VertexId>, Vec<ArrowConstraint<String>>),
+            >,
             rule_vertices: &HashMap<String, VertexId>,
+            connection: Option<ArrowConstraint<String>>,
         ) -> &'a mut Vec<VertexId> {
-            inferred_vertices
-                .entry(label.to_owned())
-                .or_insert_with(|| {
-                    rule_vertices
-                        .get(label)
-                        .map(|&id| vec![id])
-                        .unwrap_or_else(|| graph.graph.vertices.iter().map(|(&id, _)| id).collect())
-                })
+            let (vertices, edges) =
+                inferred_vertices
+                    .entry(label.to_owned())
+                    .or_insert_with(|| {
+                        (
+                            rule_vertices
+                                .get(label)
+                                .map(|&id| vec![id])
+                                .unwrap_or_else(|| {
+                                    graph.graph.vertices.iter().map(|(&id, _)| id).collect()
+                                }),
+                            vec![],
+                        )
+                    });
+            if let Some(connection) = connection {
+                edges.push(connection);
+            }
+            vertices
         }
 
         for infer in &self.infers {
             match infer {
                 RuleObject::Vertex { label } => {
-                    infer_vertex(graph, label, &mut inferred_vertices, &vertices);
+                    infer_vertex(graph, label, &mut inferred_vertices, &vertices, None);
                 }
                 RuleObject::Edge { constraint, .. } => {
                     // Check from
-                    let infer_to: Vec<_> =
-                        infer_vertex(graph, &constraint.to, &mut inferred_vertices, &vertices)
-                            .iter()
-                            .copied()
-                            .collect();
+                    let infer_to: Vec<_> = infer_vertex(
+                        graph,
+                        &constraint.to,
+                        &mut inferred_vertices,
+                        &vertices,
+                        Some(constraint.clone()),
+                    )
+                    .iter()
+                    .copied()
+                    .collect();
 
-                    let infer_from =
-                        infer_vertex(graph, &constraint.from, &mut inferred_vertices, &vertices);
+                    let infer_from = infer_vertex(
+                        graph,
+                        &constraint.from,
+                        &mut inferred_vertices,
+                        &vertices,
+                        Some(constraint.clone()),
+                    );
 
                     infer_from.retain(|from| {
                         graph.graph.edges.iter().any(|(_, edge)| {
@@ -259,8 +283,13 @@ impl Rule {
                     // Check to
                     let infer_from: Vec<_> = infer_from.iter().copied().collect();
 
-                    let infer_to =
-                        infer_vertex(graph, &constraint.to, &mut inferred_vertices, &vertices);
+                    let infer_to = infer_vertex(
+                        graph,
+                        &constraint.to,
+                        &mut inferred_vertices,
+                        &vertices,
+                        None,
+                    );
 
                     infer_to.retain(|to| {
                         graph.graph.edges.iter().any(|(_, edge)| {
@@ -275,21 +304,15 @@ impl Rule {
             }
         }
 
-        for (label, candidates) in inferred_vertices {
+        let mut new_connections = Vec::new();
+        for (label, (candidates, edges)) in inferred_vertices {
             if !candidates.is_empty() {
                 // Inferred a vertex -> add it to the list
                 vertices.insert(label, candidates[0]);
+            } else {
+                new_connections.extend(edges);
             }
         }
-
-        let mut new_connections: Vec<_> = self
-            .infers
-            .iter()
-            .filter_map(|infer| match infer {
-                RuleObject::Vertex { .. } => None,
-                RuleObject::Edge { constraint, .. } => Some(constraint),
-            })
-            .collect();
         new_connections.sort();
         new_connections.dedup();
 
