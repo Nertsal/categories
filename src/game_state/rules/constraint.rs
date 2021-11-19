@@ -24,7 +24,7 @@ impl<T> RuleObject<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ArrowConstraint<T> {
     pub from: T,
     pub to: T,

@@ -55,8 +55,7 @@ impl GameState {
                         vec![RuleObject::vertex("1")],
                         vec![],
                         vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
-                    )
-                    .unwrap(),
+                    ),
                     // Composition
                     Rule::new(
                         vec![
@@ -65,8 +64,7 @@ impl GameState {
                         ],
                         vec![],
                         vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
-                    )
-                    .unwrap(),
+                    ),
                     // Product
                     Rule::new(
                         vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
@@ -75,8 +73,19 @@ impl GameState {
                             RuleObject::edge("p1", "2x3", "2", ArrowConnection::Best),
                             RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
                         ],
-                    )
-                    .unwrap(),
+                    ),
+                    // Universal property of product
+                    Rule::new(
+                        vec![
+                            RuleObject::edge("", "1", "2", ArrowConnection::Regular),
+                            RuleObject::edge("", "1", "3", ArrowConnection::Regular),
+                        ],
+                        vec![
+                            RuleObject::edge("", "2x3", "2", ArrowConnection::Best),
+                            RuleObject::edge("", "2x3", "3", ArrowConnection::Best),
+                        ],
+                        vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
+                    ),
                 ],
             ),
             main_graph: {
@@ -127,8 +136,8 @@ impl GameState {
                         ))
                     };
 
-                connect("", 3, 0, ArrowConnection::Best);
-                connect("", 3, 1, ArrowConnection::Best);
+                connect("", 3, 0, ArrowConnection::Regular);
+                connect("", 3, 1, ArrowConnection::Regular);
                 connect("", 4, 1, ArrowConnection::Best);
                 connect("", 4, 2, ArrowConnection::Best);
                 connect("", 5, 3, ArrowConnection::Best);

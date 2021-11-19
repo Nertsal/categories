@@ -1,3 +1,5 @@
+use graphs::GraphEdge;
+
 use super::*;
 
 impl GameState {
@@ -16,44 +18,9 @@ impl GameState {
     }
 }
 
-#[derive(Debug)]
-pub enum RuleCreationError {
-    InvalidInput {
-        edge_from: usize,
-        edge_to: usize,
-        vertices: usize,
-    },
-    InvalidOutput {
-        edge_from: usize,
-        edge_to: usize,
-        available: usize,
-    },
-}
-
-impl Display for RuleCreationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InvalidInput {
-                edge_from,
-                edge_to,
-                vertices,
-            } => {
-                write!(f, "Invalid input constraint: required edge ({}, {}), however, only {} vertices are required", edge_from, edge_to, vertices)
-            }
-            Self::InvalidOutput {
-                edge_from,
-                edge_to,
-                available,
-            } => {
-                write!(f,"Invalid output result: attempted to connect ({}, {}), however, only {} vertices are available", edge_from, edge_to, available)
-            }
-        }
-    }
-}
-
 pub struct Rule {
     inputs: Vec<RuleObject<String>>,
-    infer: Vec<RuleObject<String>>,
+    infers: Vec<RuleObject<String>>,
     outputs: Vec<RuleObject<String>>,
     graph: Graph,
     graph_input: Vec<GraphObject>,
@@ -62,11 +29,9 @@ pub struct Rule {
 impl Rule {
     pub fn new<'a>(
         inputs: Vec<RuleObject<&'a str>>,
-        infer: Vec<RuleObject<&'a str>>,
+        infers: Vec<RuleObject<&'a str>>,
         outputs: Vec<RuleObject<&'a str>>,
-    ) -> Result<Self, RuleCreationError> {
-        // TODO: check validity if even possible
-
+    ) -> Self {
         // Create a graph
         let mut graph = Graph::new(ForceParameters::default());
 
@@ -100,7 +65,10 @@ impl Rule {
             .map(|input| add_object(input, RULE_INPUT_COLOR, false))
             .collect();
 
-        // TODO: Infer
+        // Infer
+        for infer in &infers {
+            add_object(infer, RULE_INFER_COLOR, true);
+        }
 
         // Output
         for output in &outputs {
@@ -126,13 +94,13 @@ impl Rule {
                 .collect()
         }
 
-        Ok(Self {
+        Self {
             inputs: convert(inputs),
-            infer: convert(infer),
+            infers: convert(infers),
             outputs: convert(outputs),
             graph,
             graph_input,
-        })
+        }
     }
 
     pub fn get_input(&self) -> &Vec<GraphObject> {
@@ -200,6 +168,8 @@ impl Rule {
     /// Applies the rule
     fn apply(&self, graph: &mut Graph, selection: Vec<GraphObject>) {
         let mut vertices = HashMap::new();
+
+        // Find input
         for input in self.inputs.iter().zip(selection.iter()) {
             let mut insert_vertex = |label: &str, id: VertexId| {
                 vertices
@@ -222,6 +192,7 @@ impl Rule {
             assert!(insert, "Unexpected: some selections are wrong");
         }
 
+        /// Find or create a vertex
         fn get_vertex_id(
             graph: &mut Graph,
             label: &str,
@@ -240,6 +211,101 @@ impl Rule {
             })
         }
 
+        // Infer
+        // A collection of all vertices from the graph that satisfy the inferring constraints.
+        let mut inferred_vertices = HashMap::new();
+        fn infer_vertex<'a>(
+            graph: &'a Graph,
+            label: &str,
+            inferred_vertices: &'a mut HashMap<String, Vec<VertexId>>,
+            rule_vertices: &HashMap<String, VertexId>,
+        ) -> &'a mut Vec<VertexId> {
+            inferred_vertices
+                .entry(label.to_owned())
+                .or_insert_with(|| {
+                    rule_vertices
+                        .get(label)
+                        .map(|&id| vec![id])
+                        .unwrap_or_else(|| graph.graph.vertices.iter().map(|(&id, _)| id).collect())
+                })
+        }
+
+        for infer in &self.infers {
+            match infer {
+                RuleObject::Vertex { label } => {
+                    infer_vertex(graph, label, &mut inferred_vertices, &vertices);
+                }
+                RuleObject::Edge { constraint, .. } => {
+                    // Check from
+                    let infer_to: Vec<_> =
+                        infer_vertex(graph, &constraint.to, &mut inferred_vertices, &vertices)
+                            .iter()
+                            .copied()
+                            .collect();
+
+                    let infer_from =
+                        infer_vertex(graph, &constraint.from, &mut inferred_vertices, &vertices);
+
+                    infer_from.retain(|from| {
+                        graph.graph.edges.iter().any(|(_, edge)| {
+                            let end_points = edge.end_points();
+                            edge.edge
+                                .connection
+                                .check_constraint(&constraint.connection)
+                                && (end_points[0].eq(from) && infer_to.contains(end_points[1]))
+                        })
+                    });
+
+                    // Check to
+                    let infer_from: Vec<_> = infer_from.iter().copied().collect();
+
+                    let infer_to =
+                        infer_vertex(graph, &constraint.to, &mut inferred_vertices, &vertices);
+
+                    infer_to.retain(|to| {
+                        graph.graph.edges.iter().any(|(_, edge)| {
+                            let end_points = edge.end_points();
+                            edge.edge
+                                .connection
+                                .check_constraint(&constraint.connection)
+                                && (end_points[1].eq(to) && infer_from.contains(end_points[0]))
+                        })
+                    });
+                }
+            }
+        }
+
+        for (label, candidates) in inferred_vertices {
+            if !candidates.is_empty() {
+                // Inferred a vertex -> add it to the list
+                vertices.insert(label, candidates[0]);
+            }
+        }
+
+        let mut new_connections: Vec<_> = self
+            .infers
+            .iter()
+            .filter_map(|infer| match infer {
+                RuleObject::Vertex { .. } => None,
+                RuleObject::Edge { constraint, .. } => Some(constraint),
+            })
+            .collect();
+        new_connections.sort();
+        new_connections.dedup();
+
+        for edge in new_connections {
+            let from = get_vertex_id(graph, &edge.from, &mut vertices);
+            let to = get_vertex_id(graph, &edge.to, &mut vertices);
+            graph.graph.new_edge(ForceEdge::new(
+                random_pos(),
+                random_pos(),
+                ARROW_BODIES,
+                ARROW_MASS,
+                Arrow::new("", from, to, edge.connection, edge.connection.color()),
+            ));
+        }
+
+        // Result
         for output in &self.outputs {
             match output {
                 RuleObject::Vertex { label } => {

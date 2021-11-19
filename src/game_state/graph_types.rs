@@ -44,7 +44,7 @@ impl graphs::GraphEdge for Arrow<VertexId> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ArrowConnection {
     Best,
     Regular,
@@ -64,9 +64,15 @@ impl<T: PartialEq> Arrow<T> {
     pub fn check_constraint(&self, constraint: &ArrowConstraint<T>) -> bool {
         self.from == constraint.from
             && self.to == constraint.to
-            && match (constraint.connection, self.connection) {
-                (ArrowConnection::Regular, _) => true,
-                (constraint, connection) => connection == constraint,
-            }
+            && self.connection.check_constraint(&constraint.connection)
+    }
+}
+
+impl ArrowConnection {
+    pub fn check_constraint(&self, constraint: &Self) -> bool {
+        match (constraint, self) {
+            (ArrowConnection::Regular, _) => true,
+            (constraint, connection) => connection == constraint,
+        }
     }
 }
