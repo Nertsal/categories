@@ -65,7 +65,6 @@ pub fn draw_graph(
 
         // Label
         draw_fit_text(
-            draw_2d,
             font,
             framebuffer,
             camera,
@@ -202,7 +201,6 @@ fn draw_edge(
 }
 
 fn draw_fit_text(
-    draw_2d: &Rc<geng::Draw2D>,
     font: &geng::Font,
     framebuffer: &mut ugli::Framebuffer,
     camera: &impl geng::AbstractCamera2d,
