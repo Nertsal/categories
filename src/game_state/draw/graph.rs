@@ -65,6 +65,7 @@ pub fn draw_graph(
 
         // Label
         draw_fit_text(
+            draw_2d,
             font,
             framebuffer,
             camera,
@@ -201,6 +202,7 @@ fn draw_edge(
 }
 
 fn draw_fit_text(
+    draw_2d: &Rc<geng::Draw2D>,
     font: &geng::Font,
     framebuffer: &mut ugli::Framebuffer,
     camera: &impl geng::AbstractCamera2d,
@@ -211,7 +213,7 @@ fn draw_fit_text(
     fit_height: Option<f32>,
     color: Color<f32>,
 ) {
-    let mut size = 10.0;
+    let mut size = 1000.0;
     let aabb = font.measure(text, size);
 
     let width = aabb.width();
@@ -227,6 +229,16 @@ fn draw_fit_text(
     }
 
     size *= scale;
-    pos.y -= size / 4.0; // Align vertically
-    font.draw(framebuffer, camera, text, pos, align, size, color);
+    let aabb = aabb.map(|x| x * scale); // Alignment magic
+    pos.y -= aabb.y_min + aabb.height() * 0.5; // Align vertically
+    pos.x -= aabb.x_min + aabb.width() * align.0; // Align horizontally
+    font.draw(
+        framebuffer,
+        camera,
+        text,
+        pos,
+        geng::TextAlign::LEFT,
+        size,
+        color,
+    );
 }
