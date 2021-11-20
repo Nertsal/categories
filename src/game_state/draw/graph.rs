@@ -1,7 +1,10 @@
+use geng::draw_2d::Draw2d;
+
 use super::*;
 
 pub fn draw_graph(
     geng: &Geng,
+    assets: &Rc<Assets>,
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
@@ -38,8 +41,8 @@ pub fn draw_graph(
             selected_edges.contains(id),
         );
 
-        // Label
         if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
+            // Label
             font.draw(
                 framebuffer,
                 camera,
@@ -49,6 +52,25 @@ pub fn draw_graph(
                 ARROW_LABEL_FONT_SIZE,
                 Color::GRAY,
             );
+
+            if let ArrowConnection::Isomorphism = edge.edge.connection {
+                // Isomorphism
+                draw_2d::Ellipse::circle(center.position, ARROW_ICON_RADIUS, edge.edge.color)
+                    .draw_2d(geng, framebuffer, camera);
+                draw_2d::Ellipse::circle(
+                    center.position,
+                    ARROW_ICON_RADIUS - ARROW_ICON_OUTLINE_WIDTH,
+                    background_color,
+                )
+                .draw_2d(geng, framebuffer, camera);
+
+                draw_2d::TexturedQuad::colored(
+                    AABB::point(center.position).extend_uniform(ARROW_ICON_RADIUS),
+                    &assets.isomorphism,
+                    edge.edge.color,
+                )
+                .draw_2d(geng, framebuffer, camera);
+            }
         }
     }
 
@@ -161,9 +183,17 @@ fn draw_edge(
     let head = end - head_offset;
     let head_width = normal * ARROW_HEAD_WIDTH * scale;
 
-    let mut chain = chain.take_range_ratio(
-        from.vertex.radius / chain_len..=1.0 - (to.vertex.radius + head_length) / chain_len,
-    );
+    let (min, max) = match edge.edge.connection {
+        ArrowConnection::Isomorphism => (
+            from.vertex.radius / chain_len,
+            1.0 - to.vertex.radius / chain_len,
+        ),
+        _ => (
+            from.vertex.radius / chain_len,
+            1.0 - (to.vertex.radius + head_length) / chain_len,
+        ),
+    };
+    let mut chain = chain.take_range_ratio(min..=max);
 
     // Outline
     let width = chain.width;
@@ -186,7 +216,7 @@ fn draw_edge(
     }
 
     match edge.edge.connection {
-        ArrowConnection::Best | ArrowConnection::Regular => {
+        ArrowConnection::Best | ArrowConnection::Regular | ArrowConnection::Isomorphism => {
             chain.draw_2d(geng, framebuffer, camera);
         }
         ArrowConnection::Unique => {
@@ -195,18 +225,18 @@ fn draw_edge(
     }
 
     // Line head
-    geng.draw_2d(
-        framebuffer,
-        camera,
-        &draw_2d::Polygon::new(
+    match edge.edge.connection {
+        ArrowConnection::Isomorphism => (),
+        _ => draw_2d::Polygon::new(
             vec![
                 end - direction_norm * to.vertex.radius,
                 head + head_width,
                 head - head_width,
             ],
             edge.edge.color,
-        ),
-    );
+        )
+        .draw_2d(geng, framebuffer, camera),
+    }
 }
 
 fn draw_fit_text(

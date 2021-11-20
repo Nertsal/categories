@@ -9,9 +9,13 @@ impl GameState {
             return false;
         }
 
-        let action = rule.action(&mut self.main_graph, selection.selection());
-        self.action_do(action);
-        true
+        match rule.action(&mut self.main_graph, selection.selection()) {
+            Ok(action) => {
+                self.action_do(action);
+                true
+            }
+            Err(_) => false,
+        }
     }
 }
 
@@ -173,7 +177,7 @@ impl Rule {
     }
 
     /// Applies the rule
-    fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> GraphActionDo {
+    fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> Result<GraphActionDo, ()> {
         RuleProcess::input(graph, self.inputs.iter(), selection.iter())
             .infer(graph, self.infers.iter())
             .remove(self.removes.iter())

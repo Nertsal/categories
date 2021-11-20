@@ -49,6 +49,7 @@ pub enum ArrowConnection {
     Best,
     Regular,
     Unique,
+    Isomorphism,
 }
 
 impl ArrowConnection {
@@ -57,6 +58,7 @@ impl ArrowConnection {
             ArrowConnection::Best => ARROW_BEST_COLOR,
             ArrowConnection::Regular => ARROW_REGULAR_COLOR,
             ArrowConnection::Unique => ARROW_UNIQUE_COLOR,
+            ArrowConnection::Isomorphism => ARROW_ISOMORPHISM_COLOR,
         }
     }
 }

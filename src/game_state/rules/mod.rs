@@ -27,6 +27,7 @@ impl RuleTexture {
 
 pub struct Rules {
     geng: Geng,
+    assets: Rc<Assets>,
     pub width: f32,
     scroll_offset: f32,
     rules: Vec<Rule>,
@@ -36,9 +37,10 @@ pub struct Rules {
 }
 
 impl Rules {
-    pub fn new(geng: &Geng, rules: Vec<Rule>) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>, rules: Vec<Rule>) -> Self {
         Self {
             geng: geng.clone(),
+            assets: assets.clone(),
             width: 1.0,
             focused_rule: None,
             scroll_offset: 0.0,

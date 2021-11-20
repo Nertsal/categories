@@ -202,9 +202,23 @@ impl RuleProcess {
         for remove in removes {
             match remove {
                 RuleObject::Vertex { label } => {
+                    self.new_vertices.remove(label);
+
                     self.remove_vertices.push(label.to_owned());
                 }
                 RuleObject::Edge { constraint, .. } => {
+                    if let Some(index) = self
+                        .new_edges
+                        .iter()
+                        .enumerate()
+                        .find(|(_, edge)| constraint.eq(edge))
+                        .map(|(index, _)| index)
+                    {
+                        self.new_edges.swap_remove(index);
+                    }
+                    self.new_vertices.remove(&constraint.from);
+                    self.new_vertices.remove(&constraint.to);
+
                     self.remove_edges.push(constraint.clone());
                 }
             }
@@ -238,26 +252,35 @@ impl RuleProcess {
         self
     }
 
-    pub fn action(self, graph: &Graph) -> GraphActionDo {
+    pub fn action(self, graph: &Graph) -> Result<GraphActionDo, ()> {
         let input_vertices: Vec<_> = self.input_vertices.values().copied().collect();
+        if input_vertices.len() == 0 {
+            return Err(());
+        }
+
         let new_vertices = self.new_vertices.len();
 
-        let remove_edges: Vec<_> = self
-            .remove_edges
-            .into_iter()
-            .map(|constraint| {
-                let from = self.input_vertices[&constraint.from];
-                let to = self.input_vertices[&constraint.to];
-                let constraint = ArrowConstraint::new(from, to, constraint.connection);
-                graph
-                    .graph
-                    .edges
-                    .iter()
-                    .filter(move |(_, edge)| edge.edge.check_constraint(&constraint))
-                    .map(|(&id, _)| id)
-            })
-            .flatten()
-            .collect();
+        let mut remove_edges = Vec::new();
+        for constraint in self.remove_edges {
+            let from = match self.input_vertices.get(&constraint.from) {
+                None => return Err(()),
+                Some(&id) => id,
+            };
+            let to = match self.input_vertices.get(&constraint.to) {
+                None => return Err(()),
+                Some(&id) => id,
+            };
+            let constraint = ArrowConstraint::new(from, to, constraint.connection);
+
+            let edges = graph
+                .graph
+                .edges
+                .iter()
+                .filter(move |(_, edge)| edge.edge.check_constraint(&constraint))
+                .map(|(&id, _)| id);
+
+            remove_edges.extend(edges);
+        }
 
         let remove_vertices: Vec<_> = self
             .remove_vertices
@@ -283,12 +306,12 @@ impl RuleProcess {
             })
             .collect();
 
-        GraphActionDo::ApplyRule {
+        Ok(GraphActionDo::ApplyRule {
             input_vertices,
             new_vertices,
             new_edges,
             remove_vertices,
             remove_edges,
-        }
+        })
     }
 }

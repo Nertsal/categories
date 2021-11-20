@@ -19,6 +19,7 @@ impl GameState {
             .and_then(|selection| selection.inferred_options().as_ref());
         draw_graph(
             &self.geng,
+            &self.assets,
             self.geng.default_font(),
             framebuffer,
             &self.camera,

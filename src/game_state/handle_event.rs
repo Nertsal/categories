@@ -290,8 +290,16 @@ impl GameState {
                     if dragged_delta.len().approx_eq(&0.0) {
                         // Select rule
                         if let &FocusedGraph::Rule { index } = &self.focused_graph {
-                            self.selection =
-                                Some(RuleSelection::new(&self.main_graph, index, &self.rules));
+                            let selection =
+                                RuleSelection::new(&self.main_graph, index, &self.rules);
+                            match selection.current() {
+                                Some(_) => {
+                                    self.selection = Some(selection);
+                                }
+                                None => {
+                                    self.apply_rule(selection);
+                                }
+                            }
                         }
                     }
                 }

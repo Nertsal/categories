@@ -27,6 +27,7 @@ use rules::*;
 
 pub struct GameState {
     geng: Geng,
+    assets: Rc<Assets>,
     camera: Camera2d,
     framebuffer_size: Vec2<f32>,
     main_graph: Graph,
@@ -38,9 +39,10 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn new(geng: &Geng) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
             geng: geng.clone(),
+            assets: assets.clone(),
             dragging: None,
             framebuffer_size: vec2(1.0, 1.0),
             selection: None,
@@ -53,6 +55,7 @@ impl GameState {
             },
             rules: Rules::new(
                 geng,
+                assets,
                 vec![
                     // Identity
                     Rule::new(
@@ -93,6 +96,21 @@ impl GameState {
                         ],
                         vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
                         vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Regular)], // Uniqueness of morphism to the product
+                    ),
+                    // Isomorphism
+                    Rule::new(
+                        vec![RuleObject::vertex("1"), RuleObject::vertex("2")],
+                        vec![
+                            RuleObject::edge("id", "1", "1", ArrowConnection::Regular),
+                            RuleObject::edge("id", "2", "2", ArrowConnection::Regular),
+                            RuleObject::edge("f", "1", "2", ArrowConnection::Regular),
+                            RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
+                        ],
+                        vec![RuleObject::edge("", "1", "2", ArrowConnection::Isomorphism)],
+                        vec![
+                            RuleObject::edge("f", "1", "2", ArrowConnection::Regular), // TODO: Check labels for edges with non-empty names
+                            RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
+                        ],
                     ),
                 ],
             ),

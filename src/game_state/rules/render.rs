@@ -28,6 +28,7 @@ impl Rules {
                 }
                 draw::graph::draw_graph(
                     &self.geng,
+                    &self.assets,
                     self.geng.default_font(),
                     &mut temp_framebuffer,
                     camera,
