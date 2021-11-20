@@ -47,10 +47,7 @@ impl GameState {
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                     // Zoom
                     let delta = -delta as f32 * ZOOM_SPEED;
-                    let camera = match self.focused_graph {
-                        FocusedGraph::Main => &mut self.camera,
-                        FocusedGraph::Rule { index } => self.rules.get_camera_mut(index).unwrap(),
-                    };
+                    let camera = self.focused_camera_mut();
                     camera.fov = (camera.fov + delta).clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
                 } else {
                     // Scroll
@@ -63,15 +60,16 @@ impl GameState {
                     self.drag_start(touch.position, geng::MouseButton::Left);
                 }
                 [touch0, touch1] => {
-                    let world_pos = self
-                        .camera
+                    self.focus(touch0.position);
+                    let camera = self.focused_camera();
+                    let world_pos = camera
                         .screen_to_world(self.framebuffer_size, touch0.position.map(|x| x as f32));
                     self.dragging = Some(Dragging {
                         mouse_start_position: touch0.position,
                         world_start_position: world_pos,
                         action: DragAction::TwoTouchMove {
-                            initial_camera_fov: self.camera.fov,
-                            // initial_camera_rotation: self.camera.rotation,
+                            initial_camera_fov: camera.fov,
+                            // initial_camera_rotation: camera.rotation,
                             initial_touch: touch0.position,
                             initial_touch_other: touch1.position,
                         },
@@ -92,30 +90,33 @@ impl GameState {
                             initial_touch_other,
                         } = &dragging.action
                         {
-                            let initial_delta = self.camera.screen_to_world(
-                                self.framebuffer_size,
-                                initial_touch.map(|x| x as f32),
-                            ) - self.camera.screen_to_world(
-                                self.framebuffer_size,
-                                initial_touch_other.map(|x| x as f32),
-                            );
+                            let framebuffer_size = self.framebuffer_size;
+                            let camera = self.focused_camera_mut();
+
+                            let initial_delta = camera
+                                .screen_to_world(framebuffer_size, initial_touch.map(|x| x as f32))
+                                - camera.screen_to_world(
+                                    framebuffer_size,
+                                    initial_touch_other.map(|x| x as f32),
+                                );
 
                             let initial_distance = initial_delta.len();
                             // let initial_angle = initial_delta.arg();
 
-                            let delta = self.camera.screen_to_world(
-                                self.framebuffer_size,
+                            let delta = camera.screen_to_world(
+                                framebuffer_size,
                                 touch0.position.map(|x| x as f32),
-                            ) - self.camera.screen_to_world(
-                                self.framebuffer_size,
+                            ) - camera.screen_to_world(
+                                framebuffer_size,
                                 touch1.position.map(|x| x as f32),
                             );
 
                             let distance = delta.len();
                             // let angle = delta.arg();
 
-                            self.camera.fov = initial_camera_fov / distance * initial_distance;
-                            // self.camera.rotation = initial_camera_rotation + angle - initial_angle;
+                            camera.fov = (initial_camera_fov / distance * initial_distance)
+                                .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+                            // camera.rotation = initial_camera_rotation + angle - initial_angle;
                         }
                     }
                 }
@@ -124,6 +125,7 @@ impl GameState {
             geng::Event::TouchEnd => {
                 // TODO: Detect short and long taps
                 self.dragging = None;
+                self.focused_graph = FocusedGraph::Main;
             }
             _ => (),
         }
@@ -203,6 +205,9 @@ impl GameState {
     }
 
     fn drag_move(&mut self, mouse_position: Vec2<f64>) {
+        // Focus
+        self.focus(mouse_position);
+
         // Drag
         if let Some(dragging) = &mut self.dragging {
             match &mut dragging.action {

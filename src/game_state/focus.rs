@@ -43,23 +43,34 @@ impl GameState {
         )
     }
 
-    /// Updates the focus. Returns the focused graph.
-    pub fn focus(&mut self) -> &Graph {
-        let focus = self.focused_rule();
+    /// Updates the focus.
+    pub fn focus(&mut self, mouse_position: Vec2<f64>) {
+        let focus = self.focused_rule(mouse_position);
         self.rules.focus(focus);
-        focus
-            .map(|index| {
-                self.focused_graph = FocusedGraph::Rule { index };
-                self.rules.get_rule(index).unwrap().graph()
-            })
-            .unwrap_or_else(|| {
-                self.focused_graph = FocusedGraph::Main;
-                &self.main_graph
-            })
+        self.focused_graph = match focus {
+            Some(index) => FocusedGraph::Rule { index },
+            None => FocusedGraph::Main,
+        };
     }
 
-    pub fn focused_rule(&self) -> Option<usize> {
-        let mouse_pos = self.geng.window().mouse_pos().map(|x| x as f32);
+    /// Returns the focused camera.
+    pub fn focused_camera(&self) -> &Camera2d {
+        match &self.focused_graph {
+            FocusedGraph::Rule { index } => self.rules.get_camera(*index).unwrap(),
+            FocusedGraph::Main => &self.camera,
+        }
+    }
+
+    /// Returns the focused camera.
+    pub fn focused_camera_mut(&mut self) -> &mut Camera2d {
+        match &self.focused_graph {
+            FocusedGraph::Rule { index } => self.rules.get_camera_mut(*index).unwrap(),
+            FocusedGraph::Main => &mut self.camera,
+        }
+    }
+
+    fn focused_rule(&self, mouse_position: Vec2<f64>) -> Option<usize> {
+        let mouse_pos = mouse_position.map(|x| x as f32);
         let world_pos = self
             .camera
             .screen_to_world(self.framebuffer_size, mouse_pos);

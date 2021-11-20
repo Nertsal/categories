@@ -2,9 +2,6 @@ use super::*;
 
 impl GameState {
     pub fn update_impl(&mut self, delta_time: f32) {
-        // Focus
-        self.focus();
-
         // Resize
         self.rules.width =
             camera_view(&self.camera, self.framebuffer_size).width() * RULES_WIDTH_FRAC;
