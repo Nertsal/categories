@@ -19,8 +19,29 @@ impl GameState {
     }
 }
 
+pub struct RuleBuilder<'a> {
+    pub inputs: Vec<RuleObject<&'a str>>,
+    pub constraints: Vec<RuleObject<&'a str>>,
+    pub infers: Vec<RuleObject<&'a str>>,
+    pub outputs: Vec<RuleObject<&'a str>>,
+    pub removes: Vec<RuleObject<&'a str>>,
+}
+
+impl<'a> RuleBuilder<'a> {
+    pub fn build(self) -> Rule {
+        Rule::new(
+            self.inputs,
+            self.constraints,
+            self.infers,
+            self.outputs,
+            self.removes,
+        )
+    }
+}
+
 pub struct Rule {
     inputs: Vec<RuleObject<String>>,
+    constraints: Vec<RuleObject<String>>,
     infers: Vec<RuleObject<String>>,
     outputs: Vec<RuleObject<String>>,
     removes: Vec<RuleObject<String>>,
@@ -29,8 +50,9 @@ pub struct Rule {
 }
 
 impl Rule {
-    pub fn new<'a>(
+    fn new<'a>(
         inputs: Vec<RuleObject<&'a str>>,
+        constraints: Vec<RuleObject<&'a str>>,
         infers: Vec<RuleObject<&'a str>>,
         outputs: Vec<RuleObject<&'a str>>,
         removes: Vec<RuleObject<&'a str>>,
@@ -68,6 +90,11 @@ impl Rule {
             .map(|input| add_object(input, RULE_INPUT_COLOR, false))
             .collect();
 
+        // Constraints
+        for constraint in &constraints {
+            add_object(constraint, RULE_INFER_CONTEXT_COLOR, true);
+        }
+
         // Infer
         for infer in &infers {
             add_object(infer, RULE_INFER_COLOR, true);
@@ -102,6 +129,7 @@ impl Rule {
 
         Self {
             inputs: convert(inputs),
+            constraints: convert(constraints),
             infers: convert(infers),
             outputs: convert(outputs),
             removes: convert(removes),
@@ -179,6 +207,7 @@ impl Rule {
     /// Applies the rule
     fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> Result<GraphActionDo, ()> {
         RuleProcess::input(graph, self.inputs.iter(), selection.iter())
+            .constraint(graph, self.constraints.iter())?
             .infer(graph, self.infers.iter())
             .remove(self.removes.iter())
             .output(self.outputs.iter())

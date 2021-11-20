@@ -152,6 +152,23 @@ impl RuleProcess {
         inferred_vertices
     }
 
+    pub fn constraint<'a>(
+        mut self,
+        graph: &Graph,
+        constraints: impl Iterator<Item = &'a RuleObject<String>>,
+    ) -> Result<Self, ()> {
+        let inferred_candidates = self.infer_candidates(graph, constraints);
+        for (label, (candidates, _)) in inferred_candidates {
+            if candidates.is_empty() {
+                return Err(());
+            }
+
+            self.input_vertices.entry(label).or_insert(candidates[0]);
+        }
+
+        Ok(self)
+    }
+
     pub fn infer<'a>(
         mut self,
         graph: &Graph,
@@ -164,9 +181,7 @@ impl RuleProcess {
         for (label, (candidates, edges)) in inferred_candidates {
             if !candidates.is_empty() {
                 // Inferred a vertex -> add it to the list
-                self.input_vertices
-                    .entry(label.to_owned())
-                    .or_insert(candidates[0]);
+                self.input_vertices.entry(label).or_insert(candidates[0]);
             } else {
                 // New vertex, new edges
                 new_connections.extend(edges);
