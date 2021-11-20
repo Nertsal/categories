@@ -214,7 +214,7 @@ fn draw_fit_text(
     let mut size = 1000.0;
     let aabb = font.measure(text, size);
 
-    let width = aabb.width();
+    let width = (aabb.width().sqr() + aabb.height().sqr()).sqrt();
     if width.approx_eq(&0.0) {
         return;
     }
