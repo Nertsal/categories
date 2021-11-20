@@ -59,6 +59,7 @@ impl GameState {
                         vec![RuleObject::vertex("1")],
                         vec![],
                         vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
+                        vec![],
                     ),
                     // Composition
                     Rule::new(
@@ -68,6 +69,7 @@ impl GameState {
                         ],
                         vec![],
                         vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
+                        vec![],
                     ),
                     // Product
                     Rule::new(
@@ -77,6 +79,7 @@ impl GameState {
                             RuleObject::edge("p1", "2x3", "2", ArrowConnection::Best),
                             RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
                         ],
+                        vec![],
                     ),
                     // Universal property of product
                     Rule::new(
@@ -89,6 +92,7 @@ impl GameState {
                             RuleObject::edge("", "2x3", "3", ArrowConnection::Best),
                         ],
                         vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
+                        vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Regular)], // Uniqueness of morphism to the product
                     ),
                 ],
             ),

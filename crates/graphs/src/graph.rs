@@ -50,15 +50,26 @@ impl<V: GraphVertex, E: GraphEdge> Graph<V, E> {
     }
 
     /// Removes the vertex and connected edges from the graph.
-    pub fn remove_vertex(&mut self, vertex_id: VertexId) {
-        self.vertices.remove(&vertex_id);
-        self.edges
-            .retain(|_, edge| !edge.is_vertex_incident(vertex_id));
+    pub fn remove_vertex(&mut self, vertex_id: VertexId) -> (Option<V>, Vec<E>) {
+        let vertex = self.vertices.remove(&vertex_id);
+
+        let removes: Vec<_> = self
+            .edges
+            .iter()
+            .filter(|(_, edge)| edge.is_vertex_incident(vertex_id))
+            .map(|(&id, _)| id)
+            .collect();
+        let mut edges = Vec::new();
+        for remove in removes {
+            edges.push(self.edges.remove(&remove).unwrap());
+        }
+
+        (vertex, edges)
     }
 
     /// Removes the edge from the graph.
-    pub fn remove_edge(&mut self, edge_id: EdgeId) {
-        self.edges.remove(&edge_id);
+    pub fn remove_edge(&mut self, edge_id: EdgeId) -> Option<E> {
+        self.edges.remove(&edge_id)
     }
 
     pub fn neighbours<'a>(&'a self, vertex: VertexId) -> impl Iterator<Item = VertexId> + 'a {

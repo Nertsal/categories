@@ -6,6 +6,8 @@ pub enum GraphActionDo {
         input_vertices: Vec<VertexId>,
         new_vertices: usize,
         new_edges: Vec<ArrowConstraint<usize>>,
+        remove_vertices: Vec<VertexId>,
+        remove_edges: Vec<EdgeId>,
     },
 }
 
@@ -23,6 +25,8 @@ impl GameState {
                 mut input_vertices,
                 new_vertices,
                 new_edges,
+                remove_vertices,
+                remove_edges,
             } => {
                 // Validate
                 let available_vertices = input_vertices.len() + new_vertices;
@@ -88,6 +92,22 @@ impl GameState {
                             .unwrap()
                     })
                     .collect();
+
+                // Remove edges
+                let mut removed_edges: Vec<_> = remove_edges
+                    .into_iter()
+                    .map(|edge_id| self.main_graph.graph.remove_edge(edge_id).unwrap())
+                    .collect();
+
+                // Remove vertices
+                let mut removed_vertices = Vec::new();
+                for (vertex, edge) in remove_vertices
+                    .into_iter()
+                    .map(|vertex_id| self.main_graph.graph.remove_vertex(vertex_id))
+                {
+                    removed_vertices.push(vertex.unwrap());
+                    removed_edges.extend(edge.into_iter());
+                }
 
                 GraphActionUndo::ApplyRule {
                     remove_vertices: new_vertices,

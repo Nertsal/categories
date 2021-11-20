@@ -49,7 +49,7 @@ impl<E: GraphEdge> Edges<E> {
         self.edges.remove(id)
     }
 
-    pub(crate) fn retain(&mut self, f: impl FnMut(&EdgeId, &mut E) -> bool) {
+    pub fn retain(&mut self, f: impl FnMut(&EdgeId, &mut E) -> bool) {
         self.edges.retain(f);
     }
 

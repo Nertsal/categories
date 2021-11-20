@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RuleObject<T> {
     Vertex {
         label: T,
