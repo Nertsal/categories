@@ -5,6 +5,7 @@ use graphs::{EdgeId, GraphObject, VertexId};
 
 use super::*;
 
+mod action;
 mod chain;
 mod constants;
 mod curve;
@@ -16,6 +17,7 @@ mod rules;
 mod selection;
 mod update;
 
+use action::*;
 use chain::*;
 use constants::*;
 use curve::*;
@@ -32,6 +34,7 @@ pub struct GameState {
     focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
     selection: Option<RuleSelection>,
+    action_history: Vec<GraphAction>,
 }
 
 impl GameState {
@@ -42,6 +45,7 @@ impl GameState {
             framebuffer_size: vec2(1.0, 1.0),
             selection: None,
             focused_graph: FocusedGraph::Main,
+            action_history: vec![],
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
@@ -198,6 +202,11 @@ enum DragTarget {
         graph: FocusedGraph,
         id: EdgeId,
     },
+}
+
+fn random_shift() -> Vec2<f32> {
+    let mut rng = global_rng();
+    vec2(rng.gen(), rng.gen())
 }
 
 fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {
