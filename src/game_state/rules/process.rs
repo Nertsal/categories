@@ -2,7 +2,7 @@ use graphs::GraphEdge;
 
 use super::*;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(super) struct RuleProcess {
     pub(super) input_vertices: HashMap<String, VertexId>,
     pub(super) new_vertices: HashSet<String>,
@@ -210,6 +210,7 @@ impl RuleProcess {
         new_edges.dedup();
 
         self.new_edges = new_edges;
+        self.new_vertices = new_vertices_map.into_keys().collect();
         self
     }
 
@@ -275,27 +276,24 @@ impl RuleProcess {
 
         let new_vertices = self.new_vertices.len();
 
-        let mut remove_edges = Vec::new();
-        for constraint in self.remove_edges {
-            let from = match self.input_vertices.get(&constraint.from) {
-                None => return Err(()),
-                Some(&id) => id,
-            };
-            let to = match self.input_vertices.get(&constraint.to) {
-                None => return Err(()),
-                Some(&id) => id,
-            };
-            let constraint = ArrowConstraint::new(from, to, constraint.connection);
-
-            let edges = graph
-                .graph
-                .edges
-                .iter()
-                .filter(move |(_, edge)| edge.edge.check_constraint(&constraint))
-                .map(|(&id, _)| id);
-
-            remove_edges.extend(edges);
-        }
+        let remove_edges: Vec<_> = self
+            .remove_edges
+            .iter()
+            .filter_map(|constraint| {
+                self.input_vertices.get(&constraint.from).and_then(|&from| {
+                    self.input_vertices.get(&constraint.to).map(|&to| {
+                        let constraint = ArrowConstraint::new(from, to, constraint.connection);
+                        graph
+                            .graph
+                            .edges
+                            .iter()
+                            .filter(move |(_, edge)| edge.edge.check_constraint(&constraint))
+                            .map(|(&id, _)| id)
+                    })
+                })
+            })
+            .flatten()
+            .collect();
 
         let remove_vertices: Vec<_> = self
             .remove_vertices

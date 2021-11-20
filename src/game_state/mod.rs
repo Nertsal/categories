@@ -62,8 +62,8 @@ impl GameState {
                         inputs: vec![RuleObject::vertex("1")],
                         constraints: vec![],
                         infers: vec![],
-                        outputs: vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
                         removes: vec![],
+                        outputs: vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
                     }
                     .build(),
                     // Composition
@@ -74,8 +74,8 @@ impl GameState {
                         ],
                         constraints: vec![],
                         infers: vec![],
-                        outputs: vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
                         removes: vec![],
+                        outputs: vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
                     }
                     .build(),
                     // Product
@@ -83,11 +83,11 @@ impl GameState {
                         inputs: vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
                         constraints: vec![],
                         infers: vec![],
+                        removes: vec![],
                         outputs: vec![
                             RuleObject::edge("p1", "2x3", "2", ArrowConnection::Best),
                             RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
                         ],
-                        removes: vec![],
                     }
                     .build(),
                     // Universal property of product
@@ -101,8 +101,8 @@ impl GameState {
                             RuleObject::edge("", "2x3", "2", ArrowConnection::Best),
                             RuleObject::edge("", "2x3", "3", ArrowConnection::Best),
                         ],
-                        outputs: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
                         removes: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Regular)], // Uniqueness of morphism to the product
+                        outputs: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
                     }
                     .build(),
                     // Isomorphism
@@ -116,11 +116,11 @@ impl GameState {
                             RuleObject::edge("id", "1", "1", ArrowConnection::Regular),
                             RuleObject::edge("id", "2", "2", ArrowConnection::Regular),
                         ],
-                        outputs: vec![RuleObject::edge("", "1", "2", ArrowConnection::Isomorphism)],
                         removes: vec![
                             RuleObject::edge("f", "1", "2", ArrowConnection::Regular), // TODO: Check labels for edges with non-empty names
                             RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
                         ],
+                        outputs: vec![RuleObject::edge("", "1", "2", ArrowConnection::Isomorphism)],
                     }
                     .build(),
                 ],
