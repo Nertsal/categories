@@ -13,6 +13,10 @@ impl GameState {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
 
         // Main graph
+        let rule_options = self
+            .selection
+            .as_ref()
+            .and_then(|selection| selection.inferred_options().as_ref());
         draw_graph(
             self.geng.draw_2d(),
             self.geng.default_font(),
@@ -20,7 +24,7 @@ impl GameState {
             &self.camera,
             &self.main_graph,
             Color::BLACK,
-            None,
+            rule_options,
         );
 
         // Rules

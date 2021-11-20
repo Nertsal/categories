@@ -266,10 +266,8 @@ impl GameState {
                     if dragged_delta.len().approx_eq(&0.0) {
                         // Select rule
                         if let &FocusedGraph::Rule { index } = &self.focused_graph {
-                            self.selection = Some(RuleSelection::new(
-                                index,
-                                self.rules.get_rule(index).unwrap(),
-                            ));
+                            self.selection =
+                                Some(RuleSelection::new(&self.main_graph, index, &self.rules));
                         }
                     }
                 }
@@ -287,7 +285,10 @@ impl GameState {
                         };
                         if let Some(selection) = &mut self.selection {
                             if let Some(selected) = selected {
-                                if selection.select(selected).is_none() {
+                                if selection
+                                    .select(&self.main_graph, selected, &self.rules)
+                                    .is_none()
+                                {
                                     let selection = self.selection.take().unwrap();
                                     self.apply_rule(selection);
                                 }
