@@ -53,7 +53,7 @@ pub const SELECTION_COLOR: Color<f32> = Color {
     b: 0.5,
     a: 0.5,
 };
-pub const SELECTED_RADIUS: f32 = 0.7;
+pub const SELECTED_RADIUS: f32 = 0.5;
 pub const SELECTED_COLOR: Color<f32> = Color {
     r: 0.7,
     g: 0.7,
