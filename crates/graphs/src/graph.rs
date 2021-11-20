@@ -49,8 +49,16 @@ impl<V: GraphVertex, E: GraphEdge> Graph<V, E> {
         Some(self.edges.new_edge(edge))
     }
 
+    pub fn insert_vertex(&mut self, vertex: V, vertex_id: VertexId) -> Result<Option<V>, ()> {
+        self.vertices.new_vertex_id(vertex, vertex_id)
+    }
+
+    pub fn insert_edge(&mut self, edge: E, edge_id: EdgeId) -> Result<Option<E>, ()> {
+        self.edges.insert_edge(edge, edge_id)
+    }
+
     /// Removes the vertex and connected edges from the graph.
-    pub fn remove_vertex(&mut self, vertex_id: VertexId) -> (Option<V>, Vec<E>) {
+    pub fn remove_vertex(&mut self, vertex_id: VertexId) -> (Option<V>, Vec<(EdgeId, E)>) {
         let vertex = self.vertices.remove(&vertex_id);
 
         let removes: Vec<_> = self
@@ -61,7 +69,7 @@ impl<V: GraphVertex, E: GraphEdge> Graph<V, E> {
             .collect();
         let mut edges = Vec::new();
         for remove in removes {
-            edges.push(self.edges.remove(&remove).unwrap());
+            edges.push((remove, self.edges.remove(&remove).unwrap()));
         }
 
         (vertex, edges)

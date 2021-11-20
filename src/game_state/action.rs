@@ -13,6 +13,8 @@ pub enum GraphActionDo {
 
 pub enum GraphActionUndo {
     ApplyRule {
+        new_vertices: Vec<(VertexId, Vertex)>,
+        new_edges: Vec<(EdgeId, Edge)>,
         remove_vertices: Vec<VertexId>,
         remove_edges: Vec<EdgeId>,
     },
@@ -96,20 +98,23 @@ impl GameState {
                 // Remove edges
                 let mut removed_edges: Vec<_> = remove_edges
                     .into_iter()
-                    .map(|edge_id| self.main_graph.graph.remove_edge(edge_id).unwrap())
+                    .map(|edge_id| (edge_id, self.main_graph.graph.remove_edge(edge_id).unwrap()))
                     .collect();
 
                 // Remove vertices
                 let mut removed_vertices = Vec::new();
-                for (vertex, edge) in remove_vertices
-                    .into_iter()
-                    .map(|vertex_id| self.main_graph.graph.remove_vertex(vertex_id))
-                {
-                    removed_vertices.push(vertex.unwrap());
-                    removed_edges.extend(edge.into_iter());
+                for (vertex_id, vertex, edges) in remove_vertices.into_iter().map(|vertex_id| {
+                    let (vertex, edges) = self.main_graph.graph.remove_vertex(vertex_id);
+                    (vertex_id, vertex.unwrap(), edges)
+                }) {
+                    removed_vertices.push((vertex_id, vertex));
+                    removed_edges.extend(edges.into_iter());
                 }
 
+                // Undo
                 GraphActionUndo::ApplyRule {
+                    new_vertices: removed_vertices,
+                    new_edges: removed_edges,
                     remove_vertices: new_vertices,
                     remove_edges: new_edges,
                 }
@@ -123,14 +128,29 @@ impl GameState {
         if let Some(action) = self.action_history.pop() {
             match action {
                 GraphActionUndo::ApplyRule {
+                    new_vertices,
+                    new_edges,
                     remove_vertices,
                     remove_edges,
                 } => {
-                    for vertex_id in remove_vertices {
-                        self.main_graph.graph.remove_vertex(vertex_id);
+                    // Remove edges
+                    for edge in remove_edges {
+                        self.main_graph.graph.remove_edge(edge);
                     }
-                    for edge_id in remove_edges {
-                        self.main_graph.graph.remove_edge(edge_id);
+
+                    // Remove vertices
+                    for vertex in remove_vertices {
+                        self.main_graph.graph.remove_vertex(vertex);
+                    }
+
+                    // Add vertices
+                    for (id, vertex) in new_vertices {
+                        self.main_graph.graph.insert_vertex(vertex, id).unwrap();
+                    }
+
+                    // Add edges
+                    for (id, edge) in new_edges {
+                        self.main_graph.graph.insert_edge(edge, id).unwrap();
                     }
                 }
             }

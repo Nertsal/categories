@@ -37,6 +37,14 @@ impl<E: GraphEdge> Edges<E> {
         id
     }
 
+    pub(crate) fn insert_edge(&mut self, edge: E, edge_id: EdgeId) -> Result<Option<E>, ()> {
+        if edge_id.0 >= self.next_id.0 {
+            return Err(());
+        }
+
+        Ok(self.edges.insert(edge_id, edge))
+    }
+
     pub fn len(&self) -> usize {
         self.edges.len()
     }

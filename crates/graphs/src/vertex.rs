@@ -30,6 +30,18 @@ impl<V: GraphVertex> Vertices<V> {
         id
     }
 
+    pub(crate) fn new_vertex_id(
+        &mut self,
+        vertex: V,
+        vertex_id: VertexId,
+    ) -> Result<Option<V>, ()> {
+        if vertex_id.0 >= self.next_id.0 {
+            return Err(());
+        }
+
+        Ok(self.vertices.insert(vertex_id, vertex))
+    }
+
     pub fn len(&self) -> usize {
         self.vertices.len()
     }
