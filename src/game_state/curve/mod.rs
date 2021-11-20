@@ -9,7 +9,7 @@ pub use parabola::ParabolaCurve;
 /// A trait representing a generic curve.
 pub trait Curve {
     /// Converts a curve into a chain (a list of segments) for rendering and collision detection.
-    fn chain(&self, resolution: usize, width: f32) -> Chain;
+    fn chain(&self, resolution: usize, width: f32, color: Color<f32>) -> Chain;
 }
 
 /// A trait representing a [curve](https://en.wikipedia.org/wiki/Cubic_Hermite_spline#Cardinal_spline)
@@ -20,7 +20,7 @@ pub trait CubicHermiteCurve {
 }
 
 impl<T: CubicHermiteCurve> Curve for T {
-    fn chain(&self, resolution: usize, width: f32) -> Chain {
+    fn chain(&self, resolution: usize, width: f32, color: Color<f32>) -> Chain {
         let intervals = self.intervals();
         let mut vertices = Vec::with_capacity(resolution * intervals.len());
 
@@ -32,7 +32,11 @@ impl<T: CubicHermiteCurve> Curve for T {
             }
         }
 
-        Chain { vertices, width }
+        Chain {
+            vertices,
+            width,
+            color,
+        }
     }
 }
 

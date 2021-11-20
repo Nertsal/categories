@@ -27,7 +27,7 @@ impl Rules {
                     }
                 }
                 draw::graph::draw_graph(
-                    self.geng.draw_2d(),
+                    &self.geng,
                     self.geng.default_font(),
                     &mut temp_framebuffer,
                     camera,
@@ -59,61 +59,28 @@ impl Rules {
 
         if let Some(rule_aabb) = layout.last() {
             // Separation line
-            draw::chain::draw_chain(
-                self.geng.draw_2d(),
-                framebuffer,
-                camera,
-                &Chain {
-                    vertices: vec![rule_aabb.bottom_left(), rule_aabb.bottom_right()],
-                    width: line_width,
-                },
-                RULE_SEPARATION_COLOR,
-            );
+            Chain {
+                vertices: vec![rule_aabb.bottom_left(), rule_aabb.bottom_right()],
+                width: line_width,
+                color: RULE_SEPARATION_COLOR,
+            }
+            .draw_2d(&self.geng, framebuffer, camera);
         }
 
         for (rule_aabb, rule_texture) in layout.into_iter().zip(self.textures.iter()) {
             // Separation line
-            draw::chain::draw_chain(
-                self.geng.draw_2d(),
-                framebuffer,
-                camera,
-                &Chain {
-                    vertices: vec![rule_aabb.top_left(), rule_aabb.top_right()],
-                    width: line_width,
-                },
-                RULE_SEPARATION_COLOR,
-            );
+            Chain {
+                vertices: vec![rule_aabb.top_left(), rule_aabb.top_right()],
+                width: line_width,
+                color: RULE_SEPARATION_COLOR,
+            }
+            .draw_2d(&self.geng, framebuffer, camera);
 
             // Render texture to the dedicated part on the screen
-            use geng::draw_2d::TexturedVertex;
-            self.geng.draw_2d().draw_textured(
+            self.geng.draw_2d(
                 framebuffer,
                 camera,
-                &[
-                    TexturedVertex {
-                        a_pos: rule_aabb.bottom_left(),
-                        a_color: Color::WHITE,
-                        a_vt: vec2(0.0, 1.0),
-                    },
-                    TexturedVertex {
-                        a_pos: rule_aabb.top_left(),
-                        a_color: Color::WHITE,
-                        a_vt: vec2(0.0, 0.0),
-                    },
-                    TexturedVertex {
-                        a_pos: rule_aabb.top_right(),
-                        a_color: Color::WHITE,
-                        a_vt: vec2(1.0, 0.0),
-                    },
-                    TexturedVertex {
-                        a_pos: rule_aabb.bottom_right(),
-                        a_color: Color::WHITE,
-                        a_vt: vec2(1.0, 1.0),
-                    },
-                ],
-                &rule_texture.inner,
-                Color::WHITE,
-                ugli::DrawMode::TriangleFan,
+                &draw_2d::TexturedQuad::new(rule_aabb, &rule_texture.inner),
             );
         }
     }

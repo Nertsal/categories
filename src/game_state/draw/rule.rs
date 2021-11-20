@@ -7,19 +7,15 @@ impl GameState {
 
         // Separation line
         let line_offset = vec2(self.rules.width + line_width / 2.0, 0.0);
-        draw_chain(
-            self.geng.draw_2d(),
-            framebuffer,
-            &self.camera,
-            &Chain {
-                vertices: vec![
-                    camera_view.top_right() - line_offset,
-                    camera_view.bottom_right() - line_offset,
-                ],
-                width: line_width,
-            },
-            RULES_SECTION_SEPARATION_COLOR,
-        );
+        Chain {
+            vertices: vec![
+                camera_view.top_right() - line_offset,
+                camera_view.bottom_right() - line_offset,
+            ],
+            width: line_width,
+            color: RULES_SECTION_SEPARATION_COLOR,
+        }
+        .draw_2d(&self.geng, framebuffer, &self.camera);
         self.rules.draw(&self.selection, &self.camera, framebuffer);
     }
 }

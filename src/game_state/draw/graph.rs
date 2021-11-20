@@ -1,7 +1,7 @@
 use super::*;
 
 pub fn draw_graph(
-    draw_2d: &Rc<geng::Draw2D>,
+    geng: &Geng,
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
@@ -29,7 +29,7 @@ pub fn draw_graph(
     for (id, edge) in graph.graph.edges.iter() {
         // Edge
         draw_edge(
-            draw_2d,
+            geng,
             framebuffer,
             camera,
             background_color,
@@ -56,7 +56,7 @@ pub fn draw_graph(
     for (id, vertex) in graph.graph.vertices.iter() {
         // Vertex
         draw_vertex(
-            draw_2d,
+            geng,
             framebuffer,
             camera,
             vertex,
@@ -79,33 +79,38 @@ pub fn draw_graph(
 }
 
 fn draw_vertex(
-    draw_2d: &Rc<geng::Draw2D>,
+    geng: &Geng,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     vertex: &ForceVertex<Point>,
     is_selected: bool,
 ) {
     if is_selected {
-        draw_2d.circle(
+        geng.draw_2d(
             framebuffer,
             camera,
-            vertex.body.position,
-            vertex.vertex.radius + SELECTED_RADIUS,
-            SELECTED_COLOR,
+            &draw_2d::Ellipse::circle(
+                vertex.body.position,
+                vertex.vertex.radius + SELECTED_RADIUS,
+                SELECTED_COLOR,
+            ),
         );
     }
-    draw_2d.circle_with_cut(
+
+    geng.draw_2d(
         framebuffer,
         camera,
-        vertex.body.position,
-        vertex.vertex.radius - POINT_OUTLINE_WIDTH,
-        vertex.vertex.radius,
-        vertex.vertex.color,
+        &draw_2d::Ellipse::circle_with_cut(
+            vertex.body.position,
+            vertex.vertex.radius - POINT_OUTLINE_WIDTH,
+            vertex.vertex.radius,
+            vertex.vertex.color,
+        ),
     );
 }
 
 fn draw_edge(
-    draw_2d: &Rc<geng::Draw2D>,
+    geng: &Geng,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     background_color: Color<f32>,
@@ -137,10 +142,13 @@ fn draw_edge(
             },
             0.5,
         )
-        .chain(CURVE_RESOLUTION, ARROW_WIDTH)
+        .chain(CURVE_RESOLUTION, ARROW_WIDTH, edge.edge.color)
     } else {
-        ParabolaCurve::new([start, edge.bodies[0].position, end])
-            .chain(CURVE_RESOLUTION, ARROW_WIDTH)
+        ParabolaCurve::new([start, edge.bodies[0].position, end]).chain(
+            CURVE_RESOLUTION,
+            ARROW_WIDTH,
+            edge.edge.color,
+        )
     };
     let chain_len = chain.length();
 
@@ -159,44 +167,45 @@ fn draw_edge(
 
     // Outline
     let width = chain.width;
+    let color = chain.color;
     chain.width += CHAIN_OUTLINE_WIDTH;
-    draw_chain(draw_2d, framebuffer, camera, &chain, background_color);
+    chain.color = background_color;
+    chain.draw_2d(geng, framebuffer, camera);
+    chain.color = color;
     chain.width = width;
+
+    if is_selected {
+        // Selection
+        let width = chain.width;
+        let color = chain.color;
+        chain.width += SELECTED_RADIUS;
+        chain.color = SELECTED_COLOR;
+        chain.draw_2d(geng, framebuffer, camera);
+        chain.color = color;
+        chain.width = width;
+    }
 
     match edge.edge.connection {
         ArrowConnection::Best | ArrowConnection::Regular => {
-            if is_selected {
-                // Selection
-                let width = chain.width;
-                chain.width += SELECTED_RADIUS;
-                draw_chain(draw_2d, framebuffer, camera, &chain, SELECTED_COLOR);
-                chain.width = width;
-            }
-            draw_chain(draw_2d, framebuffer, camera, &chain, edge.edge.color);
+            chain.draw_2d(geng, framebuffer, camera);
         }
         ArrowConnection::Unique => {
-            if is_selected {
-                // Selection
-                let width = chain.width;
-                chain.width += SELECTED_RADIUS;
-                draw_chain(draw_2d, framebuffer, camera, &chain, SELECTED_COLOR);
-                chain.width = width;
-            }
-            draw_dashed_chain(draw_2d, framebuffer, camera, &chain, edge.edge.color);
+            draw_dashed_chain(geng, framebuffer, camera, &chain);
         }
     }
 
     // Line head
-    draw_2d.draw(
+    geng.draw_2d(
         framebuffer,
         camera,
-        &[
-            end - direction_norm * to.vertex.radius,
-            head + head_width,
-            head - head_width,
-        ],
-        edge.edge.color,
-        ugli::DrawMode::Triangles,
+        &draw_2d::Polygon::new(
+            vec![
+                end - direction_norm * to.vertex.radius,
+                head + head_width,
+                head - head_width,
+            ],
+            edge.edge.color,
+        ),
     );
 }
 

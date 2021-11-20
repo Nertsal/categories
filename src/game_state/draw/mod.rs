@@ -18,7 +18,7 @@ impl GameState {
             .as_ref()
             .and_then(|selection| selection.inferred_options().as_ref());
         draw_graph(
-            self.geng.draw_2d(),
+            &self.geng,
             self.geng.default_font(),
             framebuffer,
             &self.camera,
@@ -38,11 +38,13 @@ impl GameState {
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );
-                    self.geng.draw_2d().quad(
+                    self.geng.draw_2d(
                         framebuffer,
                         &self.camera,
-                        AABB::from_corners(dragging.world_start_position, world_pos),
-                        SELECTION_COLOR,
+                        &draw_2d::Quad::new(
+                            AABB::from_corners(dragging.world_start_position, world_pos),
+                            SELECTION_COLOR,
+                        ),
                     );
                 }
                 _ => (),

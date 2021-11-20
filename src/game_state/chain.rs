@@ -4,6 +4,7 @@ use super::*;
 pub struct Chain {
     pub vertices: Vec<Vec2<f32>>,
     pub width: f32,
+    pub color: Color<f32>,
 }
 
 impl Chain {
@@ -113,6 +114,7 @@ impl Chain {
                 start: prev,
                 end: vertex,
                 width: self.width,
+                color: self.color,
             });
             prev = vertex;
         }
@@ -169,12 +171,29 @@ impl Chain {
 
         polygon
     }
+
+    pub fn draw_2d(
+        &self,
+        geng: &Geng,
+        framebuffer: &mut ugli::Framebuffer,
+        camera: &impl geng::AbstractCamera2d,
+    ) {
+        #![allow(deprecated)]
+        geng.draw_2d_helper().draw(
+            framebuffer,
+            camera,
+            &self.triangle_strip(),
+            self.color,
+            ugli::DrawMode::TriangleStrip,
+        );
+    }
 }
 
 pub struct Segment {
     pub start: Vec2<f32>,
     pub end: Vec2<f32>,
     pub width: f32,
+    pub color: Color<f32>,
 }
 
 impl From<Segment> for Chain {
@@ -182,6 +201,7 @@ impl From<Segment> for Chain {
         Self {
             vertices: vec![segment.start, segment.end],
             width: segment.width,
+            color: segment.color,
         }
     }
 }
@@ -200,6 +220,7 @@ mod tests {
                 vec2(0.0, 1.0),
             ],
             width: 1.0,
+            color: Color::WHITE,
         };
 
         assert_eq!(

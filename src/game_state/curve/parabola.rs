@@ -29,7 +29,7 @@ impl ParabolaCurve {
 }
 
 impl Curve for ParabolaCurve {
-    fn chain(&self, resolution: usize, width: f32) -> Chain {
+    fn chain(&self, resolution: usize, width: f32, color: Color<f32>) -> Chain {
         let mut vertices = Vec::with_capacity(resolution * 2);
 
         let step = 0.5 / resolution as f32;
@@ -38,6 +38,10 @@ impl Curve for ParabolaCurve {
             vertices.push(self.get(t));
         }
 
-        Chain { vertices, width }
+        Chain {
+            vertices,
+            width,
+            color,
+        }
     }
 }
