@@ -207,15 +207,14 @@ struct Dragging {
     mouse_start_position: Vec2<f64>,
     world_start_position: Vec2<f32>,
     action: DragAction,
+    current_mouse_position: Vec2<f64>,
 }
 
 enum DragAction {
     Move {
         target: DragTarget,
     },
-    Selection {
-        current_mouse_position: Vec2<f64>,
-    },
+    Selection {},
     TwoTouchMove {
         initial_camera_fov: f32,
         initial_touch: Vec2<f64>,

@@ -66,6 +66,7 @@ impl GameState {
                         .screen_to_world(self.framebuffer_size, touch0.position.map(|x| x as f32));
                     self.dragging = Some(Dragging {
                         mouse_start_position: touch0.position,
+                        current_mouse_position: touch0.position,
                         world_start_position: world_pos,
                         action: DragAction::TwoTouchMove {
                             initial_camera_fov: camera.fov,
@@ -192,9 +193,7 @@ impl GameState {
                                 },
                             })
                     })
-                    .unwrap_or_else(|| DragAction::Selection {
-                        current_mouse_position: mouse_position,
-                    });
+                    .unwrap_or_else(|| DragAction::Selection {});
                 Some(action)
             }
             _ => None,
@@ -203,6 +202,7 @@ impl GameState {
         self.dragging = action.map(|action| Dragging {
             mouse_start_position: mouse_position,
             world_start_position: world_pos,
+            current_mouse_position: mouse_position,
             action,
         });
     }
@@ -210,14 +210,21 @@ impl GameState {
     fn drag_move(&mut self, mouse_position: Vec2<f64>) {
         // Focus
         self.focus(mouse_position);
+        if let Some(dragging) = &mut self.dragging {
+            dragging.current_mouse_position = mouse_position;
+        }
+        self.drag_update();
+    }
 
+    pub fn drag_update(&mut self) {
         // Drag
         if let Some(dragging) = &mut self.dragging {
             match &mut dragging.action {
                 DragAction::Move { target } => {
-                    let world_pos = self
-                        .camera
-                        .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
+                    let world_pos = self.camera.screen_to_world(
+                        self.framebuffer_size,
+                        dragging.current_mouse_position.map(|x| x as f32),
+                    );
                     let updated = match target {
                         &mut DragTarget::GraphCamera {
                             graph,
@@ -268,11 +275,6 @@ impl GameState {
                     if !updated {
                         self.dragging = None;
                     }
-                }
-                DragAction::Selection {
-                    current_mouse_position,
-                } => {
-                    *current_mouse_position = mouse_position;
                 }
                 _ => (),
             }
