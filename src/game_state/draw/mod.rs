@@ -33,10 +33,12 @@ impl GameState {
         // Dragging
         if let Some(dragging) = &self.dragging {
             match &dragging.action {
-                DragAction::Selection => {
+                DragAction::Selection {
+                    current_mouse_position,
+                } => {
                     let world_pos = self.camera.screen_to_world(
                         self.framebuffer_size,
-                        self.geng.window().mouse_pos().map(|x| x as f32),
+                        current_mouse_position.map(|x| x as f32),
                     );
                     self.geng.draw_2d(
                         framebuffer,

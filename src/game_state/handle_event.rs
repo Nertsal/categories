@@ -187,7 +187,9 @@ impl GameState {
                                 },
                             })
                     })
-                    .unwrap_or_else(|| DragAction::Selection);
+                    .unwrap_or_else(|| DragAction::Selection {
+                        current_mouse_position: mouse_position,
+                    });
                 Some(action)
             }
             _ => None,
@@ -203,13 +205,13 @@ impl GameState {
     fn drag_move(&mut self, mouse_position: Vec2<f64>) {
         // Drag
         if let Some(dragging) = &mut self.dragging {
-            match &dragging.action {
+            match &mut dragging.action {
                 DragAction::Move { target } => {
                     let world_pos = self
                         .camera
                         .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
                     let updated = match target {
-                        &DragTarget::GraphCamera {
+                        &mut DragTarget::GraphCamera {
                             graph,
                             initial_camera_pos,
                             initial_mouse_pos,
@@ -229,7 +231,7 @@ impl GameState {
                             camera.center = initial_camera_pos + delta;
                             true
                         }
-                        &DragTarget::Vertex { graph, id } => {
+                        &mut DragTarget::Vertex { graph, id } => {
                             let (graph, graph_pos, graph_aabb) =
                                 self.get_graph_mut(&graph, world_pos).unwrap();
                             graph
@@ -241,7 +243,7 @@ impl GameState {
                                 })
                                 .is_some()
                         }
-                        &DragTarget::Edge { graph, id } => {
+                        &mut DragTarget::Edge { graph, id } => {
                             let (graph, graph_pos, graph_aabb) =
                                 self.get_graph_mut(&graph, world_pos).unwrap();
                             graph
@@ -259,6 +261,11 @@ impl GameState {
                         self.dragging = None;
                     }
                 }
+                DragAction::Selection {
+                    current_mouse_position,
+                } => {
+                    *current_mouse_position = mouse_position;
+                }
                 _ => (),
             }
         }
@@ -270,7 +277,7 @@ impl GameState {
                 .camera
                 .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
             match &dragging.action {
-                DragAction::Selection => {
+                DragAction::Selection { .. } => {
                     let dragged_delta = mouse_position - dragging.mouse_start_position;
                     if dragged_delta.len().approx_eq(&0.0) {
                         // Select rule

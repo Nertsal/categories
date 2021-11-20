@@ -180,7 +180,9 @@ enum DragAction {
     Move {
         target: DragTarget,
     },
-    Selection,
+    Selection {
+        current_mouse_position: Vec2<f64>,
+    },
     TwoTouchMove {
         initial_camera_fov: f32,
         initial_touch: Vec2<f64>,
