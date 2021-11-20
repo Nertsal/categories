@@ -29,6 +29,9 @@ impl GameState {
                     // Clear selection
                     self.selection = None;
                 }
+                geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
+                    self.action_undo();
+                }
                 _ => (),
             },
             geng::Event::MouseDown { position, button } => {

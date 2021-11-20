@@ -169,7 +169,7 @@ impl Rule {
     }
 
     /// Applies the rule
-    fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> GraphAction {
+    fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> GraphActionDo {
         // Find input
         // let (mut input_vertices, mut input_map) =
         //     rule_input(graph, self.inputs.iter(), selection.iter());
@@ -426,7 +426,7 @@ impl RuleProcess {
         self
     }
 
-    pub fn action(self) -> GraphAction {
+    pub fn action(self) -> GraphActionDo {
         let input_vertices: Vec<_> = self.input_vertices.values().copied().collect();
         let new_vertices = self.new_vertices.len();
         let vertices: HashMap<String, usize> = self
@@ -446,7 +446,7 @@ impl RuleProcess {
             })
             .collect();
 
-        GraphAction::ApplyRule {
+        GraphActionDo::ApplyRule {
             input_vertices,
             new_vertices,
             new_edges,
