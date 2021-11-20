@@ -132,6 +132,9 @@ impl GameState {
     }
 
     fn drag_start(&mut self, mouse_position: Vec2<f64>, mouse_button: geng::MouseButton) {
+        // Focus
+        self.focus(mouse_position);
+
         let world_pos = self
             .camera
             .screen_to_world(self.framebuffer_size, mouse_position.map(|x| x as f32));
