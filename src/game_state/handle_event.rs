@@ -285,12 +285,18 @@ impl GameState {
                         };
                         if let Some(selection) = &mut self.selection {
                             if let Some(selected) = selected {
-                                if selection
-                                    .select(&self.main_graph, selected, &self.rules)
-                                    .is_none()
-                                {
-                                    let selection = self.selection.take().unwrap();
-                                    self.apply_rule(selection);
+                                if let Some(options) = selection.inferred_options() {
+                                    if options.contains(&selected)
+                                        && selection
+                                            .select(&self.main_graph, selected, &self.rules)
+                                            .is_none()
+                                    {
+                                        let selection = self.selection.take().unwrap();
+                                        self.apply_rule(selection);
+                                    }
+                                } else {
+                                    // No possible selection options
+                                    self.selection = None;
                                 }
                             }
                         }
