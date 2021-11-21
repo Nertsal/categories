@@ -43,108 +43,111 @@ impl RuleProcess {
         }
     }
 
-    pub fn infer_candidates<'a>(
+    pub fn infer_candidates(
         &self,
         graph: &Graph,
-        infers: impl Iterator<Item = &'a RuleObject<String>>,
+        infers: &[RuleObject<String>],
+        iterations: usize,
     ) -> HashMap<String, (Vec<VertexId>, Vec<ArrowConstraint<String>>)> {
         // A collection of all vertices from the graph that satisfy the inferring constraints.
         let mut inferred_vertices = HashMap::new();
 
-        /// Get information about the vertex
-        fn infer_vertex<'a>(
-            graph: &'a Graph,
-            label: &str,
-            inferred_vertices: &'a mut HashMap<
-                String,
-                (Vec<VertexId>, Vec<ArrowConstraint<String>>),
-            >,
-            rule_vertices: &HashMap<String, VertexId>,
-            connection: Option<ArrowConstraint<String>>,
-        ) -> &'a mut Vec<VertexId> {
-            let (vertices, edges) =
-                inferred_vertices
-                    .entry(label.to_owned())
-                    .or_insert_with(|| {
-                        (
-                            rule_vertices
-                                .get(label)
-                                .map(|&id| vec![id])
-                                .unwrap_or_else(|| {
-                                    graph.graph.vertices.iter().map(|(&id, _)| id).collect()
-                                }),
-                            vec![],
-                        )
-                    });
-            if let Some(connection) = connection {
-                edges.push(connection);
-            }
-            vertices
-        }
-
-        // Filter vertices
-        for infer in infers {
-            match infer {
-                RuleObject::Vertex { label } => {
-                    infer_vertex(
-                        graph,
-                        label,
-                        &mut inferred_vertices,
-                        &self.input_vertices,
-                        None,
-                    );
+        for _ in 0..iterations {
+            /// Get information about the vertex
+            fn infer_vertex<'a>(
+                graph: &'a Graph,
+                label: &str,
+                inferred_vertices: &'a mut HashMap<
+                    String,
+                    (Vec<VertexId>, Vec<ArrowConstraint<String>>),
+                >,
+                rule_vertices: &HashMap<String, VertexId>,
+                connection: Option<ArrowConstraint<String>>,
+            ) -> &'a mut Vec<VertexId> {
+                let (vertices, edges) =
+                    inferred_vertices
+                        .entry(label.to_owned())
+                        .or_insert_with(|| {
+                            (
+                                rule_vertices
+                                    .get(label)
+                                    .map(|&id| vec![id])
+                                    .unwrap_or_else(|| {
+                                        graph.graph.vertices.iter().map(|(&id, _)| id).collect()
+                                    }),
+                                vec![],
+                            )
+                        });
+                if let Some(connection) = connection {
+                    edges.push(connection);
                 }
-                RuleObject::Edge { constraint, .. } => {
-                    // Check from
-                    let infer_to: Vec<_> = infer_vertex(
-                        graph,
-                        &constraint.to,
-                        &mut inferred_vertices,
-                        &self.input_vertices,
-                        Some(constraint.clone()),
-                    )
-                    .iter()
-                    .copied()
-                    .collect();
+                vertices
+            }
 
-                    let infer_from = infer_vertex(
-                        graph,
-                        &constraint.from,
-                        &mut inferred_vertices,
-                        &self.input_vertices,
-                        Some(constraint.clone()),
-                    );
+            // Filter vertices
+            for infer in infers {
+                match infer {
+                    RuleObject::Vertex { label } => {
+                        infer_vertex(
+                            graph,
+                            label,
+                            &mut inferred_vertices,
+                            &self.input_vertices,
+                            None,
+                        );
+                    }
+                    RuleObject::Edge { constraint, .. } => {
+                        // Check from
+                        let infer_to: Vec<_> = infer_vertex(
+                            graph,
+                            &constraint.to,
+                            &mut inferred_vertices,
+                            &self.input_vertices,
+                            Some(constraint.clone()),
+                        )
+                        .iter()
+                        .copied()
+                        .collect();
 
-                    infer_from.retain(|from| {
-                        graph.graph.edges.iter().any(|(_, edge)| {
-                            let end_points = edge.end_points();
-                            edge.edge
-                                .connection
-                                .check_constraint(&constraint.connection)
-                                && (end_points[0].eq(from) && infer_to.contains(end_points[1]))
-                        })
-                    });
+                        let infer_from = infer_vertex(
+                            graph,
+                            &constraint.from,
+                            &mut inferred_vertices,
+                            &self.input_vertices,
+                            Some(constraint.clone()),
+                        );
 
-                    // Check to
-                    let infer_from: Vec<_> = infer_from.iter().copied().collect();
+                        infer_from.retain(|from| {
+                            graph.graph.edges.iter().any(|(_, edge)| {
+                                let end_points = edge.end_points();
+                                edge.edge
+                                    .connection
+                                    .check_constraint(&constraint.connection)
+                                    && (end_points[0].eq(from) && infer_to.contains(end_points[1]))
+                            })
+                        });
 
-                    let infer_to = infer_vertex(
-                        graph,
-                        &constraint.to,
-                        &mut inferred_vertices,
-                        &self.input_vertices,
-                        None,
-                    );
+                        // Check to
+                        let infer_from: Vec<_> = infer_from.iter().copied().collect();
 
-                    infer_to.retain(|to| {
-                        graph.graph.edges.iter().any(|(_, edge)| {
-                            let end_points = edge.end_points();
-                            edge.edge
-                                .connection
-                                .check_constraint(&constraint.connection)
-                                && (end_points[1].eq(to) && infer_from.contains(end_points[0]))
-                        })
-                    });
+                        let infer_to = infer_vertex(
+                            graph,
+                            &constraint.to,
+                            &mut inferred_vertices,
+                            &self.input_vertices,
+                            None,
+                        );
+
+                        infer_to.retain(|to| {
+                            graph.graph.edges.iter().any(|(_, edge)| {
+                                let end_points = edge.end_points();
+                                edge.edge
+                                    .connection
+                                    .check_constraint(&constraint.connection)
+                                    && (end_points[1].eq(to) && infer_from.contains(end_points[0]))
+                            })
+                        });
+                    }
                 }
             }
         }
@@ -152,12 +155,12 @@ impl RuleProcess {
         inferred_vertices
     }
 
-    pub fn constraint<'a>(
+    pub fn constraint(
         mut self,
         graph: &Graph,
-        constraints: impl Iterator<Item = &'a RuleObject<String>>,
+        constraints: &[RuleObject<String>],
     ) -> Result<Self, ()> {
-        let inferred_candidates = self.infer_candidates(graph, constraints);
+        let inferred_candidates = self.infer_candidates(graph, constraints, 2);
         for (label, (candidates, _)) in inferred_candidates {
             if candidates.is_empty() {
                 return Err(());
@@ -169,14 +172,10 @@ impl RuleProcess {
         Ok(self)
     }
 
-    pub fn infer<'a>(
-        mut self,
-        graph: &Graph,
-        infers: impl Iterator<Item = &'a RuleObject<String>>,
-    ) -> Self {
+    pub fn infer(mut self, graph: &Graph, infers: &[RuleObject<String>]) -> Self {
         let mut new_connections = Vec::new();
 
-        let inferred_candidates = self.infer_candidates(graph, infers);
+        let inferred_candidates = self.infer_candidates(graph, infers, 1);
 
         for (label, (candidates, edges)) in inferred_candidates {
             if !candidates.is_empty() {

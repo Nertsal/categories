@@ -70,10 +70,18 @@ impl RuleSelection {
             graph,
             rule.inputs().iter().take(selected),
             self.selection.iter(),
-        );
-        // .infer(graph, rule.inputs().iter().skip(self.selection.len()));
+        )
+        .constraint(graph, rule.constraints());
 
-        let candidates = process.infer_candidates(graph, rule.inputs().iter().skip(selected));
+        let process = match process {
+            Ok(process) => process,
+            Err(_) => {
+                self.inferred_options = None;
+                return;
+            }
+        };
+
+        let candidates = process.infer_candidates(graph, &rule.inputs()[selected..], 1);
 
         let next = match rule.inputs().get(selected) {
             Some(next) => next,

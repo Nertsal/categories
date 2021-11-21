@@ -142,6 +142,10 @@ impl Rule {
         &self.inputs
     }
 
+    pub fn constraints(&self) -> &Vec<RuleObject<String>> {
+        &self.constraints
+    }
+
     pub fn get_input(&self) -> &Vec<GraphObject> {
         &self.graph_input
     }
@@ -207,8 +211,8 @@ impl Rule {
     /// Applies the rule
     fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> Result<GraphActionDo, ()> {
         RuleProcess::input(graph, self.inputs.iter(), selection.iter())
-            .constraint(graph, self.constraints.iter())?
-            .infer(graph, self.infers.iter())
+            .constraint(graph, &self.constraints)?
+            .infer(graph, &self.infers)
             .remove(self.removes.iter())
             .output(self.outputs.iter())
             .action(graph)
