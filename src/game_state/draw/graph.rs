@@ -43,33 +43,27 @@ pub fn draw_graph(
 
         if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
             // Label
-            font.draw(
-                framebuffer,
-                camera,
-                &edge.edge.label,
-                center.position,
-                geng::TextAlign::CENTER,
-                ARROW_LABEL_FONT_SIZE,
-                Color::GRAY,
-            );
+            draw_2d::Text::unit(font.clone(), edge.edge.label.to_owned(), Color::GRAY)
+                .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
+                .draw_2d(geng, framebuffer, camera);
 
+            // Isomorphism
             if let ArrowConnection::Isomorphism = edge.edge.connection {
-                // Isomorphism
                 draw_2d::Ellipse::circle(center.position, ARROW_ICON_RADIUS, edge.edge.color)
-                    .draw_2d(geng, framebuffer, camera, Mat3::identity());
+                    .draw_2d(geng, framebuffer, camera);
                 draw_2d::Ellipse::circle(
                     center.position,
                     ARROW_ICON_RADIUS - ARROW_ICON_OUTLINE_WIDTH,
                     background_color,
                 )
-                .draw_2d(geng, framebuffer, camera, Mat3::identity());
+                .draw_2d(geng, framebuffer, camera);
 
                 draw_2d::TexturedQuad::colored(
                     AABB::point(center.position).extend_uniform(ARROW_ICON_RADIUS),
                     &assets.isomorphism,
                     edge.edge.color,
                 )
-                .draw_2d(geng, framebuffer, camera, Mat3::identity());
+                .draw_2d(geng, framebuffer, camera);
             }
         }
     }
@@ -86,17 +80,16 @@ pub fn draw_graph(
         );
 
         // Label
-        draw_fit_text(
-            font,
-            framebuffer,
-            camera,
-            &vertex.vertex.label,
-            vertex.body.position,
-            geng::TextAlign::CENTER,
-            (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 1.5,
-            Some((vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 1.5),
+        draw_2d::Text::unit(
+            font.clone(),
+            vertex.vertex.label.to_owned(),
             vertex.vertex.color,
-        );
+        )
+        .fit_into(Ellipse::circle(
+            vertex.body.position,
+            (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 0.8,
+        ))
+        .draw_2d(geng, framebuffer, camera);
     }
 }
 
@@ -235,47 +228,6 @@ fn draw_edge(
             ],
             edge.edge.color,
         )
-        .draw_2d(geng, framebuffer, camera, Mat3::identity()),
+        .draw_2d(geng, framebuffer, camera),
     }
-}
-
-fn draw_fit_text(
-    font: &geng::Font,
-    framebuffer: &mut ugli::Framebuffer,
-    camera: &impl geng::AbstractCamera2d,
-    text: &str,
-    mut pos: Vec2<f32>,
-    align: geng::TextAlign,
-    fit_width: f32,
-    fit_height: Option<f32>,
-    color: Color<f32>,
-) {
-    let mut size = 1000.0;
-    let aabb = font.measure(text, size);
-
-    let width = (aabb.width().sqr() + aabb.height().sqr()).sqrt();
-    if width.approx_eq(&0.0) {
-        return;
-    }
-
-    let mut scale = fit_width / width;
-
-    if let Some(fit_height) = fit_height {
-        let height = aabb.height();
-        scale = scale.min(fit_height / height);
-    }
-
-    size *= scale;
-    let aabb = aabb.map(|x| x * scale); // Alignment magic
-    pos.y -= aabb.y_min + aabb.height() * 0.5; // Align vertically
-    pos.x -= aabb.x_min + aabb.width() * align.0; // Align horizontally
-    font.draw(
-        framebuffer,
-        camera,
-        text,
-        pos,
-        geng::TextAlign::LEFT,
-        size,
-        color,
-    );
 }

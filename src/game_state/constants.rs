@@ -23,7 +23,7 @@ pub const ARROW_ISOMORPHISM_COLOR: Color<f32> = Color::RED;
 
 pub const SELECTION_RADIUS: f32 = 0.5;
 
-pub const ARROW_LABEL_FONT_SIZE: f32 = 2.0;
+pub const ARROW_LABEL_FONT_SIZE: f32 = 1.0;
 pub const ARROW_ICON_RADIUS: f32 = 1.5;
 pub const ARROW_ICON_OUTLINE_WIDTH: f32 = 0.2;
 

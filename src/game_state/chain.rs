@@ -184,7 +184,6 @@ impl Chain {
             geng,
             framebuffer,
             camera,
-            Mat3::identity(),
         );
     }
 }
