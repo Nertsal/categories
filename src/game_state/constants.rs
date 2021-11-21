@@ -37,7 +37,7 @@ pub const RULE_SELECTION_COLOR: Color<f32> = Color {
     r: 0.2,
     g: 0.2,
     b: 0.2,
-    a: 1.0,
+    a: 0.5,
 };
 
 pub const ARROW_HEAD_WIDTH: f32 = 0.5;
