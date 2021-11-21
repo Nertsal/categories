@@ -213,7 +213,6 @@ impl GameState {
         if let Some(dragging) = &mut self.dragging {
             dragging.current_mouse_position = mouse_position;
         }
-        self.drag_update();
     }
 
     pub fn drag_update(&mut self) {

@@ -1,3 +1,5 @@
+use geng::draw_2d::Draw2d;
+
 use super::*;
 
 #[derive(Debug, Clone)]
@@ -178,13 +180,11 @@ impl Chain {
         framebuffer: &mut ugli::Framebuffer,
         camera: &impl geng::AbstractCamera2d,
     ) {
-        #![allow(deprecated)]
-        geng.draw_2d_helper().draw(
+        draw_2d::Polygon::strip(self.triangle_strip(), self.color).draw_2d(
+            geng,
             framebuffer,
             camera,
-            &self.triangle_strip(),
-            self.color,
-            ugli::DrawMode::TriangleStrip,
+            Mat3::identity(),
         );
     }
 }

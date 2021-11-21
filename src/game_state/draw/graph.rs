@@ -56,20 +56,20 @@ pub fn draw_graph(
             if let ArrowConnection::Isomorphism = edge.edge.connection {
                 // Isomorphism
                 draw_2d::Ellipse::circle(center.position, ARROW_ICON_RADIUS, edge.edge.color)
-                    .draw_2d(geng, framebuffer, camera);
+                    .draw_2d(geng, framebuffer, camera, Mat3::identity());
                 draw_2d::Ellipse::circle(
                     center.position,
                     ARROW_ICON_RADIUS - ARROW_ICON_OUTLINE_WIDTH,
                     background_color,
                 )
-                .draw_2d(geng, framebuffer, camera);
+                .draw_2d(geng, framebuffer, camera, Mat3::identity());
 
                 draw_2d::TexturedQuad::colored(
                     AABB::point(center.position).extend_uniform(ARROW_ICON_RADIUS),
                     &assets.isomorphism,
                     edge.edge.color,
                 )
-                .draw_2d(geng, framebuffer, camera);
+                .draw_2d(geng, framebuffer, camera, Mat3::identity());
             }
         }
     }
@@ -235,7 +235,7 @@ fn draw_edge(
             ],
             edge.edge.color,
         )
-        .draw_2d(geng, framebuffer, camera),
+        .draw_2d(geng, framebuffer, camera, Mat3::identity()),
     }
 }
 
