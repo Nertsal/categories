@@ -287,7 +287,7 @@ impl RuleProcess {
 
         let new_vertices = self.new_vertices.len();
 
-        let remove_edges: Vec<_> = self
+        let mut remove_edges: Vec<_> = self
             .remove_edges
             .iter()
             .filter_map(|constraint| {
@@ -305,12 +305,16 @@ impl RuleProcess {
             })
             .flatten()
             .collect();
+        remove_edges.sort();
+        remove_edges.dedup();
 
-        let remove_vertices: Vec<_> = self
+        let mut remove_vertices: Vec<_> = self
             .remove_vertices
             .into_iter()
             .map(|label| self.input_vertices[&label])
             .collect();
+        remove_vertices.sort();
+        remove_vertices.dedup();
 
         let vertices: HashMap<String, usize> = self
             .input_vertices

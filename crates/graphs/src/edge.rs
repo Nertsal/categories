@@ -16,7 +16,7 @@ pub struct Edges<E: GraphEdge> {
     next_id: EdgeId,
 }
 
-#[derive(Hash, PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(Hash, PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
 pub struct EdgeId(u64);
 
 impl<E: GraphEdge> Edges<E> {
