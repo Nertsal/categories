@@ -70,23 +70,27 @@ impl RuleSelection {
             graph,
             rule.inputs().iter().take(selected),
             self.selection.iter(),
-        )
-        .constraint(graph, rule.constraints());
+        );
 
-        let process = match process {
-            Ok(process) => process,
+        let constraints = match process.constraint(graph, rule.constraints()) {
+            Ok(constraints) => constraints,
             Err(_) => {
                 self.inferred_options = None;
                 return;
             }
         };
 
-        let candidates = process.infer_candidates(graph, &rule.inputs()[selected..], 1);
+        let candidates =
+            process.infer_candidates(graph, constraints, &rule.inputs()[selected..], 2);
 
         let next = match rule.inputs().get(selected) {
             Some(next) => next,
-            None => return,
+            None => {
+                self.inferred_options = None;
+                return;
+            }
         };
+
         match next {
             RuleObject::Vertex { label } => {
                 self.inferred_options = candidates.get(label).map(|(vertices, _)| {

@@ -210,9 +210,10 @@ impl Rule {
 
     /// Applies the rule
     fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> Result<GraphActionDo, ()> {
-        RuleProcess::input(graph, self.inputs.iter(), selection.iter())
-            .constraint(graph, &self.constraints)?
-            .infer(graph, &self.infers)
+        let process = RuleProcess::input(graph, self.inputs.iter(), selection.iter());
+        let constraints = process.constraint(graph, &self.constraints)?;
+        process
+            .infer(graph, constraints, &self.infers)
             .remove(self.removes.iter())
             .output(self.outputs.iter())
             .action(graph)
