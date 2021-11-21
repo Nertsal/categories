@@ -34,10 +34,10 @@ pub const RULE_SEPARATION_WIDTH_FRAC: f32 = 0.005;
 pub const RULES_SECTION_SEPARATION_COLOR: Color<f32> = Color::GRAY;
 pub const RULE_SEPARATION_COLOR: Color<f32> = Color::GRAY;
 pub const RULE_SELECTION_COLOR: Color<f32> = Color {
-    r: 0.2,
-    g: 0.2,
-    b: 0.2,
-    a: 0.5,
+    r: 0.1,
+    g: 0.1,
+    b: 0.1,
+    a: 1.0,
 };
 
 pub const ARROW_HEAD_WIDTH: f32 = 0.5;
