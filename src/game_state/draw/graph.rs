@@ -152,14 +152,8 @@ fn draw_edge(
     };
     let chain_len = chain.length();
 
-    let end_direction = chain.end_direction().unwrap();
-    let direction_norm = end_direction.normalize_or_zero();
-    let normal = direction_norm.rotate_90();
     let scale = ARROW_HEAD_LENGTH.min(chain_len * ARROW_LENGTH_MAX_FRAC) / ARROW_HEAD_LENGTH;
     let head_length = ARROW_HEAD_LENGTH * scale;
-    let head_offset = direction_norm * (head_length + to.vertex.radius);
-    let head = end - head_offset;
-    let head_width = normal * ARROW_HEAD_WIDTH * scale;
 
     let (min, max) = match edge.edge.connection {
         ArrowConnection::Isomorphism => (
@@ -203,6 +197,12 @@ fn draw_edge(
     }
 
     // Line head
+    let head_direction = end - *chain.vertices.last().unwrap();
+    let direction_norm = head_direction.normalize_or_zero();
+    let normal = direction_norm.rotate_90();
+    let head_offset = direction_norm * (head_length + to.vertex.radius);
+    let head = end - head_offset;
+    let head_width = normal * ARROW_HEAD_WIDTH * scale;
     match edge.edge.connection {
         ArrowConnection::Isomorphism => (),
         _ => draw_2d::Polygon::new(
