@@ -30,9 +30,10 @@ pub fn draw_graph(
 
     // Edges
     for (id, edge) in graph.graph.edges.iter() {
-        // Edge
         draw_edge(
             geng,
+            font,
+            &assets,
             framebuffer,
             camera,
             background_color,
@@ -40,92 +41,75 @@ pub fn draw_graph(
             edge,
             selected_edges.contains(id),
         );
-
-        if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
-            // Label
-            draw_2d::Text::unit(font.clone(), edge.edge.label.to_owned(), Color::GRAY)
-                .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
-                .draw_2d(geng, framebuffer, camera);
-
-            // Isomorphism
-            if let ArrowConnection::Isomorphism = edge.edge.connection {
-                draw_2d::Ellipse::circle(center.position, ARROW_ICON_RADIUS, edge.edge.color)
-                    .draw_2d(geng, framebuffer, camera);
-                draw_2d::Ellipse::circle(
-                    center.position,
-                    ARROW_ICON_RADIUS - ARROW_ICON_OUTLINE_WIDTH,
-                    background_color,
-                )
-                .draw_2d(geng, framebuffer, camera);
-
-                draw_2d::TexturedQuad::colored(
-                    AABB::point(center.position).extend_uniform(ARROW_ICON_RADIUS),
-                    &assets.isomorphism,
-                    edge.edge.color,
-                )
-                .draw_2d(geng, framebuffer, camera);
-            }
-        }
     }
 
     // Vertices
     for (id, vertex) in graph.graph.vertices.iter() {
-        // Vertex
         draw_vertex(
             geng,
+            font,
             framebuffer,
             camera,
             vertex,
+            background_color,
             selected_vertices.contains(id),
         );
-
-        // Label
-        draw_2d::Text::unit(
-            font.clone(),
-            vertex.vertex.label.to_owned(),
-            vertex.vertex.color,
-        )
-        .fit_into(Ellipse::circle(
-            vertex.body.position,
-            (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 0.8,
-        ))
-        .draw_2d(geng, framebuffer, camera);
     }
 }
 
 fn draw_vertex(
     geng: &Geng,
+    font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     vertex: &ForceVertex<Point>,
+    background_color: Color<f32>,
     is_selected: bool,
 ) {
+    // Selection
     if is_selected {
-        geng.draw_2d(
-            framebuffer,
-            camera,
-            &draw_2d::Ellipse::circle(
-                vertex.body.position,
-                vertex.vertex.radius + SELECTED_RADIUS,
-                SELECTED_COLOR,
-            ),
-        );
+        draw_2d::Ellipse::circle(
+            vertex.body.position,
+            vertex.vertex.radius + SELECTED_RADIUS,
+            SELECTED_COLOR,
+        )
+        .draw_2d(geng, framebuffer, camera);
     }
 
-    geng.draw_2d(
-        framebuffer,
-        camera,
-        &draw_2d::Ellipse::circle_with_cut(
-            vertex.body.position,
-            vertex.vertex.radius - POINT_OUTLINE_WIDTH,
-            vertex.vertex.radius,
-            vertex.vertex.color,
-        ),
-    );
+    // Outline
+    draw_2d::Ellipse::circle_with_cut(
+        vertex.body.position,
+        vertex.vertex.radius - POINT_OUTLINE_WIDTH,
+        vertex.vertex.radius,
+        vertex.vertex.color,
+    )
+    .draw_2d(geng, framebuffer, camera);
+
+    // Background
+    draw_2d::Ellipse::circle(
+        vertex.body.position,
+        vertex.vertex.radius - POINT_OUTLINE_WIDTH,
+        background_color,
+    )
+    .draw_2d(geng, framebuffer, camera);
+
+    // Label
+    draw_2d::Text::unit(
+        font.clone(),
+        vertex.vertex.label.to_owned(),
+        vertex.vertex.color,
+    )
+    .fit_into(Ellipse::circle(
+        vertex.body.position,
+        (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 0.8,
+    ))
+    .draw_2d(geng, framebuffer, camera);
 }
 
 fn draw_edge(
     geng: &Geng,
+    font: &Rc<geng::Font>,
+    assets: &Rc<Assets>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     background_color: Color<f32>,
@@ -133,6 +117,7 @@ fn draw_edge(
     edge: &ForceEdge<Arrow<VertexId>>,
     is_selected: bool,
 ) {
+    // Find endpoints
     let (from, to) = graph
         .graph
         .vertices
@@ -229,5 +214,34 @@ fn draw_edge(
             edge.edge.color,
         )
         .draw_2d(geng, framebuffer, camera),
+    }
+
+    if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
+        // Label
+        draw_2d::Text::unit(font.clone(), edge.edge.label.to_owned(), Color::GRAY)
+            .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
+            .draw_2d(geng, framebuffer, camera);
+
+        // Isomorphism
+        if let ArrowConnection::Isomorphism = edge.edge.connection {
+            draw_2d::Ellipse::circle(center.position, ARROW_ICON_RADIUS, edge.edge.color).draw_2d(
+                geng,
+                framebuffer,
+                camera,
+            );
+            draw_2d::Ellipse::circle(
+                center.position,
+                ARROW_ICON_RADIUS - ARROW_ICON_OUTLINE_WIDTH,
+                background_color,
+            )
+            .draw_2d(geng, framebuffer, camera);
+
+            draw_2d::TexturedQuad::colored(
+                AABB::point(center.position).extend_uniform(ARROW_ICON_RADIUS),
+                &assets.isomorphism,
+                edge.edge.color,
+            )
+            .draw_2d(geng, framebuffer, camera);
+        }
     }
 }
