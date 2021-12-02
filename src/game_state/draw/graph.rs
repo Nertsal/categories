@@ -142,13 +142,10 @@ fn draw_edge(
             },
             0.5,
         )
-        .chain(CURVE_RESOLUTION, ARROW_WIDTH, edge.edge.color)
+        .chain(CURVE_RESOLUTION)
     } else {
-        ParabolaCurve::new([start, edge.bodies[0].position, end]).chain(
-            CURVE_RESOLUTION,
-            ARROW_WIDTH,
-            edge.edge.color,
-        )
+        Trajectory::parabola([start, edge.bodies[0].position, end], -1.0..=1.0)
+            .chain(CURVE_RESOLUTION)
     };
     let chain_len = chain.length();
 
@@ -165,39 +162,51 @@ fn draw_edge(
             1.0 - (to.vertex.radius + head_length) / chain_len,
         ),
     };
-    let mut chain = chain.take_range_ratio(min..=max);
+    let chain = chain.take_range_ratio(min..=max);
 
     // Outline
-    let width = chain.width;
-    let color = chain.color;
-    chain.width += CHAIN_OUTLINE_WIDTH;
-    chain.color = background_color;
-    chain.draw_2d(geng, framebuffer, camera);
-    chain.color = color;
-    chain.width = width;
+    draw_2d::Chain::new(
+        chain.clone(),
+        ARROW_WIDTH + CHAIN_OUTLINE_WIDTH,
+        background_color,
+        1,
+    )
+    .draw_2d(geng, framebuffer, camera);
 
     if is_selected {
         // Selection
-        let width = chain.width;
-        let color = chain.color;
-        chain.width += SELECTED_RADIUS;
-        chain.color = SELECTED_COLOR;
-        chain.draw_2d(geng, framebuffer, camera);
-        chain.color = color;
-        chain.width = width;
+        draw_2d::Chain::new(
+            chain.clone(),
+            ARROW_WIDTH + SELECTED_RADIUS,
+            SELECTED_COLOR,
+            1,
+        )
+        .draw_2d(geng, framebuffer, camera);
     }
+
+    let head_direction = end - *chain.vertices.last().unwrap();
 
     match edge.edge.connection {
         ArrowConnection::Best | ArrowConnection::Regular | ArrowConnection::Isomorphism => {
-            chain.draw_2d(geng, framebuffer, camera);
+            draw_2d::Chain::new(chain, ARROW_WIDTH, edge.edge.color, 1).draw_2d(
+                geng,
+                framebuffer,
+                camera,
+            );
         }
         ArrowConnection::Unique => {
-            draw_dashed_chain(geng, framebuffer, camera, &chain);
+            draw_dashed_chain(
+                geng,
+                framebuffer,
+                camera,
+                &chain,
+                ARROW_WIDTH,
+                edge.edge.color,
+            );
         }
     }
 
     // Line head
-    let head_direction = end - *chain.vertices.last().unwrap();
     let direction_norm = head_direction.normalize_or_zero();
     let normal = direction_norm.rotate_90();
     let head_offset = direction_norm * (head_length + to.vertex.radius);

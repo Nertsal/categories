@@ -6,9 +6,7 @@ use graphs::{EdgeId, GraphObject, VertexId};
 use super::*;
 
 mod action;
-mod chain;
 mod constants;
-mod curve;
 mod draw;
 mod focus;
 mod graph_types;
@@ -18,9 +16,7 @@ mod selection;
 mod update;
 
 use action::*;
-use chain::*;
 use constants::*;
-use curve::*;
 use focus::*;
 use graph_types::*;
 use rules::*;

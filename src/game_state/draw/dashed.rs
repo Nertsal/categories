@@ -1,14 +1,26 @@
+use geng::Draw2d;
+
 use super::*;
 
 pub fn draw_dashed_chain(
     geng: &Geng,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    chain: &Chain,
+    chain: &Chain<f32>,
+    width: f32,
+    color: Color<f32>,
 ) {
     let mut dash_full_left = 0.0;
     for segment in chain.segments() {
-        dash_full_left = draw_dashed_segment(geng, framebuffer, camera, segment, dash_full_left);
+        dash_full_left = draw_dashed_segment(
+            geng,
+            framebuffer,
+            camera,
+            segment,
+            width,
+            color,
+            dash_full_left,
+        );
     }
 }
 
@@ -18,7 +30,9 @@ pub fn draw_dashed_segment(
     geng: &Geng,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    mut segment: Segment,
+    mut segment: Segment<f32>,
+    width: f32,
+    color: Color<f32>,
     dash_full_left: f32,
 ) -> f32 {
     let delta = segment.end - segment.start;
@@ -37,12 +51,8 @@ pub fn draw_dashed_segment(
             // Finish dash
             let dash_length = dash_length.min(dash_full_length);
             let dash_end = segment.start + direction_norm * dash_length;
-            Chain {
-                vertices: vec![segment.start, dash_end],
-                width: segment.width,
-                color: segment.color,
-            }
-            .draw_2d(geng, framebuffer, camera);
+            draw_2d::Chain::new(Chain::new(vec![segment.start, dash_end]), width, color, 1)
+                .draw_2d(geng, framebuffer, camera);
         }
 
         // Finish space
@@ -60,14 +70,15 @@ pub fn draw_dashed_segment(
     let dashes = (delta_len / ARROW_DASH_FULL_LENGTH).floor() as usize;
     for i in 0..dashes {
         let dash_start = segment.start + direction_norm * i as f32 * ARROW_DASH_FULL_LENGTH;
-        Chain {
-            vertices: vec![
+        draw_2d::Chain::new(
+            Chain::new(vec![
                 dash_start,
                 dash_start + direction_norm * ARROW_DASHED_DASH_LENGTH,
-            ],
-            width: segment.width,
-            color: segment.color,
-        }
+            ]),
+            width,
+            color,
+            1,
+        )
         .draw_2d(geng, framebuffer, camera);
     }
 
@@ -75,11 +86,10 @@ pub fn draw_dashed_segment(
     let last_len = (segment.end - last_start).len();
     let dash_len = last_len.min(ARROW_DASHED_DASH_LENGTH);
     let last_end = last_start + direction_norm * dash_len;
-    Chain {
-        vertices: vec![last_start, last_end],
-        width: segment.width,
-        color: segment.color,
-    }
-    .draw_2d(geng, framebuffer, camera);
+    draw_2d::Chain::new(Chain::new(vec![last_start, last_end]), width, color, 1).draw_2d(
+        geng,
+        framebuffer,
+        camera,
+    );
     ARROW_DASH_FULL_LENGTH - last_len
 }

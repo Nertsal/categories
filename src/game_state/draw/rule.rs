@@ -1,3 +1,5 @@
+use geng::Draw2d;
+
 use super::*;
 
 impl GameState {
@@ -7,14 +9,15 @@ impl GameState {
 
         // Separation line
         let line_offset = vec2(self.rules.width + line_width / 2.0, 0.0);
-        Chain {
-            vertices: vec![
+        draw_2d::Chain::new(
+            Chain::new(vec![
                 camera_view.top_right() - line_offset,
                 camera_view.bottom_right() - line_offset,
-            ],
-            width: line_width,
-            color: RULES_SECTION_SEPARATION_COLOR,
-        }
+            ]),
+            line_width,
+            RULES_SECTION_SEPARATION_COLOR,
+            1,
+        )
         .draw_2d(&self.geng, framebuffer, &self.camera);
         self.rules.draw(&self.selection, &self.camera, framebuffer);
     }

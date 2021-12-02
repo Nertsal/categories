@@ -1,10 +1,10 @@
 use super::*;
 
-pub mod chain;
+mod dashed;
 pub mod graph;
 mod rule;
 
-use chain::*;
+use dashed::*;
 use graph::*;
 
 impl GameState {

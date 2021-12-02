@@ -1,3 +1,5 @@
+use geng::Draw2d;
+
 use super::*;
 
 impl Rules {
@@ -60,21 +62,23 @@ impl Rules {
 
         if let Some(rule_aabb) = layout.last() {
             // Separation line
-            Chain {
-                vertices: vec![rule_aabb.bottom_left(), rule_aabb.bottom_right()],
-                width: line_width,
-                color: RULE_SEPARATION_COLOR,
-            }
+            draw_2d::Chain::new(
+                Chain::new(vec![rule_aabb.bottom_left(), rule_aabb.bottom_right()]),
+                line_width,
+                RULE_SEPARATION_COLOR,
+                1,
+            )
             .draw_2d(&self.geng, framebuffer, camera);
         }
 
         for (rule_aabb, rule_texture) in layout.into_iter().zip(self.textures.iter()) {
             // Separation line
-            Chain {
-                vertices: vec![rule_aabb.top_left(), rule_aabb.top_right()],
-                width: line_width,
-                color: RULE_SEPARATION_COLOR,
-            }
+            draw_2d::Chain::new(
+                Chain::new(vec![rule_aabb.top_left(), rule_aabb.top_right()]),
+                line_width,
+                RULE_SEPARATION_COLOR,
+                1,
+            )
             .draw_2d(&self.geng, framebuffer, camera);
 
             // Render texture to the dedicated part on the screen
