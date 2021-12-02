@@ -23,19 +23,36 @@ pub struct RuleBuilder<'a> {
     pub inputs: Vec<RuleObject<&'a str>>,
     pub constraints: Vec<RuleObject<&'a str>>,
     pub infers: Vec<RuleObject<&'a str>>,
-    pub outputs: Vec<RuleObject<&'a str>>,
     pub removes: Vec<RuleObject<&'a str>>,
+    pub outputs: Vec<RuleObject<&'a str>>,
 }
 
 impl<'a> RuleBuilder<'a> {
-    pub fn build(self) -> Rule {
+    pub fn build(self) -> Result<Rule, RuleError> {
         Rule::new(
             self.inputs,
             self.constraints,
             self.infers,
-            self.outputs,
             self.removes,
+            self.outputs,
         )
+    }
+}
+
+#[derive(Debug)]
+pub enum RuleError {
+    EmptyLabel,
+}
+
+impl std::error::Error for RuleError {}
+
+impl std::fmt::Display for RuleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RuleError::EmptyLabel => {
+                write!(f, "All vertices used for connections must have a label!")
+            }
+        }
     }
 }
 
@@ -43,8 +60,8 @@ pub struct Rule {
     inputs: Vec<RuleObject<String>>,
     constraints: Vec<RuleObject<String>>,
     infers: Vec<RuleObject<String>>,
-    outputs: Vec<RuleObject<String>>,
     removes: Vec<RuleObject<String>>,
+    outputs: Vec<RuleObject<String>>,
     graph: Graph,
     graph_input: Vec<GraphObject>,
 }
@@ -54,22 +71,31 @@ impl Rule {
         inputs: Vec<RuleObject<&'a str>>,
         constraints: Vec<RuleObject<&'a str>>,
         infers: Vec<RuleObject<&'a str>>,
-        outputs: Vec<RuleObject<&'a str>>,
         removes: Vec<RuleObject<&'a str>>,
-    ) -> Self {
+        outputs: Vec<RuleObject<&'a str>>,
+    ) -> Result<Self, RuleError> {
         // Create a graph
         let mut graph = Graph::new(ForceParameters::default());
 
-        let mut add_object =
-            |object: &RuleObject<&str>, color: Color<f32>, override_color: bool| match object {
-                RuleObject::Vertex { label } => GraphObject::Vertex {
+        let mut add_object = |object: &RuleObject<&str>,
+                              color: Color<f32>,
+                              override_color: bool|
+         -> Result<GraphObject, RuleError> {
+            match object {
+                RuleObject::Vertex { label } => Ok(GraphObject::Vertex {
                     id: get_vertex_id(&mut graph, label, Ok(Some(color))),
-                },
+                }),
                 RuleObject::Edge { label, constraint } => {
+                    // Check labels
+                    if constraint.from.is_empty() || constraint.to.is_empty() {
+                        return Err(RuleError::EmptyLabel);
+                    }
+
                     let vertex_color = if override_color { Err(color) } else { Ok(None) };
-                    let from = get_vertex_id(&mut graph, &constraint.from, vertex_color);
-                    let to = get_vertex_id(&mut graph, &constraint.to, vertex_color);
-                    GraphObject::Edge {
+                    let from = get_vertex_id(&mut graph, constraint.from, vertex_color);
+                    let to = get_vertex_id(&mut graph, constraint.to, vertex_color);
+
+                    Ok(GraphObject::Edge {
                         id: graph
                             .graph
                             .new_edge(ForceEdge::new(
@@ -80,29 +106,30 @@ impl Rule {
                                 Arrow::new(label, from, to, constraint.connection, color),
                             ))
                             .unwrap(),
-                    }
+                    })
                 }
-            };
+            }
+        };
 
         // Input
-        let graph_input = inputs
-            .iter()
-            .map(|input| add_object(input, RULE_INPUT_COLOR, false))
-            .collect();
+        let mut graph_input = Vec::with_capacity(inputs.len());
+        for input in &inputs {
+            graph_input.push(add_object(input, RULE_INPUT_COLOR, false)?);
+        }
 
         // Constraints
         for constraint in &constraints {
-            add_object(constraint, RULE_INFER_CONTEXT_COLOR, true);
+            add_object(constraint, RULE_INFER_CONTEXT_COLOR, true)?;
         }
 
         // Infer
         for infer in &infers {
-            add_object(infer, RULE_INFER_COLOR, true);
+            add_object(infer, RULE_INFER_COLOR, true)?;
         }
 
         // Output
         for output in &outputs {
-            add_object(output, RULE_OUTPUT_COLOR, true);
+            add_object(output, RULE_OUTPUT_COLOR, true)?;
         }
 
         // Removes
@@ -127,7 +154,7 @@ impl Rule {
                 .collect()
         }
 
-        Self {
+        Ok(Self {
             inputs: convert(inputs),
             constraints: convert(constraints),
             infers: convert(infers),
@@ -135,7 +162,7 @@ impl Rule {
             removes: convert(removes),
             graph,
             graph_input,
-        }
+        })
     }
 
     pub fn inputs(&self) -> &Vec<RuleObject<String>> {

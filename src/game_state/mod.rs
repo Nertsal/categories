@@ -61,7 +61,8 @@ impl GameState {
                         removes: vec![],
                         outputs: vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
                     }
-                    .build(),
+                    .build()
+                    .unwrap(),
                     // Composition
                     RuleBuilder {
                         inputs: vec![
@@ -73,7 +74,8 @@ impl GameState {
                         removes: vec![],
                         outputs: vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
                     }
-                    .build(),
+                    .build()
+                    .unwrap(),
                     // Product
                     RuleBuilder {
                         inputs: vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
@@ -85,7 +87,8 @@ impl GameState {
                             RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
                         ],
                     }
-                    .build(),
+                    .build()
+                    .unwrap(),
                     // Universal property of product
                     RuleBuilder {
                         inputs: vec![
@@ -100,7 +103,8 @@ impl GameState {
                         removes: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Regular)], // Uniqueness of morphism to the product
                         outputs: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
                     }
-                    .build(),
+                    .build()
+                    .unwrap(),
                     // Isomorphism
                     RuleBuilder {
                         inputs: vec![
@@ -118,7 +122,8 @@ impl GameState {
                         ],
                         outputs: vec![RuleObject::edge("", "1", "2", ArrowConnection::Isomorphism)],
                     }
-                    .build(),
+                    .build()
+                    .unwrap(),
                 ],
             ),
             main_graph: {
