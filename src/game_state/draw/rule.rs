@@ -11,8 +11,8 @@ impl GameState {
         let line_offset = vec2(self.rules.width + line_width / 2.0, 0.0);
         draw_2d::Chain::new(
             Chain::new(vec![
-                camera_view.top_right() - line_offset,
-                camera_view.bottom_right() - line_offset,
+                camera_view.top_left() + line_offset,
+                camera_view.bottom_left() + line_offset,
             ]),
             line_width,
             RULES_SECTION_SEPARATION_COLOR,

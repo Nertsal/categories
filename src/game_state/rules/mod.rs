@@ -123,8 +123,8 @@ fn layout(
     let camera_view = camera_view(camera, framebuffer_size);
 
     let rule_height = width / RULE_RESOLUTION.x as f32 * RULE_RESOLUTION.y as f32;
-    let rule_aabb_base = AABB::point(camera_view.top_right() + offset)
-        .extend_left(width)
+    let rule_aabb_base = AABB::point(camera_view.top_left() + offset)
+        .extend_right(width)
         .extend_down(rule_height);
 
     (0..rules).map(move |rule_index| {
