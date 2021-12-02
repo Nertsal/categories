@@ -103,11 +103,11 @@ impl GameState {
                     .build(),
                     // Isomorphism
                     RuleBuilder {
-                        inputs: vec![RuleObject::vertex("1"), RuleObject::vertex("2")],
-                        constraints: vec![
+                        inputs: vec![
                             RuleObject::edge("f", "1", "2", ArrowConnection::Regular),
                             RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
                         ],
+                        constraints: vec![],
                         infers: vec![
                             RuleObject::edge("id", "1", "1", ArrowConnection::Regular),
                             RuleObject::edge("id", "2", "2", ArrowConnection::Regular),
