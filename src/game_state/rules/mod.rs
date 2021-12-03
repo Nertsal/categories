@@ -1,15 +1,19 @@
 use super::*;
 
-mod constraint;
+mod object;
+mod construction;
 mod process;
 mod render;
 mod rule;
 mod selection;
+mod tag;
 
-pub use constraint::*;
+pub use object::*;
+use construction::*;
 use process::*;
 pub use rule::*;
 pub use selection::*;
+pub use tag::*;
 
 struct RuleTexture {
     pub inner: ugli::Texture2d<Color<f32>>,

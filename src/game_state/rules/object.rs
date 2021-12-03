@@ -1,24 +1,18 @@
 use super::*;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum RuleObject<T> {
-    Vertex {
-        label: T,
-    },
-    Edge {
-        label: T,
-        constraint: ArrowConstraint<T>,
-    },
+#[derive(Debug, Clone, PartialEq)]
+pub enum RuleObject<T = Label> {
+    Vertex,
+    Edge { constraint: ArrowConstraint<T> },
 }
 
 impl<T> RuleObject<T> {
-    pub fn vertex(label: T) -> Self {
-        Self::Vertex { label }
+    pub fn vertex() -> Self {
+        Self::Vertex
     }
 
-    pub fn edge(label: T, from: T, to: T, connection: ArrowConnection) -> Self {
+    pub fn edge(from: T, to: T, connection: ArrowConnection) -> Self {
         Self::Edge {
-            label,
             constraint: ArrowConstraint::new(from, to, connection),
         }
     }

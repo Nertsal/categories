@@ -53,77 +53,79 @@ impl GameState {
                 geng,
                 assets,
                 vec![
-                    // Identity
-                    RuleBuilder {
-                        inputs: vec![RuleObject::vertex("1")],
-                        constraints: vec![],
-                        infers: vec![],
-                        removes: vec![],
-                        outputs: vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
-                    }
-                    .build()
-                    .unwrap(),
-                    // Composition
-                    RuleBuilder {
-                        inputs: vec![
-                            RuleObject::edge("f", "0", "1", ArrowConnection::Regular),
-                            RuleObject::edge("g", "1", "2", ArrowConnection::Regular),
-                        ],
-                        constraints: vec![],
-                        infers: vec![],
-                        removes: vec![],
-                        outputs: vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
-                    }
-                    .build()
-                    .unwrap(),
-                    // Product
-                    RuleBuilder {
-                        inputs: vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
-                        constraints: vec![],
-                        infers: vec![],
-                        removes: vec![],
-                        outputs: vec![
-                            RuleObject::edge("p1", "2x3", "2", ArrowConnection::Best),
-                            RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
-                        ],
-                    }
-                    .build()
-                    .unwrap(),
-                    // Universal property of product
-                    RuleBuilder {
-                        inputs: vec![
-                            RuleObject::edge("", "1", "2", ArrowConnection::Regular),
-                            RuleObject::edge("", "1", "3", ArrowConnection::Regular),
-                        ],
-                        constraints: vec![],
-                        infers: vec![
-                            RuleObject::edge("", "2x3", "2", ArrowConnection::Best),
-                            RuleObject::edge("", "2x3", "3", ArrowConnection::Best),
-                        ],
-                        removes: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Regular)], // Uniqueness of morphism to the product
-                        outputs: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
-                    }
-                    .build()
-                    .unwrap(),
-                    // Isomorphism
-                    RuleBuilder {
-                        inputs: vec![
-                            RuleObject::edge("f", "1", "2", ArrowConnection::Regular),
-                            RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
-                        ],
-                        constraints: vec![],
-                        infers: vec![
-                            RuleObject::edge("id", "1", "1", ArrowConnection::Regular),
-                            RuleObject::edge("id", "2", "2", ArrowConnection::Regular),
-                        ],
-                        removes: vec![
-                            RuleObject::edge("f", "1", "2", ArrowConnection::Regular), // TODO: Check labels for edges with non-empty names
-                            RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
-                        ],
-                        outputs: vec![RuleObject::edge("", "1", "2", ArrowConnection::Isomorphism)],
-                    }
-                    .build()
-                    .unwrap(),
+                    // Identity: forall (object A) exists (morphism id Identity)
+                    RuleBuilder::new().forall().exists().build(),
+                    // // Identity
+                    // RuleBuilder {
+                    //     inputs: vec![RuleObject::vertex("1")],
+                    //     constraints: vec![],
+                    //     infers: vec![],
+                    //     removes: vec![],
+                    //     outputs: vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
+                    // }
+                    // .build()
+                    // .unwrap(),
+                    // // Composition
+                    // RuleBuilder {
+                    //     inputs: vec![
+                    //         RuleObject::edge("f", "0", "1", ArrowConnection::Regular),
+                    //         RuleObject::edge("g", "1", "2", ArrowConnection::Regular),
+                    //     ],
+                    //     constraints: vec![],
+                    //     infers: vec![],
+                    //     removes: vec![],
+                    //     outputs: vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
+                    // }
+                    // .build()
+                    // .unwrap(),
+                    // // Product
+                    // RuleBuilder {
+                    //     inputs: vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
+                    //     constraints: vec![],
+                    //     infers: vec![],
+                    //     removes: vec![],
+                    //     outputs: vec![
+                    //         RuleObject::edge("p1", "2x3", "2", ArrowConnection::Best),
+                    //         RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
+                    //     ],
+                    // }
+                    // .build()
+                    // .unwrap(),
+                    // // Universal property of product
+                    // RuleBuilder {
+                    //     inputs: vec![
+                    //         RuleObject::edge("", "1", "2", ArrowConnection::Regular),
+                    //         RuleObject::edge("", "1", "3", ArrowConnection::Regular),
+                    //     ],
+                    //     constraints: vec![],
+                    //     infers: vec![
+                    //         RuleObject::edge("", "2x3", "2", ArrowConnection::Best),
+                    //         RuleObject::edge("", "2x3", "3", ArrowConnection::Best),
+                    //     ],
+                    //     removes: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Regular)], // Uniqueness of morphism to the product
+                    //     outputs: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
+                    // }
+                    // .build()
+                    // .unwrap(),
+                    // // Isomorphism
+                    // RuleBuilder {
+                    //     inputs: vec![
+                    //         RuleObject::edge("f", "1", "2", ArrowConnection::Regular),
+                    //         RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
+                    //     ],
+                    //     constraints: vec![],
+                    //     infers: vec![
+                    //         RuleObject::edge("id", "1", "1", ArrowConnection::Regular),
+                    //         RuleObject::edge("id", "2", "2", ArrowConnection::Regular),
+                    //     ],
+                    //     removes: vec![
+                    //         RuleObject::edge("f", "1", "2", ArrowConnection::Regular), // TODO: Check labels for edges with non-empty names
+                    //         RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
+                    //     ],
+                    //     outputs: vec![RuleObject::edge("", "1", "2", ArrowConnection::Isomorphism)],
+                    // }
+                    // .build()
+                    // .unwrap(),
                 ],
             ),
             main_graph: {
