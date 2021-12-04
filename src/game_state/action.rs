@@ -4,8 +4,9 @@ use super::*;
 pub enum GraphActionDo {
     ApplyRule {
         input_vertices: Vec<VertexId>,
+        input_edges: Vec<EdgeId>,
         new_vertices: usize,
-        new_edges: Vec<ArrowConstraint<usize>>,
+        new_edges: Vec<ArrowConstraint<usize, usize>>,
         remove_vertices: Vec<VertexId>,
         remove_edges: Vec<EdgeId>,
     },
@@ -25,6 +26,7 @@ impl GameState {
         let action_undo = match action_do {
             GraphActionDo::ApplyRule {
                 mut input_vertices,
+                mut input_edges,
                 new_vertices,
                 new_edges,
                 remove_vertices,
@@ -89,7 +91,18 @@ impl GameState {
                                 to_pos,
                                 ARROW_BODIES,
                                 ARROW_MASS,
-                                Arrow::new("", from, to, edge.connection, edge.connection.color()),
+                                Arrow::new(
+                                    "",
+                                    from,
+                                    to,
+                                    edge.tags
+                                        .into_iter()
+                                        .map(|tag| {
+                                            tag.map(|o| input_vertices[o], |m| input_edges[m])
+                                        })
+                                        .collect(),
+                                    ARROW_REGULAR_COLOR,
+                                ),
                             ))
                             .unwrap()
                     })

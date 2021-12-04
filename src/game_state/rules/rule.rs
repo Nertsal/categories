@@ -30,32 +30,30 @@ impl RuleBuilder {
         Self { statement: vec![] }
     }
 
-    pub fn forall(mut self) -> Self {
-        self.statement.push(RuleConstruction::Forall());
+    pub fn forall(mut self, constraints: Constraints) -> Self {
+        self.statement.push(RuleConstruction::Forall(constraints));
         self
     }
 
-    pub fn exists(mut self) -> Self {
-        self.statement.push(RuleConstruction::Exists());
+    pub fn exists(mut self, constraints: Constraints) -> Self {
+        self.statement.push(RuleConstruction::Exists(constraints));
         self
     }
 
-    pub fn such_that_forall(mut self) -> Self {
+    pub fn such_that_forall(mut self, constraints: Constraints) -> Self {
         self.statement.push(RuleConstruction::SuchThat);
-        self.statement.push(RuleConstruction::Forall());
+        self.statement.push(RuleConstruction::Forall(constraints));
         self
     }
 
-    pub fn such_that_exists(mut self) -> Self {
+    pub fn such_that_exists(mut self, constraints: Constraints) -> Self {
         self.statement.push(RuleConstruction::SuchThat);
-        self.statement.push(RuleConstruction::Exists());
+        self.statement.push(RuleConstruction::Exists(constraints));
         self
     }
 
     pub fn build(self) -> Rule {
-        Rule {
-            statement: self.statement,
-        }
+        Rule::new(self.statement)
     }
 }
 
@@ -96,19 +94,110 @@ impl Bindings {
 
 pub struct Rule {
     statement: RuleStatement,
+    graph: Graph,
 }
 
 impl Rule {
     fn new(statement: RuleStatement) -> Self {
-        Self { statement }
+        let mut graph = Graph::new(default());
+
+        let mut objects = HashMap::new();
+        let mut morphisms = HashMap::new();
+
+        fn get_object_or_new(
+            graph: &mut Graph,
+            objects: &mut HashMap<Label, VertexId>,
+            label: &str,
+        ) -> VertexId {
+            *objects.entry(label.to_owned()).or_insert_with(|| {
+                graph.graph.new_vertex(ForceVertex {
+                    is_anchor: false,
+                    body: ForceBody::new(random_shift(), POINT_MASS),
+                    vertex: Point {
+                        label: label.to_owned(),
+                        radius: POINT_RADIUS,
+                        color: Color::WHITE,
+                    },
+                })
+            })
+        }
+
+        let mut add_constraints = |constraints: &Constraints| {
+            for constraint in constraints {
+                match constraint {
+                    Constraint::RuleObject(label, object) => {
+                        match object {
+                            RuleObject::Vertex => {
+                                get_object_or_new(&mut graph, &mut objects, label);
+                            }
+                            RuleObject::Edge { constraint } => {
+                                if !morphisms.contains_key(label) {
+                                    let from = get_object_or_new(
+                                        &mut graph,
+                                        &mut objects,
+                                        &constraint.from,
+                                    );
+                                    let to =
+                                        get_object_or_new(&mut graph, &mut objects, &constraint.to);
+
+                                    let tags: Vec<_> = constraint
+                                    .tags
+                                    .iter()
+                                    .map(|tag| tag.map_borrowed(
+                                        |object| *objects.get(object).expect("Objects in tags must be created explicitly"), 
+                                        |morphism| *morphisms.get(morphism).expect("Morphisms in tags must be created explicitly"), ))
+                                    .collect();
+
+                                    let new_morphism = graph
+                                        .graph
+                                        .new_edge(ForceEdge::new(
+                                            random_shift(),
+                                            random_shift(),
+                                            ARROW_BODIES,
+                                            ARROW_MASS,
+                                            Arrow::new(label, from, to, tags, Color::WHITE),
+                                        ))
+                                        .unwrap();
+                                    morphisms.insert(label.to_owned(), new_morphism);
+                                }
+                            }
+                        }
+                    }
+                    Constraint::MorphismEq(_, _) => unimplemented!(),
+                }
+            }
+        };
+
+        for construction in &statement {
+            match construction {
+                RuleConstruction::Forall(constraints) => add_constraints(constraints),
+                RuleConstruction::Exists(constraints) => add_constraints(constraints),
+                RuleConstruction::SuchThat => continue,
+            }
+        }
+
+        Self { statement, graph }
     }
 
-    fn apply<'a>(
-        mut statement: impl Iterator<Item = &'a RuleConstruction>,
+    pub fn graph(&self) -> &Graph {
+        &self.graph
+    }
+
+    pub fn graph_mut(&mut self) -> &mut Graph {
+        &mut self.graph
+    }
+
+    pub fn update_graph(&mut self, delta_time: f32) {
+        self.graph.update(delta_time);
+    }
+
+    fn apply(
+        statement: &[RuleConstruction],
         bindings: Bindings,
         graph: &Graph,
     ) -> Vec<GraphActionDo> {
-        if let Some(construction) = statement.next() {
+        if let Some(construction) = statement.first() {
+            let statement = &statement[1..];
             match construction {
                 RuleConstruction::SuchThat => Self::apply(statement, bindings, graph),
                 RuleConstruction::Forall(constraints) => {
@@ -125,7 +214,7 @@ impl Rule {
                 }
                 RuleConstruction::Exists(constraints) => {
                     match find_candidates(constraints, &bindings, graph)
-                        .map(|binds| binds.next())
+                        .map(|mut binds| binds.next())
                         .flatten()
                     {
                         Some(mut binds) => {
@@ -206,7 +295,7 @@ fn constraint_object<'a>(
 
 fn constraint_morphism<'a>(
     label: &'a Label,
-    constraint: &'a ArrowConstraint<String>,
+    constraint: &'a ArrowConstraint,
     bindings: &'a Bindings,
     graph: &'a Graph,
 ) -> impl Iterator<Item = Bindings> + 'a {
@@ -251,6 +340,19 @@ fn apply_constraints(
     graph: &Graph,
 ) -> Vec<GraphActionDo> {
     let input_vertices: Vec<_> = bindings.objects.values().copied().collect();
+    let input_edges: Vec<_> = bindings.morphisms.values().copied().collect();
+
+    let find_object = |label| -> Option<usize> {
+        bindings
+            .get_object(label)
+            .and_then(|id| input_vertices.iter().position(|&object| object == id))
+    };
+
+    let find_morphism = |label| -> Option<usize> {
+        bindings
+            .get_object(label)
+            .and_then(|id| input_vertices.iter().position(|&object| object == id))
+    };
 
     let mut new_vertices = 0;
     let mut new_edges = Vec::new();
@@ -260,17 +362,41 @@ fn apply_constraints(
             Constraint::RuleObject(label, object) => match object {
                 RuleObject::Vertex => new_vertices += 1,
                 RuleObject::Edge { constraint } => {
-                    let from = bindings.get_object(&constraint.from).unwrap();
-                    let from = input_vertices
-                        .iter()
-                        .position(|&vertex| vertex == from)
-                        .unwrap();
-                    let to = bindings.get_object(&constraint.to).unwrap();
-                    let to = input_vertices
-                        .iter()
-                        .position(|&vertex| vertex == to)
-                        .unwrap();
-                    new_edges.push(ArrowConstraint::new(from, to, constraint.connection));
+                    let from = find_object(&constraint.from).unwrap();
+                    let to = find_object(&constraint.to).unwrap();
+                    let new_edge = ArrowConstraint::new(
+                        from,
+                        to,
+                        constraint
+                            .tags
+                            .iter()
+                            .map(|tag| {
+                                tag.map_borrowed(
+                                    |label| {
+                                        bindings
+                                            .get_object(label)
+                                            .and_then(|id| {
+                                                input_vertices
+                                                    .iter()
+                                                    .position(|&object| object == id)
+                                            })
+                                            .unwrap()
+                                    },
+                                    |label| {
+                                        bindings
+                                            .get_object(label)
+                                            .and_then(|id| {
+                                                input_vertices
+                                                    .iter()
+                                                    .position(|&object| object == id)
+                                            })
+                                            .unwrap()
+                                    },
+                                )
+                            })
+                            .collect(),
+                    );
+                    new_edges.push(new_edge);
                 }
             },
             Constraint::MorphismEq(_, _) => todo!(),
@@ -279,268 +405,10 @@ fn apply_constraints(
 
     vec![GraphActionDo::ApplyRule {
         input_vertices,
+        input_edges,
         new_vertices,
         new_edges,
         remove_vertices: vec![],
         remove_edges: vec![],
     }]
 }
-
-// pub struct RuleBuilder<'a> {
-//     pub inputs: Vec<RuleObject<&'a str>>,
-//     pub constraints: Vec<RuleObject<&'a str>>,
-//     pub infers: Vec<RuleObject<&'a str>>,
-//     pub removes: Vec<RuleObject<&'a str>>,
-//     pub outputs: Vec<RuleObject<&'a str>>,
-// }
-
-// impl<'a> RuleBuilder<'a> {
-//     pub fn build(self) -> Result<Rule, RuleError> {
-//         Rule::new(
-//             self.inputs,
-//             self.constraints,
-//             self.infers,
-//             self.removes,
-//             self.outputs,
-//         )
-//     }
-// }
-
-// #[derive(Debug)]
-// pub enum RuleError {
-//     EmptyLabel,
-// }
-
-// impl std::error::Error for RuleError {}
-
-// impl std::fmt::Display for RuleError {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         match self {
-//             RuleError::EmptyLabel => {
-//                 write!(f, "All vertices used for connections must have a label!")
-//             }
-//         }
-//     }
-// }
-
-// pub struct Rule {
-//     inputs: Vec<RuleObject<String>>,
-//     constraints: Vec<RuleObject<String>>,
-//     infers: Vec<RuleObject<String>>,
-//     removes: Vec<RuleObject<String>>,
-//     outputs: Vec<RuleObject<String>>,
-//     graph: Graph,
-//     graph_input: Vec<GraphObject>,
-// }
-
-// impl Rule {
-//     fn new<'a>(
-//         inputs: Vec<RuleObject<&'a str>>,
-//         constraints: Vec<RuleObject<&'a str>>,
-//         infers: Vec<RuleObject<&'a str>>,
-//         removes: Vec<RuleObject<&'a str>>,
-//         outputs: Vec<RuleObject<&'a str>>,
-//     ) -> Result<Self, RuleError> {
-//         // Create a graph
-//         let mut graph = Graph::new(ForceParameters::default());
-
-//         let mut add_object = |object: &RuleObject<&str>,
-//                               color: Color<f32>,
-//                               override_color: bool|
-//          -> Result<GraphObject, RuleError> {
-//             match object {
-//                 RuleObject::Vertex { label } => Ok(GraphObject::Vertex {
-//                     id: get_vertex_id(&mut graph, label, Ok(Some(color))),
-//                 }),
-//                 RuleObject::Edge { label, constraint } => {
-//                     // Check labels
-//                     if constraint.from.is_empty() || constraint.to.is_empty() {
-//                         return Err(RuleError::EmptyLabel);
-//                     }
-
-//                     let vertex_color = if override_color { Err(color) } else { Ok(None) };
-//                     let from = get_vertex_id(&mut graph, constraint.from, vertex_color);
-//                     let to = get_vertex_id(&mut graph, constraint.to, vertex_color);
-
-//                     Ok(GraphObject::Edge {
-//                         id: graph
-//                             .graph
-//                             .new_edge(ForceEdge::new(
-//                                 random_shift(),
-//                                 random_shift(),
-//                                 ARROW_BODIES,
-//                                 ARROW_MASS,
-//                                 Arrow::new(label, from, to, constraint.connection, color),
-//                             ))
-//                             .unwrap(),
-//                     })
-//                 }
-//             }
-//         };
-
-//         // Input
-//         let mut graph_input = Vec::with_capacity(inputs.len());
-//         for input in &inputs {
-//             graph_input.push(add_object(input, RULE_INPUT_COLOR, false)?);
-//         }
-
-//         // Constraints
-//         for constraint in &constraints {
-//             add_object(constraint, RULE_INFER_CONTEXT_COLOR, true)?;
-//         }
-
-//         // Infer
-//         for infer in &infers {
-//             add_object(infer, RULE_INFER_COLOR, true)?;
-//         }
-
-//         // Output
-//         for output in &outputs {
-//             add_object(output, RULE_OUTPUT_COLOR, true)?;
-//         }
-
-//         // Removes
-//         // TODO: Check validity
-
-//         fn convert(objects: Vec<RuleObject<&str>>) -> Vec<RuleObject<String>> {
-//             objects
-//                 .into_iter()
-//                 .map(|object| match object {
-//                     RuleObject::Vertex { label } => RuleObject::Vertex {
-//                         label: label.to_owned(),
-//                     },
-//                     RuleObject::Edge { label, constraint } => RuleObject::Edge {
-//                         label: label.to_owned(),
-//                         constraint: ArrowConstraint::new(
-//                             constraint.from.to_owned(),
-//                             constraint.to.to_owned(),
-//                             constraint.connection,
-//                         ),
-//                     },
-//                 })
-//                 .collect()
-//         }
-
-//         Ok(Self {
-//             inputs: convert(inputs),
-//             constraints: convert(constraints),
-//             infers: convert(infers),
-//             outputs: convert(outputs),
-//             removes: convert(removes),
-//             graph,
-//             graph_input,
-//         })
-//     }
-
-//     pub fn inputs(&self) -> &Vec<RuleObject<String>> {
-//         &self.inputs
-//     }
-
-//     pub fn constraints(&self) -> &Vec<RuleObject<String>> {
-//         &self.constraints
-//     }
-
-//     pub fn get_input(&self) -> &Vec<GraphObject> {
-//         &self.graph_input
-//     }
-
-//     fn get_vertex_by_label(graph: &Graph, label: &str) -> Option<VertexId> {
-//         graph
-//             .graph
-//             .vertices
-//             .iter()
-//             .find(|(_, vertex)| vertex.vertex.label.eq(label))
-//             .map(|(&id, _)| id)
-//     }
-
-//     pub fn graph(&self) -> &Graph {
-//         &self.graph
-//     }
-
-//     pub fn graph_mut(&mut self) -> &mut Graph {
-//         &mut self.graph
-//     }
-
-//     pub fn update_graph(&mut self, delta_time: f32) {
-//         self.graph.update(delta_time);
-//     }
-
-//     /// Checks that input meets the rule's constraints.
-//     fn check_input(&self, graph: &Graph, selection: &Vec<GraphObject>) -> bool {
-//         // Check length
-//         if selection.len() != self.inputs.len() {
-//             return false;
-//         }
-
-//         // Check contents
-//         let mut vertices = HashMap::new();
-//         for object in self.inputs.iter().zip(selection.iter()) {
-//             let fit = match object {
-//                 (RuleObject::Vertex { label }, &GraphObject::Vertex { id }) => vertices
-//                     .insert(label, id)
-//                     .map(|old_id| old_id == id)
-//                     .unwrap_or(true),
-//                 (RuleObject::Edge { constraint, .. }, GraphObject::Edge { id }) => graph
-//                     .graph
-//                     .edges
-//                     .get(id)
-//                     .map(|edge| {
-//                         edge.edge.check_constraint(&ArrowConstraint {
-//                             from: *vertices.entry(&constraint.from).or_insert(edge.edge.from),
-//                             to: *vertices.entry(&constraint.to).or_insert(edge.edge.to),
-//                             connection: constraint.connection,
-//                         })
-//                     })
-//                     .unwrap_or_default(),
-//                 _ => false,
-//             };
-//             if !fit {
-//                 return false;
-//             }
-//         }
-
-//         true
-//     }
-
-//     /// Applies the rule
-//     fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> Result<GraphActionDo, ()> {
-//         let process = RuleProcess::input(graph, self.inputs.iter(), selection.iter());
-//         let constraints = process.constraint(graph, &self.constraints)?;
-//         process
-//             .infer(graph, constraints, &self.infers)
-//             .remove(self.removes.iter())
-//             .output(self.outputs.iter())
-//             .action(graph)
-//     }
-// }
-
-// /// Color:
-// ///  - Ok(None)        -> Do nothing or use default color (inferred from context)
-// ///  - Ok(Some(color)) -> Override existing color
-// ///  - Err(color)      -> Create new with the given color
-// fn get_vertex_id(
-//     graph: &mut Graph,
-//     label: &str,
-//     color: Result<Option<Color<f32>>, Color<f32>>,
-// ) -> VertexId {
-//     match Rule::get_vertex_by_label(graph, label) {
-//         Some(id) => {
-//             if let Ok(Some(color)) = color {
-//                 graph.graph.vertices.get_mut(&id).unwrap().vertex.color = color;
-//             }
-//             id
-//         }
-//         None => graph.graph.new_vertex(ForceVertex {
-//             is_anchor: false,
-//             body: ForceBody::new(random_shift(), POINT_MASS),
-//             vertex: Point {
-//                 label: label.to_owned(),
-//                 radius: POINT_RADIUS,
-//                 color: match color {
-//                     Ok(color) => color.unwrap_or(RULE_INFER_CONTEXT_COLOR),
-//                     Err(color) => color,
-//                 },
-//             },
-//         }),
-//     }
-// }

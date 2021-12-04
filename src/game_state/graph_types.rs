@@ -1,8 +1,8 @@
 use super::*;
 
-pub type Graph = force_graph::ForceGraph<Point, Arrow<VertexId>>;
+pub type Graph = force_graph::ForceGraph<Point, Arrow<VertexId, EdgeId>>;
 pub type Vertex = ForceVertex<Point>;
-pub type Edge = ForceEdge<Arrow<VertexId>>;
+pub type Edge = ForceEdge<Arrow<VertexId, EdgeId>>;
 
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -12,70 +12,41 @@ pub struct Point {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Arrow<T> {
-    pub label: String,
-    pub from: T,
-    pub to: T,
-    pub connection: ArrowConnection,
+pub struct Arrow<O, M> {
+    pub label: Label,
+    pub from: O,
+    pub to: O,
+    pub tags: Vec<MorphismTag<O, M>>,
     pub color: Color<f32>,
 }
 
-impl<T> Arrow<T> {
+impl<O, M> Arrow<O, M> {
     pub fn new(
         label: &str,
-        from: T,
-        to: T,
-        connection: ArrowConnection,
+        from: O,
+        to: O,
+        tags: Vec<MorphismTag<O, M>>,
         color: Color<f32>,
     ) -> Self {
         Self {
             label: label.to_owned(),
             from,
             to,
-            connection,
+            tags,
             color,
         }
     }
 }
 
-impl graphs::GraphEdge for Arrow<VertexId> {
+impl graphs::GraphEdge for Arrow<VertexId, EdgeId> {
     fn end_points(&self) -> [&graphs::VertexId; 2] {
         [&self.from, &self.to]
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ArrowConnection {
-    Best,
-    Regular,
-    Unique,
-    Isomorphism,
-}
-
-impl ArrowConnection {
-    pub fn color(&self) -> Color<f32> {
-        match self {
-            ArrowConnection::Best => ARROW_BEST_COLOR,
-            ArrowConnection::Regular => ARROW_REGULAR_COLOR,
-            ArrowConnection::Unique => ARROW_UNIQUE_COLOR,
-            ArrowConnection::Isomorphism => ARROW_ISOMORPHISM_COLOR,
-        }
-    }
-}
-
-impl<T: PartialEq> Arrow<T> {
-    pub fn check_constraint(&self, constraint: &ArrowConstraint<T>) -> bool {
-        self.from == constraint.from
-            && self.to == constraint.to
-            && self.connection.check_constraint(&constraint.connection)
-    }
-}
-
-impl ArrowConnection {
-    pub fn check_constraint(&self, constraint: &Self) -> bool {
-        match (constraint, self) {
-            (ArrowConnection::Regular, _) => true,
-            (constraint, connection) => connection == constraint,
-        }
+impl<O: PartialEq, M: PartialEq> Arrow<O, M> {
+    pub fn check_constraint(&self, constraint: &ArrowConstraint<O, M>) -> bool {
+        self.from == constraint.from && self.to == constraint.to
+        // && self.connection.check_constraint(&constraint.connection)
     }
 }

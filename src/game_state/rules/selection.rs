@@ -11,13 +11,14 @@ pub struct RuleSelection {
 impl RuleSelection {
     pub fn new(graph: &Graph, rule_index: usize, rules: &Rules) -> Self {
         let mut selection = RuleSelection {
-            rule_input: rules
-                .get_rule(rule_index)
-                .unwrap()
-                .get_input()
-                .iter()
-                .copied()
-                .collect(),
+            rule_input: vec![],
+            // rule_input: rules
+            //     .get_rule(rule_index)
+            //     .unwrap()
+            //     .get_input()
+            //     .iter()
+            //     .copied()
+            //     .collect(),
             selection: Vec::new(),
             inferred_options: None,
             current_selection: 0,
@@ -63,58 +64,58 @@ impl RuleSelection {
 
     /// Infer possible selections for the current rule selection
     pub fn infer_current(&mut self, graph: &Graph, rules: &Rules) {
-        let rule = rules.get_rule(self.rule()).unwrap();
-        let selected = self.selection.len();
+        // let rule = rules.get_rule(self.rule()).unwrap();
+        // let selected = self.selection.len();
 
-        let process = RuleProcess::input(
-            graph,
-            rule.inputs().iter().take(selected),
-            self.selection.iter(),
-        );
+        // let process = RuleProcess::input(
+        //     graph,
+        //     rule.inputs().iter().take(selected),
+        //     self.selection.iter(),
+        // );
 
-        let constraints = match process.constraint(graph, rule.constraints()) {
-            Ok(constraints) => constraints,
-            Err(_) => {
-                self.inferred_options = None;
-                return;
-            }
-        };
+        // let constraints = match process.constraint(graph, rule.constraints()) {
+        //     Ok(constraints) => constraints,
+        //     Err(_) => {
+        //         self.inferred_options = None;
+        //         return;
+        //     }
+        // };
 
-        let candidates =
-            process.infer_candidates(graph, constraints, &rule.inputs()[selected..], 2);
+        // let candidates =
+        //     process.infer_candidates(graph, constraints, &rule.inputs()[selected..], 2);
 
-        let next = match rule.inputs().get(selected) {
-            Some(next) => next,
-            None => {
-                self.inferred_options = None;
-                return;
-            }
-        };
+        // let next = match rule.inputs().get(selected) {
+        //     Some(next) => next,
+        //     None => {
+        //         self.inferred_options = None;
+        //         return;
+        //     }
+        // };
 
-        match next {
-            RuleObject::Vertex { label } => {
-                self.inferred_options = candidates.get(label).map(|(vertices, _)| {
-                    vertices
-                        .iter()
-                        .map(|&id| GraphObject::Vertex { id })
-                        .collect()
-                });
-            }
-            RuleObject::Edge { constraint, .. } => {
-                self.inferred_options = candidates.get(&constraint.from).and_then(|(from, _)| {
-                    candidates.get(&constraint.to).map(|(to, _)| {
-                        graph
-                            .graph
-                            .edges
-                            .iter()
-                            .filter(|(_, edge)| {
-                                from.contains(&edge.edge.from) && to.contains(&edge.edge.to)
-                            })
-                            .map(|(&id, _)| GraphObject::Edge { id })
-                            .collect()
-                    })
-                });
-            }
-        }
+        // match next {
+        //     RuleObject::Vertex { label } => {
+        //         self.inferred_options = candidates.get(label).map(|(vertices, _)| {
+        //             vertices
+        //                 .iter()
+        //                 .map(|&id| GraphObject::Vertex { id })
+        //                 .collect()
+        //         });
+        //     }
+        //     RuleObject::Edge { constraint, .. } => {
+        //         self.inferred_options = candidates.get(&constraint.from).and_then(|(from, _)| {
+        //             candidates.get(&constraint.to).map(|(to, _)| {
+        //                 graph
+        //                     .graph
+        //                     .edges
+        //                     .iter()
+        //                     .filter(|(_, edge)| {
+        //                         from.contains(&edge.edge.from) && to.contains(&edge.edge.to)
+        //                     })
+        //                     .map(|(&id, _)| GraphObject::Edge { id })
+        //                     .collect()
+        //             })
+        //         });
+        //     }
+        // }
     }
 }

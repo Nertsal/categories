@@ -1,36 +1,32 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum RuleObject<T = Label> {
+pub enum RuleObject<O = Label, M = Label> {
     Vertex,
-    Edge { constraint: ArrowConstraint<T> },
+    Edge { constraint: ArrowConstraint<O, M> },
 }
 
-impl<T> RuleObject<T> {
+impl<O, M> RuleObject<O, M> {
     pub fn vertex() -> Self {
         Self::Vertex
     }
 
-    pub fn edge(from: T, to: T, connection: ArrowConnection) -> Self {
+    pub fn edge(from: O, to: O, tags: Vec<MorphismTag<O, M>>) -> Self {
         Self::Edge {
-            constraint: ArrowConstraint::new(from, to, connection),
+            constraint: ArrowConstraint::new(from, to, tags),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ArrowConstraint<T> {
-    pub from: T,
-    pub to: T,
-    pub connection: ArrowConnection,
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ArrowConstraint<V = Label, E = Label> {
+    pub from: V,
+    pub to: V,
+    pub tags: Vec<MorphismTag<V, E>>,
 }
 
-impl<T> ArrowConstraint<T> {
-    pub fn new(from: T, to: T, connection: ArrowConnection) -> Self {
-        Self {
-            from,
-            to,
-            connection,
-        }
+impl<V, E> ArrowConstraint<V, E> {
+    pub fn new(from: V, to: V, tags: Vec<MorphismTag<V, E>>) -> Self {
+        Self { from, to, tags }
     }
 }

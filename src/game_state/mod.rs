@@ -54,7 +54,14 @@ impl GameState {
                 assets,
                 vec![
                     // Identity: forall (object A) exists (morphism id Identity)
-                    RuleBuilder::new().forall().exists().build(),
+                    RuleBuilder::new()
+                        .forall(ConstraintsBuilder::new().object("A").build())
+                        .exists(
+                            ConstraintsBuilder::new()
+                                .morphism("id", "A", "A", vec![MorphismTag::Identity("A")])
+                                .build(),
+                        )
+                        .build(),
                     // // Identity
                     // RuleBuilder {
                     //     inputs: vec![RuleObject::vertex("1")],
@@ -131,10 +138,18 @@ impl GameState {
             main_graph: {
                 let mut graph = Graph::new(ForceParameters::default());
 
+                let mut objects = Vec::new();
+                let mut morphisms = Vec::new();
+
                 let mut rng = thread_rng();
 
-                let mut point = |label: &str, color: Color<f32>, anchor: bool| {
-                    graph.graph.new_vertex(ForceVertex {
+                let mut object = |graph: &mut Graph,
+                                  objects: &mut Vec<VertexId>,
+                                  morphisms: &Vec<EdgeId>,
+                                  label: &str,
+                                  color: Color<f32>,
+                                  anchor: bool| {
+                    let new_object = graph.graph.new_vertex(ForceVertex {
                         is_anchor: anchor,
                         body: ForceBody {
                             position: vec2(rng.gen(), rng.gen()),
@@ -146,44 +161,103 @@ impl GameState {
                             radius: POINT_RADIUS,
                             color,
                         },
-                    })
+                    });
+                    objects.push(new_object);
                 };
 
-                let vertices = vec![
-                    point("A", Color::WHITE, false),
-                    point("B", Color::WHITE, false),
-                    point("C", Color::WHITE, false),
-                    point("AxB", Color::WHITE, false),
-                    point("BxC", Color::WHITE, false),
-                    point("(AxB)xC", Color::WHITE, false),
-                    point("Ax(BxC)", Color::WHITE, false),
-                ];
-
-                let mut connect =
-                    |label: &str, from: usize, to: usize, connection: ArrowConnection| {
-                        graph.graph.new_edge(ForceEdge::new(
+                let mut rng = thread_rng();
+                let mut morphism =
+                    |graph: &mut Graph,
+                     objects: &Vec<VertexId>,
+                     morphisms: &mut Vec<EdgeId>,
+                     label: &str,
+                     from: usize,
+                     to: usize,
+                     tags: Vec<MorphismTag<usize, usize>>| {
+                        let new_edge = graph.graph.new_edge(ForceEdge::new(
                             vec2(rng.gen(), rng.gen()),
                             vec2(rng.gen(), rng.gen()),
                             ARROW_BODIES,
                             ARROW_MASS,
                             Arrow::new(
                                 label,
-                                vertices[from],
-                                vertices[to],
-                                connection,
-                                connection.color(),
+                                objects[from],
+                                objects[to],
+                                tags.into_iter()
+                                    .map(|tag| tag.map(|o| objects[o], |m| morphisms[m]))
+                                    .collect(),
+                                ARROW_REGULAR_COLOR,
+                                // connection.color(),
                             ),
-                        ))
+                        ));
+                        morphisms.push(new_edge.unwrap());
                     };
 
-                connect("", 3, 0, ArrowConnection::Best);
-                connect("", 3, 1, ArrowConnection::Best);
-                connect("", 4, 1, ArrowConnection::Best);
-                connect("", 4, 2, ArrowConnection::Best);
-                connect("", 5, 3, ArrowConnection::Best);
-                connect("", 5, 2, ArrowConnection::Best);
-                connect("", 6, 0, ArrowConnection::Best);
-                connect("", 6, 4, ArrowConnection::Best);
+                object(
+                    &mut graph,
+                    &mut objects,
+                    &morphisms,
+                    "A",
+                    Color::WHITE,
+                    false,
+                );
+                object(
+                    &mut graph,
+                    &mut objects,
+                    &morphisms,
+                    "B",
+                    Color::WHITE,
+                    false,
+                );
+                object(
+                    &mut graph,
+                    &mut objects,
+                    &morphisms,
+                    "C",
+                    Color::WHITE,
+                    false,
+                );
+                object(
+                    &mut graph,
+                    &mut objects,
+                    &morphisms,
+                    "AxB",
+                    Color::WHITE,
+                    false,
+                );
+                object(
+                    &mut graph,
+                    &mut objects,
+                    &morphisms,
+                    "BxC",
+                    Color::WHITE,
+                    false,
+                );
+                object(
+                    &mut graph,
+                    &mut objects,
+                    &morphisms,
+                    "(AxB)xC",
+                    Color::WHITE,
+                    false,
+                );
+                object(
+                    &mut graph,
+                    &mut objects,
+                    &morphisms,
+                    "Ax(BxC)",
+                    Color::WHITE,
+                    false,
+                );
+
+                morphism(&mut graph, &objects, &mut morphisms, "", 3, 0, vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", 3, 1, vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", 4, 1, vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", 4, 2, vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", 5, 3, vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", 5, 2, vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", 6, 0, vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", 6, 4, vec![]);
 
                 graph
             },
