@@ -107,6 +107,7 @@ impl Rule {
             graph: &mut Graph,
             objects: &mut HashMap<Label, VertexId>,
             label: &str,
+            tags: Vec<ObjectTag<VertexId>>,
         ) -> VertexId {
             *objects.entry(label.to_owned()).or_insert_with(|| {
                 graph.graph.new_vertex(ForceVertex {
@@ -115,6 +116,7 @@ impl Rule {
                     vertex: Point {
                         label: label.to_owned(),
                         radius: POINT_RADIUS,
+                        tags,
                         color: Color::WHITE,
                     },
                 })
@@ -126,8 +128,14 @@ impl Rule {
                 match constraint {
                     Constraint::RuleObject(label, object) => {
                         match object {
-                            RuleObject::Vertex { .. } => {
-                                get_object_or_new(&mut graph, &mut objects, label);
+                            RuleObject::Vertex { tags } => {
+                                let tags = tags
+                                    .iter()
+                                    .map(|tag| {
+                                        tag.map_borrowed(|object| *objects.get(object).unwrap())
+                                    })
+                                    .collect();
+                                get_object_or_new(&mut graph, &mut objects, label, tags);
                             }
                             RuleObject::Edge { constraint } => {
                                 if !morphisms.contains_key(label) {
@@ -135,9 +143,14 @@ impl Rule {
                                         &mut graph,
                                         &mut objects,
                                         &constraint.from,
+                                        vec![],
                                     );
-                                    let to =
-                                        get_object_or_new(&mut graph, &mut objects, &constraint.to);
+                                    let to = get_object_or_new(
+                                        &mut graph,
+                                        &mut objects,
+                                        &constraint.to,
+                                        vec![],
+                                    );
 
                                     let tags: Vec<_> = constraint
                                     .tags
@@ -350,8 +363,8 @@ pub fn find_candidates<'a>(
                 vec![Bindings::new()]
             } else {
                 match object {
-                    RuleObject::Vertex { .. } => {
-                        constraint_object(label, bindings, graph).collect()
+                    RuleObject::Vertex { tags } => {
+                        constraint_object(label, tags, bindings, graph).collect()
                     }
                     RuleObject::Edge { constraint } => {
                         constraint_morphism(label, constraint, bindings, graph).collect()
@@ -380,6 +393,7 @@ pub fn find_candidates<'a>(
 
 fn constraint_object<'a>(
     label: &'a Label,
+    tags: &'a Vec<ObjectTag>,
     bindings: &'a Bindings,
     graph: &'a Graph,
 ) -> impl Iterator<Item = Bindings> + 'a {
@@ -388,10 +402,62 @@ fn constraint_object<'a>(
         "Objects must have unique names!"
     );
 
-    graph.graph.vertices.iter().map(|(&id, _)| {
+    graph.graph.vertices.iter().filter_map(|(&id, vertex)| {
         let mut binds = Bindings::new();
-        binds.bind_object(label.to_owned(), id);
-        binds
+        if tags.iter().all(|constraint| {
+            vertex
+                .vertex
+                .tags
+                .iter()
+                .any(|tag| match (constraint, tag) {
+                    (
+                        ObjectTag::Product(constraint0, constraint1),
+                        &ObjectTag::Product(object0, object1),
+                    ) => {
+                        match (
+                            bindings.get_object(constraint0),
+                            bindings.get_object(constraint1),
+                        ) {
+                            (Some(constraint0), Some(constraint1)) => {
+                                constraint0 == object0 && constraint1 == object1
+                                    || constraint0 == object1 && constraint1 == object0
+                            }
+                            (Some(constraint0), None) => {
+                                if constraint0 == object0 {
+                                    binds.bind_object(constraint1.to_owned(), object1);
+                                    true
+                                } else if constraint0 == object1 {
+                                    binds.bind_object(constraint1.to_owned(), object0);
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                            (None, Some(constraint1)) => {
+                                if constraint1 == object0 {
+                                    binds.bind_object(constraint0.to_owned(), object1);
+                                    true
+                                } else if constraint1 == object1 {
+                                    binds.bind_object(constraint0.to_owned(), object0);
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                            (None, None) => {
+                                binds.bind_object(constraint0.to_owned(), object0);
+                                binds.bind_object(constraint1.to_owned(), object1);
+                                true
+                            }
+                        }
+                    }
+                })
+        }) {
+            binds.bind_object(label.to_owned(), id);
+            Some(binds)
+        } else {
+            None
+        }
     })
 }
 
@@ -416,24 +482,117 @@ fn constraint_morphism<'a>(
         }
     }
 
-    graph
-        .graph
-        .edges
-        .iter()
-        .filter(move |(_, edge)| check(edge.edge.from, from) && check(edge.edge.to, to))
-        .map(move |(&id, edge)| {
-            let mut binds = Bindings::new();
-            binds.bind_morphism(label.to_owned(), id);
+    graph.graph.edges.iter().filter_map(move |(&id, edge)| {
+        let mut binds = Bindings::new();
+        if check(edge.edge.from, from)
+            && check(edge.edge.to, to)
+            && constraint.tags.iter().all(|constraint| {
+                edge.edge.tags.iter().any(|tag| match (constraint, tag) {
+                    (MorphismTag::Unique, MorphismTag::Unique) => true,
+                    (MorphismTag::Identity(constraint), &MorphismTag::Identity(object)) => {
+                        match bindings.get_object(constraint) {
+                            Some(constraint) => constraint == object,
+                            None => {
+                                binds.bind_object(constraint.to_owned(), object);
+                                true
+                            }
+                        }
+                    }
+                    (
+                        MorphismTag::Composition {
+                            first: constraint_first,
+                            second: constraint_second,
+                        },
+                        &MorphismTag::Composition { first, second },
+                    ) => {
+                        let match_first = match bindings.get_morphism(constraint_first) {
+                            Some(constraint) => constraint == first,
+                            None => {
+                                binds.bind_morphism(constraint_first.to_owned(), first);
+                                true
+                            }
+                        };
 
+                        let match_second = match bindings.get_morphism(constraint_second) {
+                            Some(constraint) => constraint == second,
+                            None => {
+                                binds.bind_morphism(constraint_second.to_owned(), second);
+                                true
+                            }
+                        };
+
+                        match_first && match_second
+                    }
+                    (
+                        MorphismTag::Isomorphism(constraint0, constraint1),
+                        &MorphismTag::Isomorphism(morphism0, morphism1),
+                    ) => {
+                        match (
+                            bindings.get_morphism(constraint0),
+                            bindings.get_morphism(constraint1),
+                        ) {
+                            (Some(constraint0), Some(constraint1)) => {
+                                constraint0 == morphism0 && constraint1 == morphism1
+                                    || constraint0 == morphism1 && constraint1 == morphism0
+                            }
+                            (Some(constraint0), None) => {
+                                if constraint0 == morphism0 {
+                                    binds.bind_morphism(constraint1.to_owned(), morphism1);
+                                    true
+                                } else if constraint0 == morphism1 {
+                                    binds.bind_morphism(constraint1.to_owned(), morphism0);
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                            (None, Some(constraint1)) => {
+                                if constraint1 == morphism0 {
+                                    binds.bind_morphism(constraint0.to_owned(), morphism1);
+                                    true
+                                } else if constraint1 == morphism1 {
+                                    binds.bind_morphism(constraint0.to_owned(), morphism0);
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                            (None, None) => {
+                                binds.bind_morphism(constraint0.to_owned(), morphism0);
+                                binds.bind_morphism(constraint1.to_owned(), morphism1);
+                                true
+                            }
+                        }
+                    }
+                    _ => false,
+                })
+            })
+        {
+            binds.bind_morphism(label.to_owned(), id);
             if from.is_none() {
                 binds.bind_object(constraint.from.to_owned(), edge.edge.from);
             }
             if to.is_none() {
                 binds.bind_object(constraint.to.to_owned(), edge.edge.to);
             }
+            Some(binds)
+        } else {
+            None
+        }
+    })
+    // .map(move |(&id, edge)| {
+    //     let mut binds = Bindings::new();
+    //     binds.bind_morphism(label.to_owned(), id);
 
-            binds
-        })
+    //     if from.is_none() {
+    //         binds.bind_object(constraint.from.to_owned(), edge.edge.from);
+    //     }
+    //     if to.is_none() {
+    //         binds.bind_object(constraint.to.to_owned(), edge.edge.to);
+    //     }
+
+    //     binds
+    // })
 }
 
 fn apply_constraints(
@@ -450,12 +609,12 @@ fn apply_constraints(
 
     let find_object = |label,
                        input_vertices: &Vec<VertexId>,
-                       new_vertices: &HashMap<Label, usize>|
+                       new_vertices: &HashMap<Label, (usize, _)>|
      -> Option<usize> {
         bindings
             .get_object(label)
             .and_then(|id| input_vertices.iter().position(|&object| object == id))
-            .or_else(|| new_vertices.get(label).copied())
+            .or_else(|| new_vertices.get(label).map(|(i, _)| *i))
     };
 
     let find_morphism = |label, input_vertices: &Vec<VertexId>| -> Option<usize> {
@@ -467,9 +626,24 @@ fn apply_constraints(
     for constraint in constraints {
         match constraint {
             Constraint::RuleObject(label, object) => match object {
-                RuleObject::Vertex { .. } => {
-                    new_vertices
-                        .insert(label.to_owned(), input_vertices.len() + new_vertices_count);
+                RuleObject::Vertex { tags } => {
+                    let tags = tags
+                        .iter()
+                        .map(|tag| {
+                            tag.map_borrowed(|object| {
+                                bindings
+                                    .get_object(object)
+                                    .and_then(|id| {
+                                        input_vertices.iter().position(|&object| object == id)
+                                    })
+                                    .unwrap()
+                            })
+                        })
+                        .collect();
+                    new_vertices.insert(
+                        label.to_owned(),
+                        (input_vertices.len() + new_vertices_count, tags),
+                    );
                     new_vertices_count += 1;
                 }
                 RuleObject::Edge { constraint } => {
@@ -513,10 +687,21 @@ fn apply_constraints(
         }
     }
 
+    let objects = new_vertices;
+    let len = new_vertices_count;
+    let mut new_vertices = Vec::with_capacity(len);
+    for _ in 0..len {
+        new_vertices.push(None);
+    }
+    for (index, tags) in objects.into_values() {
+        new_vertices[index - input_vertices.len()] = Some(tags);
+    }
+    let new_vertices = new_vertices.into_iter().map(|tags| tags.unwrap()).collect();
+
     vec![GraphActionDo::ApplyRule {
         input_vertices,
         input_edges,
-        new_vertices: new_vertices_count,
+        new_vertices,
         new_edges,
         remove_vertices: vec![],
         remove_edges: vec![],

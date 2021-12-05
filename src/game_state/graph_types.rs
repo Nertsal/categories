@@ -1,13 +1,14 @@
 use super::*;
 
-pub type Graph = force_graph::ForceGraph<Point, Arrow<VertexId, EdgeId>>;
-pub type Vertex = ForceVertex<Point>;
+pub type Graph = force_graph::ForceGraph<Point<VertexId>, Arrow<VertexId, EdgeId>>;
+pub type Vertex = ForceVertex<Point<VertexId>>;
 pub type Edge = ForceEdge<Arrow<VertexId, EdgeId>>;
 
 #[derive(Debug, Clone)]
-pub struct Point {
+pub struct Point<O> {
     pub label: String,
     pub radius: f32,
+    pub tags: Vec<ObjectTag<O>>,
     pub color: Color<f32>,
 }
 
@@ -41,12 +42,5 @@ impl<O, M> Arrow<O, M> {
 impl graphs::GraphEdge for Arrow<VertexId, EdgeId> {
     fn end_points(&self) -> [&graphs::VertexId; 2] {
         [&self.from, &self.to]
-    }
-}
-
-impl<O: PartialEq, M: PartialEq> Arrow<O, M> {
-    pub fn check_constraint(&self, constraint: &ArrowConstraint<O, M>) -> bool {
-        self.from == constraint.from && self.to == constraint.to
-        // && self.connection.check_constraint(&constraint.connection)
     }
 }

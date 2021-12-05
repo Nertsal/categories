@@ -176,15 +176,16 @@ impl GameState {
             main_graph: {
                 let mut graph = Graph::new(ForceParameters::default());
 
-                let mut objects = Vec::new();
-                let mut morphisms = Vec::new();
+                let mut objects = HashMap::new();
+                let mut morphisms = HashMap::new();
 
                 let mut rng = thread_rng();
 
                 let mut object = |graph: &mut Graph,
-                                  objects: &mut Vec<VertexId>,
-                                  morphisms: &Vec<EdgeId>,
+                                  objects: &mut HashMap<Label, VertexId>,
+                                  morphisms,
                                   label: &str,
+                                  tags: Vec<ObjectTag<&str>>,
                                   color: Color<f32>,
                                   anchor: bool| {
                     let new_object = graph.graph.new_vertex(ForceVertex {
@@ -197,21 +198,25 @@ impl GameState {
                         vertex: Point {
                             label: label.to_owned(),
                             radius: POINT_RADIUS,
+                            tags: tags
+                                .into_iter()
+                                .map(|tag| tag.map(|o| objects[o]))
+                                .collect(),
                             color,
                         },
                     });
-                    objects.push(new_object);
+                    objects.insert(label.to_owned(), new_object);
                 };
 
                 let mut rng = thread_rng();
                 let mut morphism =
                     |graph: &mut Graph,
-                     objects: &Vec<VertexId>,
-                     morphisms: &mut Vec<EdgeId>,
+                     objects: &HashMap<Label, VertexId>,
+                     morphisms: &mut HashMap<Label, EdgeId>,
                      label: &str,
-                     from: usize,
-                     to: usize,
-                     tags: Vec<MorphismTag<usize, usize>>| {
+                     from: &str,
+                     to: &str,
+                     tags: Vec<MorphismTag<&str, &str>>| {
                         let new_edge = graph.graph.new_edge(ForceEdge::new(
                             vec2(rng.gen(), rng.gen()),
                             vec2(rng.gen(), rng.gen()),
@@ -228,7 +233,7 @@ impl GameState {
                                 // connection.color(),
                             ),
                         ));
-                        morphisms.push(new_edge.unwrap());
+                        morphisms.insert(label.to_owned(), new_edge.unwrap());
                     };
 
                 object(
@@ -236,6 +241,7 @@ impl GameState {
                     &mut objects,
                     &morphisms,
                     "A",
+                    vec![],
                     Color::WHITE,
                     false,
                 );
@@ -244,6 +250,7 @@ impl GameState {
                     &mut objects,
                     &morphisms,
                     "B",
+                    vec![],
                     Color::WHITE,
                     false,
                 );
@@ -252,6 +259,7 @@ impl GameState {
                     &mut objects,
                     &morphisms,
                     "C",
+                    vec![],
                     Color::WHITE,
                     false,
                 );
@@ -260,6 +268,7 @@ impl GameState {
                     &mut objects,
                     &morphisms,
                     "AxB",
+                    vec![ObjectTag::Product("A", "B")],
                     Color::WHITE,
                     false,
                 );
@@ -268,6 +277,7 @@ impl GameState {
                     &mut objects,
                     &morphisms,
                     "BxC",
+                    vec![ObjectTag::Product("B", "C")],
                     Color::WHITE,
                     false,
                 );
@@ -276,6 +286,7 @@ impl GameState {
                     &mut objects,
                     &morphisms,
                     "(AxB)xC",
+                    vec![ObjectTag::Product("AxB", "C")],
                     Color::WHITE,
                     false,
                 );
@@ -284,18 +295,51 @@ impl GameState {
                     &mut objects,
                     &morphisms,
                     "Ax(BxC)",
+                    vec![ObjectTag::Product("A", "BxC")],
                     Color::WHITE,
                     false,
                 );
 
-                morphism(&mut graph, &objects, &mut morphisms, "", 3, 0, vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", 3, 1, vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", 4, 1, vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", 4, 2, vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", 5, 3, vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", 5, 2, vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", 6, 0, vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", 6, 4, vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", "AxB", "A", vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", "AxB", "B", vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", "BxC", "B", vec![]);
+                morphism(&mut graph, &objects, &mut morphisms, "", "BxC", "C", vec![]);
+                morphism(
+                    &mut graph,
+                    &objects,
+                    &mut morphisms,
+                    "",
+                    "(AxB)xC",
+                    "AxB",
+                    vec![],
+                );
+                morphism(
+                    &mut graph,
+                    &objects,
+                    &mut morphisms,
+                    "",
+                    "(AxB)xC",
+                    "C",
+                    vec![],
+                );
+                morphism(
+                    &mut graph,
+                    &objects,
+                    &mut morphisms,
+                    "",
+                    "Ax(BxC)",
+                    "A",
+                    vec![],
+                );
+                morphism(
+                    &mut graph,
+                    &objects,
+                    &mut morphisms,
+                    "",
+                    "Ax(BxC)",
+                    "BxC",
+                    vec![],
+                );
 
                 graph
             },

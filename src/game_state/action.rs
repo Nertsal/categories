@@ -5,7 +5,7 @@ pub enum GraphActionDo {
     ApplyRule {
         input_vertices: Vec<VertexId>,
         input_edges: Vec<EdgeId>,
-        new_vertices: usize,
+        new_vertices: Vec<Vec<ObjectTag<usize>>>,
         new_edges: Vec<ArrowConstraint<usize, usize>>,
         remove_vertices: Vec<VertexId>,
         remove_edges: Vec<EdgeId>,
@@ -33,7 +33,7 @@ impl GameState {
                 remove_edges,
             } => {
                 // Validate
-                let available_vertices = input_vertices.len() + new_vertices;
+                let available_vertices = input_vertices.len() + new_vertices.len();
                 if !new_edges
                     .iter()
                     .all(|edge| edge.from < available_vertices || edge.to < available_vertices)
@@ -43,10 +43,11 @@ impl GameState {
                 }
 
                 // Create new vertices
-                let new_len = new_vertices;
+                let new_tags = new_vertices;
+                let new_len = new_tags.len();
                 let mut new_vertices = Vec::with_capacity(new_len);
                 input_vertices.reserve(new_len);
-                for _ in 0..new_len {
+                for tags in new_tags {
                     let vertex = self.main_graph.graph.new_vertex(ForceVertex {
                         is_anchor: false,
                         body: ForceBody::new(random_shift(), POINT_MASS),
@@ -54,6 +55,10 @@ impl GameState {
                             label: "".to_owned(),
                             radius: POINT_RADIUS,
                             color: Color::WHITE,
+                            tags: tags
+                                .into_iter()
+                                .map(|tag| tag.map(|object| input_vertices[object]))
+                                .collect(),
                         },
                     });
                     new_vertices.push(vertex);

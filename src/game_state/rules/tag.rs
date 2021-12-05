@@ -1,5 +1,7 @@
+use super::*;
+
 #[derive(Debug, Clone, PartialEq)]
-pub enum ObjectTag<O> {
+pub enum ObjectTag<O = Label> {
     Product(O, O),
 }
 
@@ -9,10 +11,16 @@ impl<O> ObjectTag<O> {
             Self::Product(a, b) => ObjectTag::Product(fv(a), fv(b)),
         }
     }
+
+    pub fn map_borrowed<V, Fv: Fn(&O) -> V>(&self, fv: Fv) -> ObjectTag<V> {
+        match self {
+            Self::Product(a, b) => ObjectTag::Product(fv(a), fv(b)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum MorphismTag<O, M> {
+pub enum MorphismTag<O = Label, M = Label> {
     Identity(O),
     Composition { first: M, second: M },
     Unique,
