@@ -131,56 +131,5 @@ impl RuleSelection {
         });
 
         self.inferred_options = options;
-
-        // let process = RuleProcess::input(
-        //     graph,
-        //     rule.inputs().iter().take(selected),
-        //     self.selection.iter(),
-        // );
-
-        // let constraints = match process.constraint(graph, rule.constraints()) {
-        //     Ok(constraints) => constraints,
-        //     Err(_) => {
-        //         self.inferred_options = None;
-        //         return;
-        //     }
-        // };
-
-        // let candidates =
-        //     process.infer_candidates(graph, constraints, &rule.inputs()[selected..], 2);
-
-        // let next = match rule.inputs().get(selected) {
-        //     Some(next) => next,
-        //     None => {
-        //         self.inferred_options = None;
-        //         return;
-        //     }
-        // };
-
-        // match next {
-        //     RuleObject::Vertex { label } => {
-        //         self.inferred_options = candidates.get(label).map(|(vertices, _)| {
-        //             vertices
-        //                 .iter()
-        //                 .map(|&id| GraphObject::Vertex { id })
-        //                 .collect()
-        //         });
-        //     }
-        //     RuleObject::Edge { constraint, .. } => {
-        //         self.inferred_options = candidates.get(&constraint.from).and_then(|(from, _)| {
-        //             candidates.get(&constraint.to).map(|(to, _)| {
-        //                 graph
-        //                     .graph
-        //                     .edges
-        //                     .iter()
-        //                     .filter(|(_, edge)| {
-        //                         from.contains(&edge.edge.from) && to.contains(&edge.edge.to)
-        //                     })
-        //                     .map(|(&id, _)| GraphObject::Edge { id })
-        //                     .collect()
-        //             })
-        //         });
-        //     }
-        // }
     }
 }
