@@ -26,7 +26,7 @@ impl GameState {
         let action_undo = match action_do {
             GraphActionDo::ApplyRule {
                 mut input_vertices,
-                mut input_edges,
+                input_edges,
                 new_vertices,
                 new_edges,
                 remove_vertices,

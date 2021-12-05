@@ -11,14 +11,13 @@ pub struct RuleSelection {
 impl RuleSelection {
     pub fn new(graph: &Graph, rule_index: usize, rules: &Rules) -> Self {
         let mut selection = RuleSelection {
-            rule_input: vec![],
-            // rule_input: rules
-            //     .get_rule(rule_index)
-            //     .unwrap()
-            //     .get_input()
-            //     .iter()
-            //     .copied()
-            //     .collect(),
+            rule_input: rules
+                .get_rule(rule_index)
+                .unwrap()
+                .graph_input()
+                .iter()
+                .copied()
+                .collect(),
             selection: Vec::new(),
             inferred_options: None,
             current_selection: 0,
@@ -64,8 +63,74 @@ impl RuleSelection {
 
     /// Infer possible selections for the current rule selection
     pub fn infer_current(&mut self, graph: &Graph, rules: &Rules) {
-        // let rule = rules.get_rule(self.rule()).unwrap();
-        // let selected = self.selection.len();
+        let rule = rules.get_rule(self.rule()).unwrap();
+
+        let input_constraints =
+            match rule
+                .statement()
+                .first()
+                .and_then(|construction| match construction {
+                    RuleConstruction::Forall(constraints)
+                    | RuleConstruction::Exists(constraints) => Some(constraints),
+                    RuleConstruction::SuchThat => None,
+                }) {
+                Some(constraints) => constraints,
+                None => {
+                    self.inferred_options = None;
+                    return;
+                }
+            };
+        let mut constraints = input_constraints.iter();
+
+        let mut bindings = Bindings::new();
+        for selected in &self.selection {
+            let constraint = constraints.next().unwrap();
+            match constraint {
+                Constraint::RuleObject(label, object) => match (selected, object) {
+                    (GraphObject::Vertex { id }, RuleObject::Vertex) => {
+                        bindings.bind_object(label.to_owned(), *id);
+                    }
+                    (GraphObject::Edge { id }, RuleObject::Edge { constraint }) => {
+                        bindings.bind_morphism(label.to_owned(), *id);
+                        let edge = graph.graph.edges.get(id).unwrap();
+                        bindings.bind_object(constraint.from.to_owned(), edge.edge.from);
+                        bindings.bind_object(constraint.to.to_owned(), edge.edge.to);
+                    }
+                    _ => {
+                        self.inferred_options = None;
+                        return;
+                    }
+                },
+                Constraint::MorphismEq(_, _) => (),
+            }
+        }
+
+        let next = match constraints.next() {
+            Some(Constraint::RuleObject(label, object)) => Some((label, object)),
+            _ => None,
+        };
+        let (next_label, next_object) = match next {
+            Some(next) => next,
+            None => {
+                self.inferred_options = None;
+                return;
+            }
+        };
+
+        let options = find_candidates(input_constraints, &bindings, graph).map(|options| {
+            options
+                .map(|binds| match next_object {
+                    RuleObject::Vertex => GraphObject::Vertex {
+                        id: binds.get_object(next_label).unwrap(),
+                    },
+                    RuleObject::Edge { .. } => GraphObject::Edge {
+                        id: binds.get_morphism(next_label).unwrap(),
+                    },
+                })
+                .collect()
+        });
+
+        self.inferred_options = options;
 
         // let process = RuleProcess::input(
         //     graph,

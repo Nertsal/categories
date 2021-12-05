@@ -53,12 +53,34 @@ impl GameState {
                 geng,
                 assets,
                 vec![
-                    // Identity: forall (object A) exists (morphism id Identity)
+                    // Identity: forall (object A) exists (morphism id A->A [Identity])
                     RuleBuilder::new()
                         .forall(ConstraintsBuilder::new().object("A").build())
                         .exists(
                             ConstraintsBuilder::new()
                                 .morphism("id", "A", "A", vec![MorphismTag::Identity("A")])
+                                .build(),
+                        )
+                        .build(),
+                    // Composition: forall (morphism f A->B, morphism g B->C) exists (morphism g.f A->C [Composition f g])
+                    RuleBuilder::new()
+                        .forall(
+                            ConstraintsBuilder::new()
+                                .morphism("f", "A", "B", vec![])
+                                .morphism("g", "B", "C", vec![])
+                                .build(),
+                        )
+                        .exists(
+                            ConstraintsBuilder::new()
+                                .morphism(
+                                    "g.f",
+                                    "A",
+                                    "C",
+                                    vec![MorphismTag::Composition {
+                                        first: "f",
+                                        second: "g",
+                                    }],
+                                )
                                 .build(),
                         )
                         .build(),

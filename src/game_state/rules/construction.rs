@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug)]
 pub enum RuleConstruction {
     Forall(Constraints),
     Exists(Constraints),
@@ -8,6 +9,7 @@ pub enum RuleConstruction {
 
 pub type Constraints = Vec<Constraint>;
 
+#[derive(Debug)]
 pub enum Constraint {
     RuleObject(Label, RuleObject),
     MorphismEq(Label, Label),

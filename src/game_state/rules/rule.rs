@@ -5,13 +5,11 @@ impl GameState {
     /// Returns whether the rule was applied successfully.
     pub fn apply_rule(&mut self, selection: RuleSelection) -> bool {
         let rule = self.rules.get_rule(selection.rule()).unwrap();
-        if !rule.check_input(&self.main_graph, selection.selection()) {
-            return false;
-        }
-
         match rule.action(&mut self.main_graph, selection.selection()) {
-            Ok(action) => {
-                self.action_do(action);
+            Ok(actions) => {
+                for action in actions {
+                    self.action_do(action);
+                }
                 true
             }
             Err(_) => false,
@@ -59,8 +57,8 @@ impl RuleBuilder {
 
 pub type Label = String;
 
-#[derive(Default, Clone)]
-struct Bindings {
+#[derive(Debug, Default, Clone)]
+pub struct Bindings {
     objects: HashMap<Label, VertexId>,
     morphisms: HashMap<Label, EdgeId>,
 }
@@ -83,11 +81,11 @@ impl Bindings {
         self.morphisms.insert(label, id)
     }
 
-    pub fn get_object(&self, label: &Label) -> Option<VertexId> {
+    pub fn get_object(&self, label: &str) -> Option<VertexId> {
         self.objects.get(label).copied()
     }
 
-    pub fn get_morphism(&self, label: &Label) -> Option<EdgeId> {
+    pub fn get_morphism(&self, label: &str) -> Option<EdgeId> {
         self.morphisms.get(label).copied()
     }
 }
@@ -95,6 +93,7 @@ impl Bindings {
 pub struct Rule {
     statement: RuleStatement,
     graph: Graph,
+    graph_input: Vec<GraphObject>,
 }
 
 impl Rule {
@@ -170,13 +169,42 @@ impl Rule {
 
         for construction in &statement {
             match construction {
-                RuleConstruction::Forall(constraints) => add_constraints(constraints),
-                RuleConstruction::Exists(constraints) => add_constraints(constraints),
+                RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
+                    add_constraints(constraints)
+                }
                 RuleConstruction::SuchThat => continue,
             }
         }
 
-        Self { statement, graph }
+        let mut graph_input = Vec::new();
+        if let Some(construction) = statement.first() {
+            match construction {
+                RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
+                    for constraint in constraints {
+                        match constraint {
+                            Constraint::RuleObject(label, object) => match object {
+                                RuleObject::Vertex => {
+                                    let id = *objects.get(label).unwrap();
+                                    graph_input.push(GraphObject::Vertex { id });
+                                }
+                                RuleObject::Edge { .. } => {
+                                    let id = *morphisms.get(label).unwrap();
+                                    graph_input.push(GraphObject::Edge { id });
+                                }
+                            },
+                            Constraint::MorphismEq(_, _) => continue,
+                        }
+                    }
+                }
+                RuleConstruction::SuchThat => (),
+            }
+        }
+
+        Self {
+            statement,
+            graph,
+            graph_input,
+        }
     }
 
     pub fn graph(&self) -> &Graph {
@@ -189,6 +217,14 @@ impl Rule {
 
     pub fn update_graph(&mut self, delta_time: f32) {
         self.graph.update(delta_time);
+    }
+
+    pub fn statement(&self) -> &RuleStatement {
+        &self.statement
+    }
+
+    pub fn graph_input(&self) -> &Vec<GraphObject> {
+        &self.graph_input
     }
 
     fn apply(
@@ -230,16 +266,74 @@ impl Rule {
         }
     }
 
-    fn check_input(&self, graph: &Graph, selection: &Vec<GraphObject>) -> bool {
-        todo!()
-    }
+    fn action(
+        &self,
+        graph: &Graph,
+        selection: &Vec<GraphObject>,
+    ) -> Result<Vec<GraphActionDo>, ()> {
+        let bindings = match self.statement.first() {
+            Some(RuleConstruction::Forall(constraints))
+            | Some(RuleConstruction::Exists(constraints)) => {
+                dbg!(selection_constraints(selection, constraints, graph))?
+            }
+            _ => Bindings::new(),
+        };
 
-    fn action(&self, graph: &Graph, selection: &Vec<GraphObject>) -> Result<GraphActionDo, ()> {
-        todo!()
+        Ok(Self::apply(&self.statement, bindings, graph))
     }
 }
 
-fn find_candidates<'a>(
+fn selection_constraints(
+    selection: &Vec<GraphObject>,
+    constraints: &Constraints,
+    graph: &Graph,
+) -> Result<Bindings, ()> {
+    let mut selection = selection.iter();
+    let mut bindings = Bindings::new();
+
+    fn bind_object(bindings: &mut Bindings, label: &str, constraint: VertexId) -> bool {
+        match bindings.get_object(label) {
+            Some(object) => object == constraint,
+            None => {
+                bindings.bind_object(label.to_owned(), constraint);
+                true
+            }
+        }
+    }
+
+    for constraint in constraints {
+        match constraint {
+            Constraint::RuleObject(label, object) => match object {
+                RuleObject::Vertex => match selection.next() {
+                    Some(GraphObject::Vertex { id }) => {
+                        if bindings.bind_object(label.to_owned(), *id).is_some() {
+                            return Err(());
+                        }
+                    }
+                    _ => return Err(()),
+                },
+                RuleObject::Edge { constraint } => match selection.next() {
+                    Some(GraphObject::Edge { id }) => {
+                        let edge = graph.graph.edges.get(id).unwrap();
+                        if !bind_object(&mut bindings, &constraint.from, edge.edge.from)
+                            || !bind_object(&mut bindings, &constraint.to, edge.edge.to)
+                        {
+                            return Err(());
+                        }
+
+                        bindings.bind_morphism(label.to_owned(), *id);
+                    }
+                    _ => return Err(()),
+                },
+            },
+            Constraint::MorphismEq(_, _) => todo!(),
+        }
+    }
+
+    Ok(bindings)
+}
+
+pub fn find_candidates<'a>(
     constraints: &'a [Constraint],
     bindings: &'a Bindings,
     graph: &'a Graph,
@@ -251,12 +345,18 @@ fn find_candidates<'a>(
     let constraints = &constraints[1..];
 
     let binds: Vec<_> = match constraint {
-        Constraint::RuleObject(label, object) => match object {
-            RuleObject::Vertex => constraint_object(label, bindings, graph).collect(),
-            RuleObject::Edge { constraint } => {
-                constraint_morphism(label, constraint, bindings, graph).collect()
+        Constraint::RuleObject(label, object) => {
+            if bindings.get_object(label).is_some() || bindings.get_morphism(label).is_some() {
+                vec![Bindings::new()]
+            } else {
+                match object {
+                    RuleObject::Vertex => constraint_object(label, bindings, graph).collect(),
+                    RuleObject::Edge { constraint } => {
+                        constraint_morphism(label, constraint, bindings, graph).collect()
+                    }
+                }
             }
-        },
+        }
         Constraint::MorphismEq(_, _) => unimplemented!(),
     };
 
@@ -384,11 +484,9 @@ fn apply_constraints(
                                     },
                                     |label| {
                                         bindings
-                                            .get_object(label)
+                                            .get_morphism(label)
                                             .and_then(|id| {
-                                                input_vertices
-                                                    .iter()
-                                                    .position(|&object| object == id)
+                                                input_edges.iter().position(|&object| object == id)
                                             })
                                             .unwrap()
                                     },
