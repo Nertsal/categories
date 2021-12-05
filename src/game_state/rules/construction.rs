@@ -16,6 +16,12 @@ pub enum Constraint {
 
 pub struct ConstraintsBuilder(Constraints);
 
+impl Into<Constraints> for ConstraintsBuilder {
+    fn into(self) -> Constraints {
+        self.build()
+    }
+}
+
 impl ConstraintsBuilder {
     pub fn new() -> Self {
         Self(Vec::new())

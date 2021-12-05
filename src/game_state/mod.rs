@@ -55,34 +55,30 @@ impl GameState {
                 vec![
                     // Identity: forall (object A) exists (morphism id A->A [Identity])
                     RuleBuilder::new()
-                        .forall(ConstraintsBuilder::new().object("A", vec![]).build())
-                        .exists(
-                            ConstraintsBuilder::new()
-                                .morphism("id", "A", "A", vec![MorphismTag::Identity("A")])
-                                .build(),
-                        )
+                        .forall(ConstraintsBuilder::new().object("A", vec![]))
+                        .exists(ConstraintsBuilder::new().morphism(
+                            "id",
+                            "A",
+                            "A",
+                            vec![MorphismTag::Identity("A")],
+                        ))
                         .build(),
                     // Composition: forall (morphism f A->B, morphism g B->C) exists (morphism g.f A->C [Composition f g])
                     RuleBuilder::new()
                         .forall(
                             ConstraintsBuilder::new()
                                 .morphism("f", "A", "B", vec![])
-                                .morphism("g", "B", "C", vec![])
-                                .build(),
+                                .morphism("g", "B", "C", vec![]),
                         )
-                        .exists(
-                            ConstraintsBuilder::new()
-                                .morphism(
-                                    "g.f",
-                                    "A",
-                                    "C",
-                                    vec![MorphismTag::Composition {
-                                        first: "f",
-                                        second: "g",
-                                    }],
-                                )
-                                .build(),
-                        )
+                        .exists(ConstraintsBuilder::new().morphism(
+                            "g.f",
+                            "A",
+                            "C",
+                            vec![MorphismTag::Composition {
+                                first: "f",
+                                second: "g",
+                            }],
+                        ))
                         .build(),
                     // Product:  forall (object A, object B)
                     //           exists (object AxB [Product A B], morphism _ AxB->A, morphism _ AxB->B)
@@ -94,33 +90,27 @@ impl GameState {
                         .forall(
                             ConstraintsBuilder::new()
                                 .object("A", vec![])
-                                .object("B", vec![])
-                                .build(),
+                                .object("B", vec![]),
                         )
                         .exists(
                             ConstraintsBuilder::new()
                                 .object("AxB", vec![ObjectTag::Product("A", "B")])
                                 .morphism("fst", "AxB", "A", vec![])
-                                .morphism("snd", "AxB", "B", vec![])
-                                .build(),
+                                .morphism("snd", "AxB", "B", vec![]),
                         )
                         .forall(
                             ConstraintsBuilder::new()
                                 .object("C", vec![])
                                 .morphism("f", "C", "A", vec![])
-                                .morphism("g", "C", "B", vec![])
-                                .build(),
+                                .morphism("g", "C", "B", vec![]),
                         )
-                        .exists(
-                            ConstraintsBuilder::new()
-                                .morphism("m", "C", "AxB", vec![MorphismTag::Unique])
-                                .build(),
-                        )
-                        .forall(
-                            ConstraintsBuilder::new()
-                                .morphism("m'", "C", "AxB", vec![])
-                                .build(),
-                        )
+                        .exists(ConstraintsBuilder::new().morphism(
+                            "m",
+                            "C",
+                            "AxB",
+                            vec![MorphismTag::Unique],
+                        ))
+                        .forall(ConstraintsBuilder::new().morphism("m'", "C", "AxB", vec![]))
                         // TODO: m = m'
                         .build(),
                     // // Isomorphism

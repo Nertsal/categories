@@ -28,13 +28,15 @@ impl RuleBuilder {
         Self { statement: vec![] }
     }
 
-    pub fn forall(mut self, constraints: Constraints) -> Self {
-        self.statement.push(RuleConstruction::Forall(constraints));
+    pub fn forall(mut self, constraints: impl Into<Constraints>) -> Self {
+        self.statement
+            .push(RuleConstruction::Forall(constraints.into()));
         self
     }
 
-    pub fn exists(mut self, constraints: Constraints) -> Self {
-        self.statement.push(RuleConstruction::Exists(constraints));
+    pub fn exists(mut self, constraints: impl Into<Constraints>) -> Self {
+        self.statement
+            .push(RuleConstruction::Exists(constraints.into()));
         self
     }
 
