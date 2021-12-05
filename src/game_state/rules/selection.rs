@@ -87,7 +87,7 @@ impl RuleSelection {
             let constraint = constraints.next().unwrap();
             match constraint {
                 Constraint::RuleObject(label, object) => match (selected, object) {
-                    (GraphObject::Vertex { id }, RuleObject::Vertex) => {
+                    (GraphObject::Vertex { id }, RuleObject::Vertex { .. }) => {
                         bindings.bind_object(label.to_owned(), *id);
                     }
                     (GraphObject::Edge { id }, RuleObject::Edge { constraint }) => {
@@ -120,7 +120,7 @@ impl RuleSelection {
         let options = find_candidates(input_constraints, &bindings, graph).map(|options| {
             options
                 .map(|binds| match next_object {
-                    RuleObject::Vertex => GraphObject::Vertex {
+                    RuleObject::Vertex { .. } => GraphObject::Vertex {
                         id: binds.get_object(next_label).unwrap(),
                     },
                     RuleObject::Edge { .. } => GraphObject::Edge {

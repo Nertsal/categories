@@ -2,13 +2,13 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RuleObject<O = Label, M = Label> {
-    Vertex,
+    Vertex { tags: Vec<ObjectTag<O>> },
     Edge { constraint: ArrowConstraint<O, M> },
 }
 
 impl<O, M> RuleObject<O, M> {
-    pub fn vertex() -> Self {
-        Self::Vertex
+    pub fn vertex(tags: Vec<ObjectTag<O>>) -> Self {
+        Self::Vertex { tags }
     }
 
     pub fn edge(from: O, to: O, tags: Vec<MorphismTag<O, M>>) -> Self {

@@ -126,7 +126,7 @@ impl Rule {
                 match constraint {
                     Constraint::RuleObject(label, object) => {
                         match object {
-                            RuleObject::Vertex => {
+                            RuleObject::Vertex { .. } => {
                                 get_object_or_new(&mut graph, &mut objects, label);
                             }
                             RuleObject::Edge { constraint } => {
@@ -183,7 +183,7 @@ impl Rule {
                     for constraint in constraints {
                         match constraint {
                             Constraint::RuleObject(label, object) => match object {
-                                RuleObject::Vertex => {
+                                RuleObject::Vertex { .. } => {
                                     let id = *objects.get(label).unwrap();
                                     graph_input.push(GraphObject::Vertex { id });
                                 }
@@ -274,7 +274,7 @@ impl Rule {
         let bindings = match self.statement.first() {
             Some(RuleConstruction::Forall(constraints))
             | Some(RuleConstruction::Exists(constraints)) => {
-                dbg!(selection_constraints(selection, constraints, graph))?
+                selection_constraints(selection, constraints, graph)?
             }
             _ => Bindings::new(),
         };
@@ -304,7 +304,7 @@ fn selection_constraints(
     for constraint in constraints {
         match constraint {
             Constraint::RuleObject(label, object) => match object {
-                RuleObject::Vertex => match selection.next() {
+                RuleObject::Vertex { .. } => match selection.next() {
                     Some(GraphObject::Vertex { id }) => {
                         if bindings.bind_object(label.to_owned(), *id).is_some() {
                             return Err(());
@@ -350,7 +350,9 @@ pub fn find_candidates<'a>(
                 vec![Bindings::new()]
             } else {
                 match object {
-                    RuleObject::Vertex => constraint_object(label, bindings, graph).collect(),
+                    RuleObject::Vertex { .. } => {
+                        constraint_object(label, bindings, graph).collect()
+                    }
                     RuleObject::Edge { constraint } => {
                         constraint_morphism(label, constraint, bindings, graph).collect()
                     }
@@ -441,29 +443,39 @@ fn apply_constraints(
 ) -> Vec<GraphActionDo> {
     let input_vertices: Vec<_> = bindings.objects.values().copied().collect();
     let input_edges: Vec<_> = bindings.morphisms.values().copied().collect();
+    let mut new_vertices = HashMap::new();
 
-    let find_object = |label| -> Option<usize> {
-        bindings
-            .get_object(label)
-            .and_then(|id| input_vertices.iter().position(|&object| object == id))
-    };
-
-    let find_morphism = |label| -> Option<usize> {
-        bindings
-            .get_object(label)
-            .and_then(|id| input_vertices.iter().position(|&object| object == id))
-    };
-
-    let mut new_vertices = 0;
+    let mut new_vertices_count = 0;
     let mut new_edges = Vec::new();
+
+    let find_object = |label,
+                       input_vertices: &Vec<VertexId>,
+                       new_vertices: &HashMap<Label, usize>|
+     -> Option<usize> {
+        bindings
+            .get_object(label)
+            .and_then(|id| input_vertices.iter().position(|&object| object == id))
+            .or_else(|| new_vertices.get(label).copied())
+    };
+
+    let find_morphism = |label, input_vertices: &Vec<VertexId>| -> Option<usize> {
+        bindings
+            .get_object(label)
+            .and_then(|id| input_vertices.iter().position(|&object| object == id))
+    };
 
     for constraint in constraints {
         match constraint {
             Constraint::RuleObject(label, object) => match object {
-                RuleObject::Vertex => new_vertices += 1,
+                RuleObject::Vertex { .. } => {
+                    new_vertices
+                        .insert(label.to_owned(), input_vertices.len() + new_vertices_count);
+                    new_vertices_count += 1;
+                }
                 RuleObject::Edge { constraint } => {
-                    let from = find_object(&constraint.from).unwrap();
-                    let to = find_object(&constraint.to).unwrap();
+                    let from =
+                        find_object(&constraint.from, &input_vertices, &new_vertices).unwrap();
+                    let to = find_object(&constraint.to, &input_vertices, &new_vertices).unwrap();
                     let new_edge = ArrowConstraint::new(
                         from,
                         to,
@@ -504,7 +516,7 @@ fn apply_constraints(
     vec![GraphActionDo::ApplyRule {
         input_vertices,
         input_edges,
-        new_vertices,
+        new_vertices: new_vertices_count,
         new_edges,
         remove_vertices: vec![],
         remove_edges: vec![],

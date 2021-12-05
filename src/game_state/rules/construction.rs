@@ -26,9 +26,16 @@ impl ConstraintsBuilder {
         self.0
     }
 
-    pub fn object(mut self, label: &str) -> Self {
-        self.0
-            .push(Constraint::RuleObject(label.to_owned(), RuleObject::Vertex));
+    pub fn object(mut self, label: &str, tags: Vec<ObjectTag<&str>>) -> Self {
+        self.0.push(Constraint::RuleObject(
+            label.to_owned(),
+            RuleObject::Vertex {
+                tags: tags
+                    .into_iter()
+                    .map(|tag| tag.map(|o| o.to_owned()))
+                    .collect(),
+            },
+        ));
         self
     }
 

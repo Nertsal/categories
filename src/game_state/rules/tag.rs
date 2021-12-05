@@ -1,5 +1,14 @@
+#[derive(Debug, Clone, PartialEq)]
 pub enum ObjectTag<O> {
     Product(O, O),
+}
+
+impl<O> ObjectTag<O> {
+    pub fn map<V, Fv: Fn(O) -> V>(self, fv: Fv) -> ObjectTag<V> {
+        match self {
+            Self::Product(a, b) => ObjectTag::Product(fv(a), fv(b)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]

@@ -55,7 +55,7 @@ impl GameState {
                 vec![
                     // Identity: forall (object A) exists (morphism id A->A [Identity])
                     RuleBuilder::new()
-                        .forall(ConstraintsBuilder::new().object("A").build())
+                        .forall(ConstraintsBuilder::new().object("A", vec![]).build())
                         .exists(
                             ConstraintsBuilder::new()
                                 .morphism("id", "A", "A", vec![MorphismTag::Identity("A")])
@@ -84,29 +84,45 @@ impl GameState {
                                 .build(),
                         )
                         .build(),
-                    // // Identity
-                    // RuleBuilder {
-                    //     inputs: vec![RuleObject::vertex("1")],
-                    //     constraints: vec![],
-                    //     infers: vec![],
-                    //     removes: vec![],
-                    //     outputs: vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
-                    // }
-                    // .build()
-                    // .unwrap(),
-                    // // Composition
-                    // RuleBuilder {
-                    //     inputs: vec![
-                    //         RuleObject::edge("f", "0", "1", ArrowConnection::Regular),
-                    //         RuleObject::edge("g", "1", "2", ArrowConnection::Regular),
-                    //     ],
-                    //     constraints: vec![],
-                    //     infers: vec![],
-                    //     removes: vec![],
-                    //     outputs: vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
-                    // }
-                    // .build()
-                    // .unwrap(),
+                    // Product:  forall (object A, object B)
+                    //           exists (object AxB [Product A B], morphism _ AxB->A, morphism _ AxB->B)
+                    // such that forall (object C, morphism f C->A, morphism g C->B)
+                    //           exists (morphism m C->AxB [Unique])
+                    //           forall (morphism m' C->AxB)
+                    //                  m = m'
+                    RuleBuilder::new()
+                        .forall(
+                            ConstraintsBuilder::new()
+                                .object("A", vec![])
+                                .object("B", vec![])
+                                .build(),
+                        )
+                        .exists(
+                            ConstraintsBuilder::new()
+                                .object("AxB", vec![ObjectTag::Product("A", "B")])
+                                .morphism("fst", "AxB", "A", vec![])
+                                .morphism("snd", "AxB", "B", vec![])
+                                .build(),
+                        )
+                        .such_that_forall(
+                            ConstraintsBuilder::new()
+                                .object("C", vec![])
+                                .morphism("f", "C", "A", vec![])
+                                .morphism("g", "C", "B", vec![])
+                                .build(),
+                        )
+                        .exists(
+                            ConstraintsBuilder::new()
+                                .morphism("m", "C", "AxB", vec![MorphismTag::Unique])
+                                .build(),
+                        )
+                        .such_that_forall(
+                            ConstraintsBuilder::new()
+                                .morphism("m'", "C", "AxB", vec![])
+                                .build(),
+                        )
+                        // TODO: m = m'
+                        .build(),
                     // // Product
                     // RuleBuilder {
                     //     inputs: vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
