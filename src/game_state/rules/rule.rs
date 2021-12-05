@@ -565,19 +565,6 @@ fn constraint_morphism<'a>(
             None
         }
     })
-    // .map(move |(&id, edge)| {
-    //     let mut binds = Bindings::new();
-    //     binds.bind_morphism(label.to_owned(), id);
-
-    //     if from.is_none() {
-    //         binds.bind_object(constraint.from.to_owned(), edge.edge.from);
-    //     }
-    //     if to.is_none() {
-    //         binds.bind_object(constraint.to.to_owned(), edge.edge.to);
-    //     }
-
-    //     binds
-    // })
 }
 
 fn apply_constraints(

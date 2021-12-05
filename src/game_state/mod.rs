@@ -123,35 +123,6 @@ impl GameState {
                         )
                         // TODO: m = m'
                         .build(),
-                    // // Product
-                    // RuleBuilder {
-                    //     inputs: vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
-                    //     constraints: vec![],
-                    //     infers: vec![],
-                    //     removes: vec![],
-                    //     outputs: vec![
-                    //         RuleObject::edge("p1", "2x3", "2", ArrowConnection::Best),
-                    //         RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
-                    //     ],
-                    // }
-                    // .build()
-                    // .unwrap(),
-                    // // Universal property of product
-                    // RuleBuilder {
-                    //     inputs: vec![
-                    //         RuleObject::edge("", "1", "2", ArrowConnection::Regular),
-                    //         RuleObject::edge("", "1", "3", ArrowConnection::Regular),
-                    //     ],
-                    //     constraints: vec![],
-                    //     infers: vec![
-                    //         RuleObject::edge("", "2x3", "2", ArrowConnection::Best),
-                    //         RuleObject::edge("", "2x3", "3", ArrowConnection::Best),
-                    //     ],
-                    //     removes: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Regular)], // Uniqueness of morphism to the product
-                    //     outputs: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
-                    // }
-                    // .build()
-                    // .unwrap(),
                     // // Isomorphism
                     // RuleBuilder {
                     //     inputs: vec![

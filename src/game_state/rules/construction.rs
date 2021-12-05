@@ -28,12 +28,11 @@ impl ConstraintsBuilder {
     pub fn object(mut self, label: &str, tags: Vec<ObjectTag<&str>>) -> Self {
         self.0.push(Constraint::RuleObject(
             label.to_owned(),
-            RuleObject::Vertex {
-                tags: tags
-                    .into_iter()
+            RuleObject::vertex(
+                tags.into_iter()
                     .map(|tag| tag.map(|o| o.to_owned()))
                     .collect(),
-            },
+            ),
         ));
         self
     }
@@ -47,15 +46,13 @@ impl ConstraintsBuilder {
     ) -> Self {
         self.0.push(Constraint::RuleObject(
             label.to_owned(),
-            RuleObject::Edge {
-                constraint: ArrowConstraint::new(
-                    from.to_owned(),
-                    to.to_owned(),
-                    tags.into_iter()
-                        .map(|tag| tag.map(|o| o.to_owned(), |m| m.to_owned()))
-                        .collect(),
-                ),
-            },
+            RuleObject::edge(
+                from.to_owned(),
+                to.to_owned(),
+                tags.into_iter()
+                    .map(|tag| tag.map(|o| o.to_owned(), |m| m.to_owned()))
+                    .collect(),
+            ),
         ));
         self
     }
