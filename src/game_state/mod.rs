@@ -104,7 +104,7 @@ impl GameState {
                                 .morphism("snd", "AxB", "B", vec![])
                                 .build(),
                         )
-                        .such_that_forall(
+                        .forall(
                             ConstraintsBuilder::new()
                                 .object("C", vec![])
                                 .morphism("f", "C", "A", vec![])
@@ -116,7 +116,7 @@ impl GameState {
                                 .morphism("m", "C", "AxB", vec![MorphismTag::Unique])
                                 .build(),
                         )
-                        .such_that_forall(
+                        .forall(
                             ConstraintsBuilder::new()
                                 .morphism("m'", "C", "AxB", vec![])
                                 .build(),

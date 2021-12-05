@@ -38,18 +38,6 @@ impl RuleBuilder {
         self
     }
 
-    pub fn such_that_forall(mut self, constraints: Constraints) -> Self {
-        self.statement.push(RuleConstruction::SuchThat);
-        self.statement.push(RuleConstruction::Forall(constraints));
-        self
-    }
-
-    pub fn such_that_exists(mut self, constraints: Constraints) -> Self {
-        self.statement.push(RuleConstruction::SuchThat);
-        self.statement.push(RuleConstruction::Exists(constraints));
-        self
-    }
-
     pub fn build(self) -> Rule {
         Rule::new(self.statement)
     }
@@ -185,7 +173,6 @@ impl Rule {
                 RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
                     add_constraints(constraints)
                 }
-                RuleConstruction::SuchThat => continue,
             }
         }
 
@@ -209,7 +196,6 @@ impl Rule {
                         }
                     }
                 }
-                RuleConstruction::SuchThat => (),
             }
         }
 
@@ -248,7 +234,6 @@ impl Rule {
         if let Some(construction) = statement.first() {
             let statement = &statement[1..];
             match construction {
-                RuleConstruction::SuchThat => Self::apply(statement, bindings, graph),
                 RuleConstruction::Forall(constraints) => {
                     find_candidates(constraints, &bindings, graph)
                         .map(|candidates| {

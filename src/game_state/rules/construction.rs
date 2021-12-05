@@ -4,7 +4,6 @@ use super::*;
 pub enum RuleConstruction {
     Forall(Constraints),
     Exists(Constraints),
-    SuchThat,
 }
 
 pub type Constraints = Vec<Constraint>;

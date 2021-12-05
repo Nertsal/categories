@@ -72,7 +72,6 @@ impl RuleSelection {
                 .and_then(|construction| match construction {
                     RuleConstruction::Forall(constraints)
                     | RuleConstruction::Exists(constraints) => Some(constraints),
-                    RuleConstruction::SuchThat => None,
                 }) {
                 Some(constraints) => constraints,
                 None => {
