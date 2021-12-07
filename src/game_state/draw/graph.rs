@@ -197,7 +197,7 @@ fn draw_edge(
         .edge
         .tags
         .iter()
-        .any(|tag| matches!(tag, MorphismTag::Isomorphism(_, _)))
+        .any(|tag| matches!(tag, MorphismTag::Unique))
     {
         draw_dashed_chain(
             geng,

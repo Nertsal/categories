@@ -38,7 +38,7 @@ impl GameState {
 
     fn main_graph_aabb(&self) -> AABB<f32> {
         let camera_view = camera_view(&self.camera, self.framebuffer_size);
-        camera_view.extend_right(
+        camera_view.extend_left(
             -camera_view.width() * RULES_SECTION_SEPARATION_WIDTH_FRAC - self.rules.width,
         )
     }
