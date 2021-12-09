@@ -65,6 +65,7 @@ pub const SELECTED_COLOR: Color<f32> = Color {
 };
 
 pub const RULE_INPUT_COLOR: Color<f32> = Color::BLUE;
-pub const RULE_INFER_CONTEXT_COLOR: Color<f32> = Color::MAGENTA;
-pub const RULE_INFER_COLOR: Color<f32> = Color::GREEN;
+pub const RULE_INFER_COLOR: Color<f32> = Color::MAGENTA;
+pub const RULE_FORALL_COLOR: Color<f32> = Color::CYAN;
+pub const RULE_EXISTS_COLOR: Color<f32> = Color::GREEN;
 pub const RULE_OUTPUT_COLOR: Color<f32> = Color::RED;

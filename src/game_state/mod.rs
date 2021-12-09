@@ -128,25 +128,6 @@ impl GameState {
                             vec![MorphismTag::Isomorphism("f", "g")],
                         ))
                         .build(),
-                    // // Isomorphism
-                    // RuleBuilder {
-                    //     inputs: vec![
-                    //         RuleObject::edge("f", "1", "2", ArrowConnection::Regular),
-                    //         RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
-                    //     ],
-                    //     constraints: vec![],
-                    //     infers: vec![
-                    //         RuleObject::edge("id", "1", "1", ArrowConnection::Regular),
-                    //         RuleObject::edge("id", "2", "2", ArrowConnection::Regular),
-                    //     ],
-                    //     removes: vec![
-                    //         RuleObject::edge("f", "1", "2", ArrowConnection::Regular), // TODO: Check labels for edges with non-empty names
-                    //         RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
-                    //     ],
-                    //     outputs: vec![RuleObject::edge("", "1", "2", ArrowConnection::Isomorphism)],
-                    // }
-                    // .build()
-                    // .unwrap(),
                 ],
             ),
             main_graph: {
@@ -159,7 +140,6 @@ impl GameState {
 
                 let mut object = |graph: &mut Graph,
                                   objects: &mut HashMap<Label, VertexId>,
-                                  morphisms,
                                   label: &str,
                                   tags: Vec<ObjectTag<&str>>,
                                   color: Color<f32>,
@@ -212,37 +192,12 @@ impl GameState {
                         morphisms.insert(label.to_owned(), new_edge.unwrap());
                     };
 
+                object(&mut graph, &mut objects, "A", vec![], Color::WHITE, false);
+                object(&mut graph, &mut objects, "B", vec![], Color::WHITE, false);
+                object(&mut graph, &mut objects, "C", vec![], Color::WHITE, false);
                 object(
                     &mut graph,
                     &mut objects,
-                    &morphisms,
-                    "A",
-                    vec![],
-                    Color::WHITE,
-                    false,
-                );
-                object(
-                    &mut graph,
-                    &mut objects,
-                    &morphisms,
-                    "B",
-                    vec![],
-                    Color::WHITE,
-                    false,
-                );
-                object(
-                    &mut graph,
-                    &mut objects,
-                    &morphisms,
-                    "C",
-                    vec![],
-                    Color::WHITE,
-                    false,
-                );
-                object(
-                    &mut graph,
-                    &mut objects,
-                    &morphisms,
                     "AxB",
                     vec![ObjectTag::Product("A", "B")],
                     Color::WHITE,
@@ -251,7 +206,6 @@ impl GameState {
                 object(
                     &mut graph,
                     &mut objects,
-                    &morphisms,
                     "BxC",
                     vec![ObjectTag::Product("B", "C")],
                     Color::WHITE,
@@ -260,7 +214,6 @@ impl GameState {
                 object(
                     &mut graph,
                     &mut objects,
-                    &morphisms,
                     "(AxB)xC",
                     vec![ObjectTag::Product("AxB", "C")],
                     Color::WHITE,
@@ -269,7 +222,6 @@ impl GameState {
                 object(
                     &mut graph,
                     &mut objects,
-                    &morphisms,
                     "Ax(BxC)",
                     vec![ObjectTag::Product("A", "BxC")],
                     Color::WHITE,
