@@ -173,6 +173,7 @@ impl GameState {
                      from: &str,
                      to: &str,
                      tags: Vec<MorphismTag<&str, &str>>| {
+                        let color = draw::graph::morphism_color(&tags);
                         let new_edge = graph.graph.new_edge(ForceEdge::new(
                             vec2(rng.gen(), rng.gen()),
                             vec2(rng.gen(), rng.gen()),
@@ -185,8 +186,7 @@ impl GameState {
                                 tags.into_iter()
                                     .map(|tag| tag.map(|o| objects[o], |m| morphisms[m]))
                                     .collect(),
-                                ARROW_REGULAR_COLOR,
-                                // connection.color(),
+                                color,
                             ),
                         ));
                         morphisms.insert(label.to_owned(), new_edge.unwrap());

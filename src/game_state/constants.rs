@@ -16,7 +16,6 @@ pub const ARROW_BODIES: usize = 3;
 
 pub const CHAIN_OUTLINE_WIDTH: f32 = 0.8;
 
-pub const ARROW_BEST_COLOR: Color<f32> = Color::GREEN;
 pub const ARROW_REGULAR_COLOR: Color<f32> = Color::BLUE;
 pub const ARROW_UNIQUE_COLOR: Color<f32> = Color::RED;
 pub const ARROW_ISOMORPHISM_COLOR: Color<f32> = Color::RED;

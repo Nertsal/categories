@@ -89,6 +89,12 @@ impl GameState {
                             .body
                             .position
                             + random_shift();
+                        let tags: Vec<_> = edge
+                            .tags
+                            .into_iter()
+                            .map(|tag| tag.map(|o| input_vertices[o], |m| input_edges[m]))
+                            .collect();
+                        let color = draw::graph::morphism_color(&tags);
                         self.main_graph
                             .graph
                             .new_edge(ForceEdge::new(
@@ -96,18 +102,7 @@ impl GameState {
                                 to_pos,
                                 ARROW_BODIES,
                                 ARROW_MASS,
-                                Arrow::new(
-                                    "",
-                                    from,
-                                    to,
-                                    edge.tags
-                                        .into_iter()
-                                        .map(|tag| {
-                                            tag.map(|o| input_vertices[o], |m| input_edges[m])
-                                        })
-                                        .collect(),
-                                    ARROW_REGULAR_COLOR,
-                                ),
+                                Arrow::new("", from, to, tags, color),
                             ))
                             .unwrap()
                     })

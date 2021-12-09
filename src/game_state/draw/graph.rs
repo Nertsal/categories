@@ -2,6 +2,18 @@ use geng::draw_2d::Draw2d;
 
 use super::*;
 
+pub fn morphism_color<O, M>(tags: &[MorphismTag<O, M>]) -> Color<f32> {
+    for tag in tags {
+        match tag {
+            MorphismTag::Identity(_) => (),
+            MorphismTag::Composition { .. } => (),
+            MorphismTag::Unique => return ARROW_UNIQUE_COLOR,
+            MorphismTag::Isomorphism(_, _) => return ARROW_ISOMORPHISM_COLOR,
+        }
+    }
+    ARROW_REGULAR_COLOR
+}
+
 pub fn draw_graph(
     geng: &Geng,
     assets: &Rc<Assets>,
