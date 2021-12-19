@@ -653,11 +653,6 @@ fn apply_constraints(
                     let from =
                         find_object(&constraint.from, &input_vertices, &new_vertices).unwrap();
                     let to = find_object(&constraint.to, &input_vertices, &new_vertices).unwrap();
-                    // let name = constraint
-                    //     .tags
-                    //     .iter()
-                    //     .filter_map(|tag| tag.infer_name())
-                    //     .find(|_| true);
                     let tags: Vec<_> = constraint
                         .tags
                         .iter()
