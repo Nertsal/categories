@@ -282,7 +282,7 @@ impl Rule {
                             binds.extend(bindings);
                             Self::apply(statement, binds, graph)
                         }
-                        None => apply_constraints(constraints, &bindings),
+                        None => apply_constraints(graph, constraints, &bindings),
                     }
                 }
             }
@@ -594,7 +594,11 @@ fn constraint_morphism<'a>(
     })
 }
 
-fn apply_constraints(constraints: &Constraints, bindings: &Bindings) -> Vec<GraphActionDo> {
+fn apply_constraints(
+    graph: &Graph,
+    constraints: &Constraints,
+    bindings: &Bindings,
+) -> Vec<GraphActionDo> {
     let input_vertices: Vec<_> = bindings.objects.values().copied().collect();
     let input_edges: Vec<_> = bindings.morphisms.values().copied().collect();
     let mut new_vertices = HashMap::new();
@@ -604,19 +608,19 @@ fn apply_constraints(constraints: &Constraints, bindings: &Bindings) -> Vec<Grap
 
     let find_object = |label,
                        input_vertices: &Vec<VertexId>,
-                       new_vertices: &HashMap<Label, (usize, _)>|
+                       new_vertices: &HashMap<Label, (usize, _, _)>|
      -> Option<usize> {
         bindings
             .get_object(label)
             .and_then(|id| input_vertices.iter().position(|&object| object == id))
-            .or_else(|| new_vertices.get(label).map(|(i, _)| *i))
+            .or_else(|| new_vertices.get(label).map(|(i, _, _)| *i))
     };
 
     for constraint in constraints {
         match constraint {
             Constraint::RuleObject(label, object) => match object {
                 RuleObject::Vertex { tags } => {
-                    let tags = tags
+                    let tags: Vec<_> = tags
                         .iter()
                         .map(|tag| {
                             tag.map_borrowed(|object| {
@@ -629,9 +633,19 @@ fn apply_constraints(constraints: &Constraints, bindings: &Bindings) -> Vec<Grap
                             })
                         })
                         .collect();
+                    let name = tags
+                        .iter()
+                        .filter_map(|tag| {
+                            tag.map_borrowed(|&object| {
+                                let id = &input_vertices[object];
+                                &graph.graph.vertices.get(id).unwrap().vertex.label
+                            })
+                            .infer_name()
+                        })
+                        .find(|_| true);
                     new_vertices.insert(
                         label.to_owned(),
-                        (input_vertices.len() + new_vertices_count, tags),
+                        (input_vertices.len() + new_vertices_count, name, tags),
                     );
                     new_vertices_count += 1;
                 }
@@ -639,37 +653,53 @@ fn apply_constraints(constraints: &Constraints, bindings: &Bindings) -> Vec<Grap
                     let from =
                         find_object(&constraint.from, &input_vertices, &new_vertices).unwrap();
                     let to = find_object(&constraint.to, &input_vertices, &new_vertices).unwrap();
-                    let new_edge = ArrowConstraint::new(
-                        from,
-                        to,
-                        constraint
-                            .tags
-                            .iter()
-                            .map(|tag| {
-                                tag.map_borrowed(
-                                    |label| {
-                                        bindings
-                                            .get_object(label)
-                                            .and_then(|id| {
-                                                input_vertices
-                                                    .iter()
-                                                    .position(|&object| object == id)
-                                            })
-                                            .unwrap()
-                                    },
-                                    |label| {
-                                        bindings
-                                            .get_morphism(label)
-                                            .and_then(|id| {
-                                                input_edges.iter().position(|&object| object == id)
-                                            })
-                                            .unwrap()
-                                    },
-                                )
-                            })
-                            .collect(),
-                    );
-                    new_edges.push(new_edge);
+                    // let name = constraint
+                    //     .tags
+                    //     .iter()
+                    //     .filter_map(|tag| tag.infer_name())
+                    //     .find(|_| true);
+                    let tags: Vec<_> = constraint
+                        .tags
+                        .iter()
+                        .map(|tag| {
+                            tag.map_borrowed(
+                                |label| {
+                                    bindings
+                                        .get_object(label)
+                                        .and_then(|id| {
+                                            input_vertices.iter().position(|&object| object == id)
+                                        })
+                                        .unwrap()
+                                },
+                                |label| {
+                                    bindings
+                                        .get_morphism(label)
+                                        .and_then(|id| {
+                                            input_edges.iter().position(|&object| object == id)
+                                        })
+                                        .unwrap()
+                                },
+                            )
+                        })
+                        .collect();
+                    let name = tags
+                        .iter()
+                        .filter_map(|tag| {
+                            tag.map_borrowed(
+                                |&object| {
+                                    let id = &input_vertices[object];
+                                    &graph.graph.vertices.get(id).unwrap().vertex.label
+                                },
+                                |&morphism| {
+                                    let id = &input_edges[morphism];
+                                    &graph.graph.edges.get(id).unwrap().edge.label
+                                },
+                            )
+                            .infer_name()
+                        })
+                        .find(|_| true);
+                    let new_edge = ArrowConstraint::new(from, to, tags);
+                    new_edges.push((name, new_edge));
                 }
             },
             Constraint::MorphismEq(_, _) => todo!(),
@@ -682,10 +712,10 @@ fn apply_constraints(constraints: &Constraints, bindings: &Bindings) -> Vec<Grap
     for _ in 0..len {
         new_vertices.push(None);
     }
-    for (index, tags) in objects.into_values() {
-        new_vertices[index - input_vertices.len()] = Some(tags);
+    for (index, name, tags) in objects.into_values() {
+        new_vertices[index - input_vertices.len()] = Some((name, tags));
     }
-    let new_vertices = new_vertices.into_iter().map(|tags| tags.unwrap()).collect();
+    let new_vertices = new_vertices.into_iter().map(|info| info.unwrap()).collect();
 
     vec![GraphActionDo::ApplyRule {
         input_vertices,

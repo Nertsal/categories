@@ -5,8 +5,8 @@ pub enum GraphActionDo {
     ApplyRule {
         input_vertices: Vec<VertexId>,
         input_edges: Vec<EdgeId>,
-        new_vertices: Vec<Vec<ObjectTag<usize>>>,
-        new_edges: Vec<ArrowConstraint<usize, usize>>,
+        new_vertices: Vec<(Option<Label>, Vec<ObjectTag<usize>>)>,
+        new_edges: Vec<(Option<Label>, ArrowConstraint<usize, usize>)>,
         remove_vertices: Vec<VertexId>,
         remove_edges: Vec<EdgeId>,
     },
@@ -36,7 +36,7 @@ impl GameState {
                 let available_vertices = input_vertices.len() + new_vertices.len();
                 if !new_edges
                     .iter()
-                    .all(|edge| edge.from < available_vertices || edge.to < available_vertices)
+                    .all(|(_, edge)| edge.from < available_vertices || edge.to < available_vertices)
                 {
                     warn!("Attempted to apply an illegal rule");
                     return;
@@ -47,12 +47,12 @@ impl GameState {
                 let new_len = new_tags.len();
                 let mut new_vertices = Vec::with_capacity(new_len);
                 input_vertices.reserve(new_len);
-                for tags in new_tags {
+                for (label, tags) in new_tags {
                     let vertex = self.main_graph.graph.new_vertex(ForceVertex {
                         is_anchor: false,
                         body: ForceBody::new(random_shift(), POINT_MASS),
                         vertex: Point {
-                            label: "".to_owned(),
+                            label: label.unwrap_or_default(),
                             radius: POINT_RADIUS,
                             color: Color::WHITE,
                             tags: tags
@@ -68,7 +68,7 @@ impl GameState {
                 // Add edges
                 let new_edges: Vec<_> = new_edges
                     .into_iter()
-                    .map(|edge| {
+                    .map(|(label, edge)| {
                         let from = input_vertices[edge.from];
                         let to = input_vertices[edge.to];
                         let from_pos = self
@@ -102,7 +102,7 @@ impl GameState {
                                 to_pos,
                                 ARROW_BODIES,
                                 ARROW_MASS,
-                                Arrow::new("", from, to, tags, color),
+                                Arrow::new(&label.unwrap_or_default(), from, to, tags, color),
                             ))
                             .unwrap()
                     })

@@ -5,6 +5,19 @@ pub enum ObjectTag<O = Label> {
     Product(O, O),
 }
 
+impl<O: AsRef<str>> ObjectTag<O> {
+    pub fn infer_name(&self) -> Option<Label> {
+        match self {
+            ObjectTag::Product(a, b) => {
+                if a.as_ref().is_empty() || b.as_ref().is_empty() {
+                    return None;
+                }
+                Some(label_operation(a.as_ref(), b.as_ref(), "x"))
+            }
+        }
+    }
+}
+
 impl<O> ObjectTag<O> {
     pub fn map<V, Fv: Fn(O) -> V>(self, fv: Fv) -> ObjectTag<V> {
         match self {
@@ -25,6 +38,22 @@ pub enum MorphismTag<O = Label, M = Label> {
     Composition { first: M, second: M },
     Unique,
     Isomorphism(M, M),
+}
+
+impl<O: AsRef<str>, M: AsRef<str>> MorphismTag<O, M> {
+    pub fn infer_name(&self) -> Option<Label> {
+        match self {
+            MorphismTag::Identity(_) => Some(format!("id")),
+            MorphismTag::Composition { first, second } => {
+                if first.as_ref().is_empty() || second.as_ref().is_empty() {
+                    return None;
+                }
+                Some(label_operation(first.as_ref(), second.as_ref(), "."))
+            }
+            MorphismTag::Unique => None,
+            MorphismTag::Isomorphism(_, _) => None,
+        }
+    }
 }
 
 impl<O, M> MorphismTag<O, M> {
@@ -55,4 +84,18 @@ impl<O, M> MorphismTag<O, M> {
             Self::Isomorphism(f, g) => MorphismTag::Isomorphism(fe(f), fe(g)),
         }
     }
+}
+
+fn label_operation(label_a: &str, label_b: &str, operation: &str) -> String {
+    let first = if label_a.contains(operation) {
+        format!("({})", label_a)
+    } else {
+        format!("{}", label_a)
+    };
+    let second = if label_b.contains(operation) {
+        format!("({})", label_b)
+    } else {
+        format!("{}", label_b)
+    };
+    format!("{}{}{}", first, operation, second)
 }
