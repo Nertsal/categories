@@ -31,7 +31,7 @@ pub struct GameState {
     focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
     selection: Option<RuleSelection>,
-    action_history: Vec<GraphActionUndo>,
+    action_history: Vec<GraphAction>,
 }
 
 impl GameState {

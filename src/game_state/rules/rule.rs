@@ -3,17 +3,9 @@ use super::*;
 impl GameState {
     /// Attempts to apply a rule.
     /// Returns whether the rule was applied successfully.
-    pub fn apply_rule(&mut self, selection: RuleSelection) -> bool {
+    pub fn apply_rule(&mut self, selection: RuleSelection) {
         let rule = self.rules.get_rule(selection.rule()).unwrap();
-        match rule.action(&mut self.main_graph, selection.selection()) {
-            Ok(actions) => {
-                for action in actions {
-                    self.action_do(action);
-                }
-                true
-            }
-            Err(_) => false,
-        }
+        rule.apply(&mut self.main_graph, selection.selection())
     }
 }
 
@@ -253,58 +245,54 @@ impl Rule {
         &self.graph_input
     }
 
-    fn apply(
-        statement: &[RuleConstruction],
-        bindings: Bindings,
-        graph: &Graph,
-    ) -> Vec<GraphActionDo> {
-        if let Some(construction) = statement.first() {
-            let statement = &statement[1..];
-            match construction {
-                RuleConstruction::Forall(constraints) => {
-                    find_candidates(constraints, &bindings, graph)
-                        .map(|candidates| {
-                            candidates
-                                .flat_map(|mut binds| {
-                                    binds.extend(bindings.clone());
-                                    Self::apply(statement, binds, graph)
-                                })
-                                .collect::<Vec<_>>()
-                        })
-                        .unwrap_or_default()
-                }
-                RuleConstruction::Exists(constraints) => {
-                    match find_candidates(constraints, &bindings, graph)
-                        .map(|mut binds| binds.next())
-                        .flatten()
-                    {
-                        Some(mut binds) => {
-                            binds.extend(bindings);
-                            Self::apply(statement, binds, graph)
+    fn apply_impl(statement: &[RuleConstruction], bindings: Bindings, graph: &mut Graph) {
+        let construction = match statement.first() {
+            Some(construction) => construction,
+            None => return,
+        };
+
+        let statement = &statement[1..];
+        match construction {
+            RuleConstruction::Forall(constraints) => {
+                find_candidates(constraints, &bindings, graph)
+                    .map(|candidates| candidates.collect::<Vec<_>>())
+                    .map(|candidates| {
+                        for mut binds in candidates {
+                            binds.extend(bindings.clone());
+                            Self::apply_impl(statement, binds, graph);
                         }
-                        None => apply_constraints(graph, constraints, &bindings),
+                    });
+            }
+            RuleConstruction::Exists(constraints) => {
+                match find_candidates(constraints, &bindings, graph)
+                    .map(|mut binds| binds.next())
+                    .flatten()
+                {
+                    Some(mut binds) => {
+                        binds.extend(bindings);
+                        Self::apply_impl(statement, binds, graph);
+                    }
+                    None => {
+                        apply_constraints(graph, constraints, &bindings);
                     }
                 }
             }
-        } else {
-            vec![]
         }
     }
 
-    fn action(
-        &self,
-        graph: &Graph,
-        selection: &Vec<GraphObject>,
-    ) -> Result<Vec<GraphActionDo>, ()> {
+    fn apply(&self, graph: &mut Graph, selection: &Vec<GraphObject>) {
         let bindings = match self.statement.first() {
             Some(RuleConstruction::Forall(constraints))
             | Some(RuleConstruction::Exists(constraints)) => {
-                selection_constraints(selection, constraints, graph)?
+                match selection_constraints(selection, constraints, graph) {
+                    Ok(bindings) => bindings,
+                    Err(_) => return,
+                }
             }
             _ => Bindings::new(),
         };
 
-        Ok(Self::apply(&self.statement, bindings, graph))
+        Self::apply_impl(&self.statement, bindings, graph)
     }
 }
 
@@ -594,130 +582,100 @@ fn constraint_morphism<'a>(
     })
 }
 
+/// Applies the rule constraints to the graph.
 fn apply_constraints(
-    graph: &Graph,
+    graph: &mut Graph,
     constraints: &Constraints,
     bindings: &Bindings,
-) -> Vec<GraphActionDo> {
-    let input_vertices: Vec<_> = bindings.objects.values().copied().collect();
-    let input_edges: Vec<_> = bindings.morphisms.values().copied().collect();
-    let mut new_vertices = HashMap::new();
+) -> Vec<GraphAction> {
+    let mut bindings = bindings.clone();
 
-    let mut new_vertices_count = 0;
+    let mut new_vertices = Vec::new();
+    let mut new_vertices_names = Vec::new();
     let mut new_edges = Vec::new();
-
-    let find_object = |label,
-                       input_vertices: &Vec<VertexId>,
-                       new_vertices: &HashMap<Label, (usize, _, _)>|
-     -> Option<usize> {
-        bindings
-            .get_object(label)
-            .and_then(|id| input_vertices.iter().position(|&object| object == id))
-            .or_else(|| new_vertices.get(label).map(|(i, _, _)| *i))
-    };
+    let mut new_edges_names = Vec::new();
 
     for constraint in constraints {
         match constraint {
-            Constraint::RuleObject(label, object) => match object {
+            Constraint::RuleObject(label, rule_object) => match rule_object {
                 RuleObject::Vertex { tags } => {
                     let tags: Vec<_> = tags
                         .iter()
-                        .map(|tag| {
-                            tag.map_borrowed(|object| {
-                                bindings
-                                    .get_object(object)
-                                    .and_then(|id| {
-                                        input_vertices.iter().position(|&object| object == id)
-                                    })
-                                    .unwrap()
-                            })
-                        })
+                        .map(|tag| tag.map_borrowed(|label| bindings.get_object(label).unwrap()))
                         .collect();
                     let name = tags
                         .iter()
                         .filter_map(|tag| {
-                            tag.map_borrowed(|&object| {
-                                let id = &input_vertices[object];
-                                &graph.graph.vertices.get(id).unwrap().vertex.label
+                            tag.map_borrowed(|object| {
+                                &graph.graph.vertices.get(object).unwrap().vertex.label
                             })
                             .infer_name()
                         })
                         .find(|_| true);
-                    new_vertices.insert(
-                        label.to_owned(),
-                        (input_vertices.len() + new_vertices_count, name, tags),
-                    );
-                    new_vertices_count += 1;
+                    new_vertices.push((name, tags));
+                    new_vertices_names.push(label.to_owned());
                 }
                 RuleObject::Edge { constraint } => {
-                    let from =
-                        find_object(&constraint.from, &input_vertices, &new_vertices).unwrap();
-                    let to = find_object(&constraint.to, &input_vertices, &new_vertices).unwrap();
-                    let tags: Vec<_> = constraint
+                    let constraint = ArrowConstraint {
+                        from: bindings.get_object(&constraint.from).unwrap(),
+                        to: bindings.get_object(&constraint.to).unwrap(),
+                        tags: constraint
+                            .tags
+                            .iter()
+                            .map(|tag| {
+                                tag.map_borrowed(
+                                    |label| bindings.get_object(label).unwrap(),
+                                    |label| bindings.get_morphism(label).unwrap(),
+                                )
+                            })
+                            .collect(),
+                    };
+                    let name = constraint
                         .tags
-                        .iter()
-                        .map(|tag| {
-                            tag.map_borrowed(
-                                |label| {
-                                    bindings
-                                        .get_object(label)
-                                        .and_then(|id| {
-                                            input_vertices.iter().position(|&object| object == id)
-                                        })
-                                        .unwrap()
-                                },
-                                |label| {
-                                    bindings
-                                        .get_morphism(label)
-                                        .and_then(|id| {
-                                            input_edges.iter().position(|&object| object == id)
-                                        })
-                                        .unwrap()
-                                },
-                            )
-                        })
-                        .collect();
-                    let name = tags
                         .iter()
                         .filter_map(|tag| {
                             tag.map_borrowed(
-                                |&object| {
-                                    let id = &input_vertices[object];
-                                    &graph.graph.vertices.get(id).unwrap().vertex.label
-                                },
-                                |&morphism| {
-                                    let id = &input_edges[morphism];
-                                    &graph.graph.edges.get(id).unwrap().edge.label
-                                },
+                                |id| &graph.graph.vertices.get(id).unwrap().vertex.label,
+                                |id| &graph.graph.edges.get(id).unwrap().edge.label,
                             )
                             .infer_name()
                         })
                         .find(|_| true);
-                    let new_edge = ArrowConstraint::new(from, to, tags);
-                    new_edges.push((name, new_edge));
+                    new_edges.push((name, constraint));
+                    new_edges_names.push(label.to_owned());
                 }
             },
             Constraint::MorphismEq(_, _) => todo!(),
         }
     }
 
-    let objects = new_vertices;
-    let len = new_vertices_count;
-    let mut new_vertices = Vec::with_capacity(len);
-    for _ in 0..len {
-        new_vertices.push(None);
+    // Create new vertices
+    let mut action_history = Vec::new();
+    let action = GameState::graph_action_do(graph, GraphAction::NewVertices(new_vertices));
+    // Bind new vertices
+    match &action {
+        GraphAction::RemoveVertices(vertices) => {
+            assert_eq!(vertices.len(), new_vertices_names.len());
+            for (label, id) in new_vertices_names.into_iter().zip(vertices.iter().copied()) {
+                bindings.bind_object(label, id);
+            }
+        }
+        _ => unreachable!(),
     }
-    for (index, name, tags) in objects.into_values() {
-        new_vertices[index - input_vertices.len()] = Some((name, tags));
-    }
-    let new_vertices = new_vertices.into_iter().map(|info| info.unwrap()).collect();
+    action_history.push(action);
 
-    vec![GraphActionDo::ApplyRule {
-        input_vertices,
-        input_edges,
-        new_vertices,
-        new_edges,
-        remove_vertices: vec![],
-        remove_edges: vec![],
-    }]
+    // Create new edges
+    let action = GameState::graph_action_do(graph, GraphAction::NewEdges(new_edges));
+    // Bind new edges
+    match &action {
+        GraphAction::RemoveEdges(edges) => {
+            assert_eq!(edges.len(), new_edges_names.len());
+            for (label, id) in new_edges_names.into_iter().zip(edges.iter().copied()) {
+                bindings.bind_morphism(label, id);
+            }
+        }
+        _ => unreachable!(),
+    }
+    action_history.push(action);
+    action_history
 }
