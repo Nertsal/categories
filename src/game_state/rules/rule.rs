@@ -281,7 +281,12 @@ impl Rule {
                         binds.extend(bindings);
                         Self::apply_impl(statement, binds, graph)
                     }
-                    None => apply_constraints(graph, constraints, &bindings),
+                    None => {
+                        let (mut actions, new_binds) =
+                            apply_constraints(graph, constraints, &bindings);
+                        actions.extend(Self::apply_impl(statement, new_binds, graph));
+                        actions
+                    }
                 }
             }
         }
@@ -595,7 +600,7 @@ fn apply_constraints(
     graph: &mut Graph,
     constraints: &Constraints,
     bindings: &Bindings,
-) -> Vec<GraphAction> {
+) -> (Vec<GraphAction>, Bindings) {
     let mut bindings = bindings.clone();
 
     let mut new_vertices = Vec::new();
@@ -698,5 +703,5 @@ fn apply_constraints(
         _ => unreachable!(),
     }
     action_history.extend(actions);
-    action_history
+    (action_history, bindings)
 }

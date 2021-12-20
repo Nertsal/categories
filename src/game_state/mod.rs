@@ -81,7 +81,8 @@ impl GameState {
                         ))
                         .build(),
                     // Product: forall (object A, object B)
-                    //          exists (object AxB [Product A B], morphism _ AxB->A, morphism _ AxB->B)
+                    //          exists (object AxB [Product A B])
+                    //          exists (morphism _ AxB->A, morphism _ AxB->B)
                     //          forall (object C, morphism f C->A, morphism g C->B)
                     //          exists (morphism m C->AxB [Unique])
                     //          forall (morphism m' C->AxB)
@@ -94,7 +95,10 @@ impl GameState {
                         )
                         .exists(
                             ConstraintsBuilder::new()
-                                .object("AxB", vec![ObjectTag::Product("A", "B")])
+                                .object("AxB", vec![ObjectTag::Product("A", "B")]),
+                        )
+                        .exists(
+                            ConstraintsBuilder::new()
                                 .morphism("fst", "AxB", "A", vec![])
                                 .morphism("snd", "AxB", "B", vec![]),
                         )
