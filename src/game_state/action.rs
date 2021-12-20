@@ -10,7 +10,7 @@ pub enum GraphAction {
 
 impl GameState {
     /// Perform the action and returns the inverse action
-    pub fn graph_action_do(graph: &mut Graph, action_do: GraphAction) -> GraphAction {
+    pub fn graph_action_do(graph: &mut Graph, action_do: GraphAction) -> Vec<GraphAction> {
         match action_do {
             GraphAction::NewVertices(vertices) => {
                 let vertices = vertices
@@ -29,7 +29,7 @@ impl GameState {
                         id
                     })
                     .collect();
-                GraphAction::RemoveVertices(vertices)
+                vec![GraphAction::RemoveVertices(vertices)]
             }
             GraphAction::NewEdges(edges) => {
                 let edges = edges
@@ -56,13 +56,59 @@ impl GameState {
                         id
                     })
                     .collect();
-                GraphAction::RemoveEdges(edges)
+                vec![GraphAction::RemoveEdges(edges)]
             }
             GraphAction::RemoveVertices(vertices) => {
-                todo!()
+                let (vertices, edges) = vertices
+                    .into_iter()
+                    .map(|id| graph.graph.remove_vertex(id))
+                    .map(|(vertex, edges)| (vertex.unwrap(), edges))
+                    .map(|(vertex, edges)| {
+                        let vertex = (Some(vertex.vertex.label), vertex.vertex.tags);
+                        let edges: Vec<_> = edges
+                            .into_iter()
+                            .map(|(_, edge)| {
+                                (
+                                    Some(edge.edge.label),
+                                    ArrowConstraint {
+                                        from: edge.edge.from,
+                                        to: edge.edge.to,
+                                        tags: edge.edge.tags,
+                                    },
+                                )
+                            })
+                            .collect();
+                        (vertex, edges)
+                    })
+                    .fold(
+                        (Vec::new(), Vec::new()),
+                        |(mut acc_vertices, mut acc_edges), (vertex, edges)| {
+                            acc_vertices.push(vertex);
+                            acc_edges.extend(edges);
+                            (acc_vertices, acc_edges)
+                        },
+                    );
+                vec![
+                    GraphAction::NewEdges(edges),
+                    GraphAction::NewVertices(vertices),
+                ]
             }
             GraphAction::RemoveEdges(edges) => {
-                todo!()
+                let edges: Vec<_> = edges
+                    .into_iter()
+                    .map(|id| graph.graph.remove_edge(id).unwrap())
+                    .map(|edge| {
+                        (
+                            Some(edge.edge.label),
+                            ArrowConstraint {
+                                from: edge.edge.from,
+                                to: edge.edge.to,
+                                tags: edge.edge.tags,
+                            },
+                        )
+                    })
+                    .collect();
+                vec![GraphAction::NewEdges(edges)]
             }
         }
     }
