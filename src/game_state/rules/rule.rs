@@ -5,7 +5,8 @@ impl GameState {
     /// Returns whether the rule was applied successfully.
     pub fn apply_rule(&mut self, selection: RuleSelection) {
         let rule = self.rules.get_rule(selection.rule()).unwrap();
-        rule.apply(&mut self.main_graph, selection.selection())
+        let actions = rule.apply(&mut self.main_graph, selection.selection());
+        self.action_history.extend(dbg!(actions));
     }
 }
 
@@ -245,24 +246,32 @@ impl Rule {
         &self.graph_input
     }
 
-    fn apply_impl(statement: &[RuleConstruction], bindings: Bindings, graph: &mut Graph) {
+    /// Attempts to apply the rule and returns the action history (undo actions).
+    fn apply_impl(
+        statement: &[RuleConstruction],
+        bindings: Bindings,
+        graph: &mut Graph,
+    ) -> Vec<GraphAction> {
         let construction = match statement.first() {
             Some(construction) => construction,
-            None => return,
+            None => return Vec::new(),
         };
 
         let statement = &statement[1..];
         match construction {
-            RuleConstruction::Forall(constraints) => {
-                find_candidates(constraints, &bindings, graph)
-                    .map(|candidates| candidates.collect::<Vec<_>>())
-                    .map(|candidates| {
-                        for mut binds in candidates {
+            RuleConstruction::Forall(constraints) => find_candidates(constraints, &bindings, graph)
+                .map(|candidates| candidates.collect::<Vec<_>>())
+                .map(|candidates| {
+                    candidates
+                        .into_iter()
+                        .map(|mut binds| {
                             binds.extend(bindings.clone());
-                            Self::apply_impl(statement, binds, graph);
-                        }
-                    });
-            }
+                            Self::apply_impl(statement, binds, graph)
+                        })
+                        .flatten()
+                        .collect()
+                })
+                .unwrap_or_default(),
             RuleConstruction::Exists(constraints) => {
                 match find_candidates(constraints, &bindings, graph)
                     .map(|mut binds| binds.next())
@@ -270,23 +279,22 @@ impl Rule {
                 {
                     Some(mut binds) => {
                         binds.extend(bindings);
-                        Self::apply_impl(statement, binds, graph);
+                        Self::apply_impl(statement, binds, graph)
                     }
-                    None => {
-                        apply_constraints(graph, constraints, &bindings);
-                    }
+                    None => apply_constraints(graph, constraints, &bindings),
                 }
             }
         }
     }
 
-    fn apply(&self, graph: &mut Graph, selection: &Vec<GraphObject>) {
+    /// Attempts to apply the rule and returns the action history (undo actions).
+    fn apply(&self, graph: &mut Graph, selection: &Vec<GraphObject>) -> Vec<GraphAction> {
         let bindings = match self.statement.first() {
             Some(RuleConstruction::Forall(constraints))
             | Some(RuleConstruction::Exists(constraints)) => {
                 match selection_constraints(selection, constraints, graph) {
                     Ok(bindings) => bindings,
-                    Err(_) => return,
+                    Err(_) => return Vec::new(),
                 }
             }
             _ => Bindings::new(),
