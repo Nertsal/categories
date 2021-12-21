@@ -4,7 +4,7 @@ use super::*;
 
 impl GameState {
     pub fn draw_rules(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        let camera_view = camera_view(&self.camera, self.framebuffer_size);
+        let camera_view = util::camera_view(&self.camera, self.framebuffer_size);
         let line_width = camera_view.height() * RULES_SECTION_SEPARATION_WIDTH_FRAC;
 
         // Separation line

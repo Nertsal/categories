@@ -122,7 +122,7 @@ fn layout(
     camera: &Camera2d,
     framebuffer_size: Vec2<f32>,
 ) -> impl Iterator<Item = AABB<f32>> {
-    let camera_view = camera_view(camera, framebuffer_size);
+    let camera_view = util::camera_view(camera, framebuffer_size);
 
     let rule_height = width / RULE_RESOLUTION.x as f32 * RULE_RESOLUTION.y as f32;
     let rule_aabb_base = AABB::point(camera_view.top_left() + offset)

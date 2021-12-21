@@ -24,7 +24,6 @@ use drag::*;
 use focus::*;
 use graph_types::*;
 use rules::*;
-use util::*;
 
 pub struct GameState {
     geng: Geng,

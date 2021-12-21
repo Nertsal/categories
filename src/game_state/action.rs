@@ -18,7 +18,7 @@ impl GameState {
                     .map(|(label, tags)| {
                         let id = graph.graph.new_vertex(ForceVertex {
                             is_anchor: false,
-                            body: ForceBody::new(random_shift(), POINT_MASS),
+                            body: ForceBody::new(util::random_shift(), POINT_MASS),
                             vertex: Point {
                                 label: label.unwrap_or_default(),
                                 radius: POINT_RADIUS,
@@ -37,10 +37,10 @@ impl GameState {
                     .map(|(label, constraint)| {
                         let from = constraint.from;
                         let to = constraint.to;
-                        let from_pos =
-                            graph.graph.vertices.get(&from).unwrap().body.position + random_shift();
-                        let to_pos =
-                            graph.graph.vertices.get(&to).unwrap().body.position + random_shift();
+                        let from_pos = graph.graph.vertices.get(&from).unwrap().body.position
+                            + util::random_shift();
+                        let to_pos = graph.graph.vertices.get(&to).unwrap().body.position
+                            + util::random_shift();
                         let tags = constraint.tags;
                         let color = draw::graph::morphism_color(&tags);
                         let id = graph

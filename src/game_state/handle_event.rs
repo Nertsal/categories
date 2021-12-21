@@ -359,7 +359,7 @@ impl GameState {
         (
             screen_pos,
             camera.screen_to_world(framebuffer_size, screen_pos),
-            camera_view(camera, framebuffer_size),
+            util::camera_view(camera, framebuffer_size),
         )
     }
 }

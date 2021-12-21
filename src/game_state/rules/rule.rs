@@ -96,7 +96,7 @@ impl Rule {
             *objects.entry(label.to_owned()).or_insert_with(|| {
                 graph.graph.new_vertex(ForceVertex {
                     is_anchor: false,
-                    body: ForceBody::new(random_shift(), POINT_MASS),
+                    body: ForceBody::new(util::random_shift(), POINT_MASS),
                     vertex: Point {
                         label: label.to_owned(),
                         radius: POINT_RADIUS,
@@ -149,8 +149,8 @@ impl Rule {
                                     let new_morphism = graph
                                         .graph
                                         .new_edge(ForceEdge::new(
-                                            random_shift(),
-                                            random_shift(),
+                                            util::random_shift(),
+                                            util::random_shift(),
                                             ARROW_BODIES,
                                             ARROW_MASS,
                                             Arrow::new(label, from, to, tags, color),

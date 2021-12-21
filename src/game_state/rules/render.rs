@@ -47,7 +47,7 @@ impl Rules {
         camera: &Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        let line_width = camera_view(camera, framebuffer.size().map(|x| x as f32)).height()
+        let line_width = util::camera_view(camera, framebuffer.size().map(|x| x as f32)).height()
             * RULE_SEPARATION_WIDTH_FRAC;
 
         self.render(selection);
