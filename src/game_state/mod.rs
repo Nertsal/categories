@@ -12,9 +12,11 @@ mod draw;
 mod focus;
 mod graph_types;
 mod handle_event;
+mod init;
 mod rules;
 mod selection;
 mod update;
+mod util;
 
 use action::*;
 use constants::*;
@@ -22,6 +24,7 @@ use drag::*;
 use focus::*;
 use graph_types::*;
 use rules::*;
+use util::*;
 
 pub struct GameState {
     geng: Geng,
@@ -51,232 +54,8 @@ impl GameState {
                 rotation: 0.0,
                 fov: 100.0,
             },
-            rules: Rules::new(
-                geng,
-                assets,
-                vec![
-                    // Identity: forall (object A) exists (morphism id A->A [Identity])
-                    RuleBuilder::new()
-                        .forall(ConstraintsBuilder::new().object("A", vec![]))
-                        .exists(ConstraintsBuilder::new().morphism(
-                            "id",
-                            "A",
-                            "A",
-                            vec![MorphismTag::Identity("A")],
-                        ))
-                        .build(),
-                    // Composition: forall (morphism f A->B, morphism g B->C) exists (morphism g.f A->C [Composition f g])
-                    RuleBuilder::new()
-                        .forall(
-                            ConstraintsBuilder::new()
-                                .morphism("f", "A", "B", vec![])
-                                .morphism("g", "B", "C", vec![]),
-                        )
-                        .exists(ConstraintsBuilder::new().morphism(
-                            "g.f",
-                            "A",
-                            "C",
-                            vec![MorphismTag::Composition {
-                                first: "f",
-                                second: "g",
-                            }],
-                        ))
-                        .build(),
-                    // Product: forall (object A, object B)
-                    //          exists (object AxB [Product A B])
-                    //          exists (morphism _ AxB->A, morphism _ AxB->B)
-                    //          forall (object C, morphism f C->A, morphism g C->B)
-                    //          exists (morphism m C->AxB [Unique])
-                    //          forall (morphism m' C->AxB)
-                    //                  m = m'
-                    RuleBuilder::new()
-                        .forall(
-                            ConstraintsBuilder::new()
-                                .object("A", vec![])
-                                .object("B", vec![]),
-                        )
-                        .exists(
-                            ConstraintsBuilder::new()
-                                .object("AxB", vec![ObjectTag::Product("A", "B")]),
-                        )
-                        .exists(
-                            ConstraintsBuilder::new()
-                                .morphism("fst", "AxB", "A", vec![])
-                                .morphism("snd", "AxB", "B", vec![]),
-                        )
-                        .forall(
-                            ConstraintsBuilder::new()
-                                .object("C", vec![])
-                                .morphism("f", "C", "A", vec![])
-                                .morphism("g", "C", "B", vec![]),
-                        )
-                        .exists(ConstraintsBuilder::new().morphism(
-                            "m",
-                            "C",
-                            "AxB",
-                            vec![MorphismTag::Unique],
-                        ))
-                        .forall(ConstraintsBuilder::new().morphism("m'", "C", "AxB", vec![]))
-                        // TODO: m = m'
-                        .build(),
-                    // Isomorphism: forall (morphism f A->B, morphism g B->A) // TODO: f.g = id_a, g.f = id_b
-                    //              exists (morphism _ A<=>B [Isomorphism f g])
-                    RuleBuilder::new()
-                        .forall(
-                            ConstraintsBuilder::new()
-                                .morphism("f", "A", "B", vec![])
-                                .morphism("g", "B", "A", vec![]),
-                        )
-                        .exists(ConstraintsBuilder::new().morphism(
-                            "",
-                            "A",
-                            "B",
-                            vec![MorphismTag::Isomorphism("f", "g")],
-                        ))
-                        .build(),
-                ],
-            ),
-            main_graph: {
-                let mut graph = Graph::new(ForceParameters::default());
-
-                let mut objects = HashMap::new();
-                let mut morphisms = HashMap::new();
-
-                let mut rng = thread_rng();
-
-                let mut object = |graph: &mut Graph,
-                                  objects: &mut HashMap<Label, VertexId>,
-                                  label: &str,
-                                  tags: Vec<ObjectTag<&str>>,
-                                  color: Color<f32>,
-                                  anchor: bool| {
-                    let new_object = graph.graph.new_vertex(ForceVertex {
-                        is_anchor: anchor,
-                        body: ForceBody {
-                            position: vec2(rng.gen(), rng.gen()),
-                            mass: POINT_MASS,
-                            velocity: Vec2::ZERO,
-                        },
-                        vertex: Point {
-                            label: label.to_owned(),
-                            radius: POINT_RADIUS,
-                            tags: tags
-                                .into_iter()
-                                .map(|tag| tag.map(|o| objects[o]))
-                                .collect(),
-                            color,
-                        },
-                    });
-                    objects.insert(label.to_owned(), new_object);
-                };
-
-                let mut rng = thread_rng();
-                let mut morphism =
-                    |graph: &mut Graph,
-                     objects: &HashMap<Label, VertexId>,
-                     morphisms: &mut HashMap<Label, EdgeId>,
-                     label: &str,
-                     from: &str,
-                     to: &str,
-                     tags: Vec<MorphismTag<&str, &str>>| {
-                        let color = draw::graph::morphism_color(&tags);
-                        let new_edge = graph.graph.new_edge(ForceEdge::new(
-                            vec2(rng.gen(), rng.gen()),
-                            vec2(rng.gen(), rng.gen()),
-                            ARROW_BODIES,
-                            ARROW_MASS,
-                            Arrow::new(
-                                label,
-                                objects[from],
-                                objects[to],
-                                tags.into_iter()
-                                    .map(|tag| tag.map(|o| objects[o], |m| morphisms[m]))
-                                    .collect(),
-                                color,
-                            ),
-                        ));
-                        morphisms.insert(label.to_owned(), new_edge.unwrap());
-                    };
-
-                object(&mut graph, &mut objects, "A", vec![], Color::WHITE, false);
-                object(&mut graph, &mut objects, "B", vec![], Color::WHITE, false);
-                object(&mut graph, &mut objects, "C", vec![], Color::WHITE, false);
-                object(
-                    &mut graph,
-                    &mut objects,
-                    "AxB",
-                    vec![ObjectTag::Product("A", "B")],
-                    Color::WHITE,
-                    false,
-                );
-                object(
-                    &mut graph,
-                    &mut objects,
-                    "BxC",
-                    vec![ObjectTag::Product("B", "C")],
-                    Color::WHITE,
-                    false,
-                );
-                object(
-                    &mut graph,
-                    &mut objects,
-                    "(AxB)xC",
-                    vec![ObjectTag::Product("AxB", "C")],
-                    Color::WHITE,
-                    false,
-                );
-                object(
-                    &mut graph,
-                    &mut objects,
-                    "Ax(BxC)",
-                    vec![ObjectTag::Product("A", "BxC")],
-                    Color::WHITE,
-                    false,
-                );
-
-                morphism(&mut graph, &objects, &mut morphisms, "", "AxB", "A", vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", "AxB", "B", vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", "BxC", "B", vec![]);
-                morphism(&mut graph, &objects, &mut morphisms, "", "BxC", "C", vec![]);
-                morphism(
-                    &mut graph,
-                    &objects,
-                    &mut morphisms,
-                    "",
-                    "(AxB)xC",
-                    "AxB",
-                    vec![],
-                );
-                morphism(
-                    &mut graph,
-                    &objects,
-                    &mut morphisms,
-                    "",
-                    "(AxB)xC",
-                    "C",
-                    vec![],
-                );
-                morphism(
-                    &mut graph,
-                    &objects,
-                    &mut morphisms,
-                    "",
-                    "Ax(BxC)",
-                    "A",
-                    vec![],
-                );
-                morphism(
-                    &mut graph,
-                    &objects,
-                    &mut morphisms,
-                    "",
-                    "Ax(BxC)",
-                    "BxC",
-                    vec![],
-                );
-
-                graph
-            },
+            rules: init::rules::default_rules(geng, assets),
+            main_graph: init::graph::default_graph(),
         }
     }
 }
@@ -294,18 +73,4 @@ impl geng::State for GameState {
     fn handle_event(&mut self, event: geng::Event) {
         self.handle_event_impl(event);
     }
-}
-
-fn random_shift() -> Vec2<f32> {
-    let mut rng = global_rng();
-    vec2(rng.gen(), rng.gen())
-}
-
-fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {
-    AABB::point(camera.center).extend_symmetric(
-        vec2(
-            camera.fov / framebuffer_size.y * framebuffer_size.x,
-            camera.fov,
-        ) / 2.0,
-    )
 }
