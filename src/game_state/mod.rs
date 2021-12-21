@@ -7,6 +7,7 @@ use super::*;
 
 mod action;
 mod constants;
+mod drag;
 mod draw;
 mod focus;
 mod graph_types;
@@ -17,6 +18,7 @@ mod update;
 
 use action::*;
 use constants::*;
+use drag::*;
 use focus::*;
 use graph_types::*;
 use rules::*;
@@ -292,41 +294,6 @@ impl geng::State for GameState {
     fn handle_event(&mut self, event: geng::Event) {
         self.handle_event_impl(event);
     }
-}
-
-struct Dragging {
-    mouse_start_position: Vec2<f64>,
-    world_start_position: Vec2<f32>,
-    action: DragAction,
-    current_mouse_position: Vec2<f64>,
-}
-
-enum DragAction {
-    Move {
-        target: DragTarget,
-    },
-    Selection {},
-    TwoTouchMove {
-        initial_camera_fov: f32,
-        initial_touch: Vec2<f64>,
-        initial_touch_other: Vec2<f64>,
-    },
-}
-
-enum DragTarget {
-    GraphCamera {
-        graph: FocusedGraph,
-        initial_mouse_pos: Vec2<f32>,
-        initial_camera_pos: Vec2<f32>,
-    },
-    Vertex {
-        graph: FocusedGraph,
-        id: VertexId,
-    },
-    Edge {
-        graph: FocusedGraph,
-        id: EdgeId,
-    },
 }
 
 fn random_shift() -> Vec2<f32> {
