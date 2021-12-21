@@ -49,19 +49,21 @@ pub fn apply_constraints(
 
     // Create new vertices
     let mut action_history = Vec::new();
-    let actions = GameState::graph_action_do(graph, GraphAction::NewVertices(new_vertices));
-    assert_eq!(actions.len(), 1);
-    // Bind new vertices
-    match &actions[0] {
-        GraphAction::RemoveVertices(vertices) => {
-            assert_eq!(vertices.len(), new_vertices_names.len());
-            for (label, id) in new_vertices_names.into_iter().zip(vertices.iter().copied()) {
-                bindings.bind_object(label, id);
+    if new_vertices.len() > 0 {
+        let actions = GameState::graph_action_do(graph, GraphAction::NewVertices(new_vertices));
+        assert_eq!(actions.len(), 1);
+        // Bind new vertices
+        match &actions[0] {
+            GraphAction::RemoveVertices(vertices) => {
+                assert_eq!(vertices.len(), new_vertices_names.len());
+                for (label, id) in new_vertices_names.into_iter().zip(vertices.iter().copied()) {
+                    bindings.bind_object(label, id);
+                }
             }
+            _ => unreachable!(),
         }
-        _ => unreachable!(),
+        action_history.extend(actions);
     }
-    action_history.extend(actions);
 
     // Constraint edges
     for (label, constraint) in constrained_edges {
@@ -95,18 +97,21 @@ pub fn apply_constraints(
     }
 
     // Create new edges
-    let actions = GameState::graph_action_do(graph, GraphAction::NewEdges(new_edges));
-    assert_eq!(actions.len(), 1);
-    // Bind new edges
-    match &actions[0] {
-        GraphAction::RemoveEdges(edges) => {
-            assert_eq!(edges.len(), new_edges_names.len());
-            for (label, id) in new_edges_names.into_iter().zip(edges.iter().copied()) {
-                bindings.bind_morphism(label, id);
+    if new_edges.len() > 0 {
+        let actions = GameState::graph_action_do(graph, GraphAction::NewEdges(new_edges));
+        assert_eq!(actions.len(), 1);
+        // Bind new edges
+        match &actions[0] {
+            GraphAction::RemoveEdges(edges) => {
+                assert_eq!(edges.len(), new_edges_names.len());
+                for (label, id) in new_edges_names.into_iter().zip(edges.iter().copied()) {
+                    bindings.bind_morphism(label, id);
+                }
             }
+            _ => unreachable!(),
         }
-        _ => unreachable!(),
+        action_history.extend(actions);
     }
-    action_history.extend(actions);
+
     (action_history, bindings)
 }
