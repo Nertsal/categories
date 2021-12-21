@@ -1,5 +1,5 @@
 use force_graph::{ForceBody, ForceEdge, ForceParameters, ForceVertex};
-use geng::{prelude::rand::thread_rng, Camera2d};
+use geng::Camera2d;
 
 use graphs::{EdgeId, GraphObject, VertexId};
 
@@ -10,6 +10,7 @@ mod constants;
 mod drag;
 mod draw;
 mod focus;
+mod graph_builder;
 mod graph_types;
 mod handle_event;
 mod init;
@@ -22,6 +23,7 @@ use action::*;
 use constants::*;
 use drag::*;
 use focus::*;
+use graph_builder::*;
 use graph_types::*;
 use rules::*;
 
@@ -54,7 +56,7 @@ impl GameState {
                 fov: 100.0,
             },
             rules: init::rules::default_rules(geng, assets),
-            main_graph: init::graph::default_graph(),
+            main_graph: init::graph::main_graph(),
         }
     }
 }
