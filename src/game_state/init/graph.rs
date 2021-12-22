@@ -5,6 +5,14 @@ pub fn main_graph() -> Graph {
         .object("A", vec![], Color::WHITE, false)
         .object("B", vec![], Color::WHITE, false)
         .object("C", vec![], Color::WHITE, false)
+        .build()
+}
+
+pub fn goal_graph() -> Graph {
+    GraphBuilder::new()
+        .object("A", vec![], Color::WHITE, false)
+        .object("B", vec![], Color::WHITE, false)
+        .object("C", vec![], Color::WHITE, false)
         .object(
             "AxB",
             vec![ObjectTag::Product("A", "B")],

@@ -26,18 +26,20 @@ pub const ARROW_LABEL_FONT_SIZE: f32 = 1.0;
 pub const ARROW_ICON_RADIUS: f32 = 1.5;
 pub const ARROW_ICON_OUTLINE_WIDTH: f32 = 0.2;
 
-pub const RULE_RESOLUTION: Vec2<usize> = vec2(1024, 768);
+pub const GRAPH_OUTLINE_COLOR: Color<f32> = Color::GRAY;
+pub const GRAPH_OUTLINE_WIDTH: f32 = 1.0;
+
 pub const RULES_WIDTH_FRAC: f32 = 0.3;
 pub const RULES_SECTION_SEPARATION_WIDTH_FRAC: f32 = 0.005;
-pub const RULE_SEPARATION_WIDTH_FRAC: f32 = 0.005;
 pub const RULES_SECTION_SEPARATION_COLOR: Color<f32> = Color::GRAY;
-pub const RULE_SEPARATION_COLOR: Color<f32> = Color::GRAY;
 pub const RULE_SELECTION_COLOR: Color<f32> = Color {
     r: 0.1,
     g: 0.1,
     b: 0.1,
     a: 1.0,
 };
+
+pub const GRAPH_TEXTURE_SCALE: f32 = 2.0;
 
 pub const ARROW_HEAD_WIDTH: f32 = 0.5;
 pub const ARROW_HEAD_LENGTH: f32 = 2.0;
@@ -49,12 +51,6 @@ pub const ARROW_DASH_FULL_LENGTH: f32 = ARROW_DASHED_DASH_LENGTH + ARROW_DASHED_
 
 pub const CURVE_RESOLUTION: usize = 5;
 
-pub const SELECTION_COLOR: Color<f32> = Color {
-    r: 0.0,
-    g: 0.0,
-    b: 0.5,
-    a: 0.5,
-};
 pub const SELECTED_RADIUS: f32 = 0.5;
 pub const SELECTED_COLOR: Color<f32> = Color {
     r: 0.7,

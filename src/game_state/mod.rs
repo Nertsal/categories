@@ -1,5 +1,5 @@
 use force_graph::{ForceBody, ForceEdge, ForceParameters, ForceVertex};
-use geng::Camera2d;
+use geng::{Camera2d, PixelPerfectCamera};
 
 use graphs::{EdgeId, GraphObject, VertexId};
 
@@ -12,12 +12,14 @@ mod draw;
 mod focus;
 mod graph_builder;
 mod graph_types;
+mod graph_util;
 mod handle_event;
 mod init;
+mod renderable;
 mod rules;
 mod selection;
+mod state;
 mod update;
-mod util;
 
 use action::*;
 use constants::*;
@@ -25,38 +27,41 @@ use drag::*;
 use focus::*;
 use graph_builder::*;
 use graph_types::*;
+use renderable::*;
 use rules::*;
+use state::*;
 
 pub struct GameState {
     geng: Geng,
-    assets: Rc<Assets>,
-    camera: Camera2d,
-    framebuffer_size: Vec2<f32>,
-    main_graph: Graph,
+    ui_camera: PixelPerfectCamera,
+    state: State,
     rules: Rules,
+    focused_rule: Option<usize>,
+    main_graph: RenderableGraph,
+    goal_graph: RenderableGraph,
     focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
-    selection: Option<RuleSelection>,
+    main_selection: Option<RuleSelection>,
+    goal_selection: Option<RuleSelection>,
     action_history: Vec<GraphAction>,
 }
 
 impl GameState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+        let state = State::default();
         Self {
             geng: geng.clone(),
-            assets: assets.clone(),
             dragging: None,
-            framebuffer_size: vec2(1.0, 1.0),
-            selection: None,
+            main_selection: None,
+            goal_selection: None,
+            focused_rule: None,
             focused_graph: FocusedGraph::Main,
             action_history: vec![],
-            camera: Camera2d {
-                center: Vec2::ZERO,
-                rotation: 0.0,
-                fov: 100.0,
-            },
-            rules: init::rules::default_rules(geng, assets),
-            main_graph: init::graph::main_graph(),
+            ui_camera: PixelPerfectCamera,
+            rules: init::rules::default_rules(geng, assets, &state),
+            main_graph: RenderableGraph::new(geng, assets, init::graph::main_graph(), vec2(1, 1)),
+            goal_graph: RenderableGraph::new(geng, assets, init::graph::goal_graph(), vec2(1, 1)),
+            state,
         }
     }
 }

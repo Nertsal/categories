@@ -1,7 +1,12 @@
 use super::*;
 
 impl Rule {
-    pub(super) fn new(statement: RuleStatement) -> Self {
+    pub(super) fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        state: &State,
+        statement: RuleStatement,
+    ) -> Self {
         let mut graph = Graph::new(default());
 
         let mut objects = HashMap::new();
@@ -142,7 +147,7 @@ impl Rule {
 
         Self {
             statement,
-            graph,
+            graph: RenderableGraph::new(geng, assets, graph, vec2(1, 1)),
             graph_input,
         }
     }

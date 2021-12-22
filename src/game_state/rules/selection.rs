@@ -11,13 +11,7 @@ pub struct RuleSelection {
 impl RuleSelection {
     pub fn new(graph: &Graph, rule_index: usize, rules: &Rules) -> Self {
         let mut selection = RuleSelection {
-            rule_input: rules
-                .get_rule(rule_index)
-                .unwrap()
-                .graph_input()
-                .iter()
-                .copied()
-                .collect(),
+            rule_input: rules[rule_index].graph_input().iter().copied().collect(),
             selection: Vec::new(),
             inferred_options: None,
             current_selection: 0,
@@ -62,9 +56,8 @@ impl RuleSelection {
     }
 
     /// Infer possible selections for the current rule selection
-    pub fn infer_current(&mut self, graph: &Graph, rules: &Rules) {
-        let rule = rules.get_rule(self.rule()).unwrap();
-
+    fn infer_current(&mut self, graph: &Graph, rules: &Rules) {
+        let rule = &rules[self.rule()];
         let input_constraints =
             match rule
                 .statement()

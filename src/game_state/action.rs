@@ -115,7 +115,7 @@ impl GameState {
 
     pub fn action_undo(&mut self) {
         if let Some(action) = self.action_history.pop() {
-            Self::graph_action_do(&mut self.main_graph, action);
+            Self::graph_action_do(&mut self.main_graph.graph, action);
         }
     }
 }

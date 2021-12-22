@@ -5,7 +5,11 @@ pub fn random_shift() -> Vec2<f32> {
     vec2(rng.gen(), rng.gen())
 }
 
-pub fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {
+pub fn ui_view(framebuffer_size: Vec2<f32>) -> AABB<f32> {
+    AABB::ZERO.extend_positive(framebuffer_size)
+}
+
+pub fn camera_view(camera: &geng::Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {
     AABB::point(camera.center).extend_symmetric(
         vec2(
             camera.fov / framebuffer_size.y * framebuffer_size.x,

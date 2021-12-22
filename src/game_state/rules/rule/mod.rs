@@ -1,14 +1,20 @@
 use super::*;
 
-mod init;
 mod apply;
+mod init;
 
 impl GameState {
     /// Attempts to apply a rule.
     /// Returns whether the rule was applied successfully.
-    pub fn apply_rule(&mut self, selection: RuleSelection) {
-        let rule = self.rules.get_rule(selection.rule()).unwrap();
-        let actions = rule.apply(&mut self.main_graph, selection.selection());
+    pub fn apply_rule(&mut self, graph: FocusedGraph, selection: RuleSelection) {
+        let graph = match graph {
+            FocusedGraph::Rule { .. } => return,
+            FocusedGraph::Main => &mut self.main_graph.graph,
+            FocusedGraph::Goal => &mut self.goal_graph.graph,
+        };
+
+        let rule = &self.rules[selection.rule()];
+        let actions = rule.apply(graph, selection.selection());
         self.action_history.extend(actions);
     }
 }
@@ -36,8 +42,8 @@ impl RuleBuilder {
         self
     }
 
-    pub fn build(self) -> Rule {
-        Rule::new(self.statement)
+    pub fn build(self, geng: &Geng, assets: &Rc<Assets>, state: &State) -> Rule {
+        Rule::new(geng, assets, state, self.statement)
     }
 }
 
@@ -45,21 +51,21 @@ pub type Label = String;
 
 pub struct Rule {
     statement: RuleStatement,
-    graph: Graph,
     graph_input: Vec<GraphObject>,
+    graph: RenderableGraph,
 }
 
 impl Rule {
-    pub fn graph(&self) -> &Graph {
+    pub fn graph(&self) -> &RenderableGraph {
         &self.graph
     }
 
-    pub fn graph_mut(&mut self) -> &mut Graph {
+    pub fn graph_mut(&mut self) -> &mut RenderableGraph {
         &mut self.graph
     }
 
     pub fn update_graph(&mut self, delta_time: f32) {
-        self.graph.update(delta_time);
+        self.graph.graph.update(delta_time);
     }
 
     pub fn statement(&self) -> &RuleStatement {
