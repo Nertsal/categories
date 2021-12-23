@@ -42,8 +42,8 @@ impl RuleBuilder {
         self
     }
 
-    pub fn build(self, geng: &Geng, assets: &Rc<Assets>, state: &State) -> Rule {
-        Rule::new(geng, assets, state, self.statement)
+    pub fn build(self, geng: &Geng, assets: &Rc<Assets>) -> Rule {
+        Rule::new(geng, assets, self.statement)
     }
 }
 

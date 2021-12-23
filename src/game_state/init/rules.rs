@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn default_rules(geng: &Geng, assets: &Rc<Assets>, state: &State) -> Rules {
+pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
     vec![
         // Identity: forall (object A) exists (morphism id A->A [Identity])
         RuleBuilder::new()
@@ -11,7 +11,7 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>, state: &State) -> Rules {
                 "A",
                 vec![MorphismTag::Identity("A")],
             ))
-            .build(geng, assets, state),
+            .build(geng, assets),
         // Composition: forall (morphism f A->B, morphism g B->C) exists (morphism g.f A->C [Composition f g])
         RuleBuilder::new()
             .forall(
@@ -28,7 +28,7 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>, state: &State) -> Rules {
                     second: "g",
                 }],
             ))
-            .build(geng, assets, state),
+            .build(geng, assets),
         // Product: forall (object A, object B)
         //          exists (object AxB [Product A B])
         //          exists (morphism _ AxB->A, morphism _ AxB->B)
@@ -57,7 +57,7 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>, state: &State) -> Rules {
             .exists(ConstraintsBuilder::new().morphism("m", "C", "AxB", vec![MorphismTag::Unique]))
             .forall(ConstraintsBuilder::new().morphism("m'", "C", "AxB", vec![]))
             // TODO: m = m'
-            .build(geng, assets, state),
+            .build(geng, assets),
         // Isomorphism: forall (morphism f A->B, morphism g B->A) // TODO: f.g = id_a, g.f = id_b
         //              exists (morphism _ A<=>B [Isomorphism f g])
         RuleBuilder::new()
@@ -72,6 +72,6 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>, state: &State) -> Rules {
                 "B",
                 vec![MorphismTag::Isomorphism("f", "g")],
             ))
-            .build(geng, assets, state),
+            .build(geng, assets),
     ]
 }

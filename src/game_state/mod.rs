@@ -56,7 +56,7 @@ impl GameState {
             focused_graph: FocusedGraph::Main,
             action_history: vec![],
             ui_camera: PixelPerfectCamera,
-            rules: init::rules::default_rules(geng, assets, &state),
+            rules: init::rules::default_rules(geng, assets),
             main_graph: RenderableGraph::new(geng, assets, init::graph::main_graph(), vec2(1, 1)),
             goal_graph: RenderableGraph::new(geng, assets, init::graph::goal_graph(), vec2(1, 1)),
             state,

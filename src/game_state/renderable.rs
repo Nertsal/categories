@@ -18,7 +18,7 @@ impl RenderableGraph {
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
-                fov: 100.0,
+                fov: 50.0,
             },
             texture: ugli::Texture::new_with(geng.ugli(), texture_size, |_| Color::BLACK),
             texture_size,

@@ -4,7 +4,6 @@ impl Rule {
     pub(super) fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        state: &State,
         statement: RuleStatement,
     ) -> Self {
         let mut graph = Graph::new(default());
