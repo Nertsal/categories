@@ -26,8 +26,9 @@ pub const ARROW_LABEL_FONT_SIZE: f32 = 1.0;
 pub const ARROW_ICON_RADIUS: f32 = 1.5;
 pub const ARROW_ICON_OUTLINE_WIDTH: f32 = 0.2;
 
-pub const GRAPH_OUTLINE_COLOR: Color<f32> = Color::GRAY;
 pub const GRAPH_OUTLINE_WIDTH: f32 = 1.0;
+pub const GRAPH_OUTLINE_COLOR: Color<f32> = Color::GRAY;
+pub const GRAPH_FOCUSED_OUTLINE_COLOR: Color<f32> = Color::CYAN;
 
 pub const RULES_WIDTH_FRAC: f32 = 0.3;
 pub const RULES_SECTION_SEPARATION_WIDTH_FRAC: f32 = 0.005;
