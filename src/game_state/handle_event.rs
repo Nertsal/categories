@@ -27,6 +27,7 @@ impl GameState {
                 geng::Key::Escape => {
                     // Clear selection
                     self.main_selection = None;
+                    self.goal_selection = None;
                 }
                 geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
                     self.action_undo();
