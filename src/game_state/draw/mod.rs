@@ -17,15 +17,15 @@ impl GameState {
 
         ugli::clear(framebuffer, Some(Color::BLACK), None);
 
-        let mut selected_rule = self
-            .main_selection
-            .as_ref()
-            .or(self.goal_selection.as_ref())
-            .and_then(|selection| {
-                selection
-                    .current()
-                    .map(|&current| (selection.rule(), vec![current]))
-            });
+        let mut selected_rule = match self.focused_graph {
+            FocusedGraph::Rule { .. } | FocusedGraph::Main => self.main_selection.as_ref(),
+            FocusedGraph::Goal => self.goal_selection.as_ref(),
+        }
+        .and_then(|selection| {
+            selection
+                .current()
+                .map(|&current| (selection.rule(), vec![current]))
+        });
 
         // Render graphs
         for (focused_graph, graph_aabb) in

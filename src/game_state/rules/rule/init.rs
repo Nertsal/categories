@@ -1,11 +1,7 @@
 use super::*;
 
 impl Rule {
-    pub(super) fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
-        statement: RuleStatement,
-    ) -> Self {
+    pub(super) fn new(geng: &Geng, assets: &Rc<Assets>, statement: RuleStatement) -> Self {
         let mut graph = Graph::new(default());
 
         let mut objects = HashMap::new();
@@ -121,33 +117,61 @@ impl Rule {
             }
         }
 
-        let mut graph_input = Vec::new();
-        if let Some(construction) = statement.first() {
-            match construction {
-                RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
-                    for constraint in constraints {
-                        match constraint {
-                            Constraint::RuleObject(label, object) => match object {
-                                RuleObject::Vertex { .. } => {
-                                    let id = *objects.get(label).unwrap();
-                                    graph_input.push(GraphObject::Vertex { id });
-                                }
-                                RuleObject::Edge { .. } => {
-                                    let id = *morphisms.get(label).unwrap();
-                                    graph_input.push(GraphObject::Edge { id });
-                                }
-                            },
-                            Constraint::MorphismEq(_, _) => continue,
+        let graph_input = statement
+            .first()
+            .map(|construction| construction_to_graph_input(construction, &objects, &morphisms))
+            .unwrap_or_default();
+
+        let inverse_graph_input = statement
+            .last()
+            .map(|construction| construction_to_graph_input(construction, &objects, &morphisms))
+            .unwrap_or_default();
+
+        Self {
+            inverse_statement: invert_statement(&statement),
+            graph: RenderableGraph::new(geng, assets, graph, vec2(1, 1)),
+            statement,
+            graph_input,
+            inverse_graph_input,
+        }
+    }
+}
+
+fn construction_to_graph_input(
+    construction: &RuleConstruction,
+    objects: &HashMap<Label, VertexId>,
+    morphisms: &HashMap<Label, EdgeId>,
+) -> Vec<GraphObject> {
+    let mut graph_input = Vec::new();
+    match construction {
+        RuleConstruction::Exists(constraints) | RuleConstruction::Forall(constraints) => {
+            for constraint in constraints {
+                match constraint {
+                    Constraint::RuleObject(label, object) => match object {
+                        RuleObject::Vertex { .. } => {
+                            let id = *objects.get(label).unwrap();
+                            graph_input.push(GraphObject::Vertex { id });
                         }
-                    }
+                        RuleObject::Edge { .. } => {
+                            let id = *morphisms.get(label).unwrap();
+                            graph_input.push(GraphObject::Edge { id });
+                        }
+                    },
+                    Constraint::MorphismEq(_, _) => continue,
                 }
             }
         }
-
-        Self {
-            statement,
-            graph: RenderableGraph::new(geng, assets, graph, vec2(1, 1)),
-            graph_input,
-        }
     }
+    graph_input
+}
+
+fn invert_statement(statement: &RuleStatement) -> RuleStatement {
+    statement
+        .iter()
+        .rev()
+        .map(|construction| match construction {
+            RuleConstruction::Forall(constraints) => RuleConstruction::Exists(constraints.clone()),
+            RuleConstruction::Exists(constraints) => RuleConstruction::Forall(constraints.clone()),
+        })
+        .collect()
 }

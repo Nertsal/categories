@@ -53,6 +53,9 @@ pub struct Rule {
     statement: RuleStatement,
     graph_input: Vec<GraphObject>,
     graph: RenderableGraph,
+
+    inverse_statement: RuleStatement,
+    inverse_graph_input: Vec<GraphObject>,
 }
 
 impl Rule {
@@ -72,8 +75,16 @@ impl Rule {
         &self.statement
     }
 
+    pub fn inverse_statement(&self) -> &RuleStatement {
+        &self.inverse_statement
+    }
+
     pub fn graph_input(&self) -> &Vec<GraphObject> {
         &self.graph_input
+    }
+
+    pub fn inverse_graph_input(&self) -> &Vec<GraphObject> {
+        &self.inverse_graph_input
     }
 }
 

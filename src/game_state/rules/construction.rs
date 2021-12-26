@@ -8,7 +8,7 @@ pub enum RuleConstruction {
 
 pub type Constraints = Vec<Constraint>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Constraint {
     RuleObject(Label, RuleObject),
     MorphismEq(Label, Label),

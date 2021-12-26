@@ -278,10 +278,18 @@ impl GameState {
                     if dragged_delta.len().approx_eq(&0.0) {
                         // Select rule
                         if let &FocusedGraph::Rule { index } = &self.focused_graph {
-                            let main_selection =
-                                RuleSelection::new(&self.main_graph.graph, index, &self.rules);
-                            let goal_selection =
-                                RuleSelection::new(&self.main_graph.graph, index, &self.rules);
+                            let main_selection = RuleSelection::new(
+                                &self.main_graph.graph,
+                                index,
+                                &self.rules,
+                                false,
+                            );
+                            let goal_selection = RuleSelection::new(
+                                &self.main_graph.graph,
+                                index,
+                                &self.rules,
+                                true,
+                            );
                             match main_selection.current() {
                                 Some(_) => {
                                     self.main_selection = Some(main_selection);
@@ -304,6 +312,7 @@ impl GameState {
                 DragAction::Move { target } => {
                     let delta = world_pos - dragging.world_start_position;
                     if delta.len().approx_eq(&0.0) {
+                        // Select vertex or edge
                         let selected = match target {
                             &DragTarget::Vertex { graph, id } => {
                                 Some((graph, GraphObject::Vertex { id }))
