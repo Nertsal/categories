@@ -15,35 +15,33 @@ pub fn goal_graph() -> Graph {
         .object("C", vec![], Color::WHITE, false)
         .object(
             "AxB",
-            vec![ObjectTag::Product(Some("A".into()), Some("B".into()))],
+            vec![ObjectTag::Product("A".into(), "B".into())],
             Color::WHITE,
             false,
         )
         .object(
             "BxC",
-            vec![ObjectTag::Product(Some("B".into()), Some("C".into()))],
+            vec![ObjectTag::Product("B".into(), "C".into())],
             Color::WHITE,
             false,
         )
         .object(
             "(AxB)xC",
-            vec![ObjectTag::Product(Some("AxB".into()), Some("C".into()))],
+            vec![ObjectTag::Product("AxB".into(), "C".into())],
             Color::WHITE,
             false,
         )
         .object(
             "Ax(BxC)",
-            vec![ObjectTag::Product(Some("A".into()), Some("BxC".into()))],
+            vec![ObjectTag::Product("A".into(), "BxC".into())],
             Color::WHITE,
             false,
         )
-        .morphism("", "AxB", "A", vec![])
-        .morphism("", "AxB", "B", vec![])
-        .morphism("", "BxC", "B", vec![])
-        .morphism("", "BxC", "C", vec![])
-        .morphism("", "(AxB)xC", "AxB", vec![])
-        .morphism("", "(AxB)xC", "C", vec![])
-        .morphism("", "Ax(BxC)", "A", vec![])
-        .morphism("", "Ax(BxC)", "BxC", vec![])
+        .morphism(
+            "",
+            "Ax(BxC)",
+            "(AxB)xC",
+            vec![MorphismTag::Isomorphism(RuleLabel::Any, RuleLabel::Any)],
+        )
         .build()
 }

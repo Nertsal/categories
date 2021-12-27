@@ -22,7 +22,7 @@ impl GraphBuilder {
     pub fn object(
         mut self,
         label: impl Into<RuleLabel>,
-        tags: Vec<ObjectTag>,
+        tags: Vec<ObjectTag<RuleLabel>>,
         color: Color<f32>,
         anchor: bool,
     ) -> Self {
@@ -40,11 +40,9 @@ impl GraphBuilder {
                 tags: tags
                     .into_iter()
                     .map(|tag| {
-                        tag.map(|label| {
-                            label.and_then(|label| match label {
-                                RuleLabel::Name(label) => Some(self.objects[&label]),
-                                RuleLabel::Any => None,
-                            })
+                        tag.map(|label| match label {
+                            RuleLabel::Name(label) => Some(self.objects[&label]),
+                            RuleLabel::Any => None,
                         })
                     })
                     .collect(),
@@ -67,7 +65,7 @@ impl GraphBuilder {
         label: impl Into<RuleLabel>,
         from: &str,
         to: &str,
-        tags: Vec<MorphismTag>,
+        tags: Vec<MorphismTag<RuleLabel, RuleLabel>>,
     ) -> Self {
         let label = label.into();
         let color = draw::graph::morphism_color(&tags);
@@ -84,17 +82,13 @@ impl GraphBuilder {
                     .into_iter()
                     .map(|tag| {
                         tag.map(
-                            |label| {
-                                label.and_then(|label| match label {
-                                    RuleLabel::Name(label) => Some(self.objects[&label]),
-                                    RuleLabel::Any => None,
-                                })
+                            |label| match label {
+                                RuleLabel::Name(label) => Some(self.objects[&label]),
+                                RuleLabel::Any => None,
                             },
-                            |label| {
-                                label.and_then(|label| match label {
-                                    RuleLabel::Name(label) => Some(self.morphisms[&label]),
-                                    RuleLabel::Any => None,
-                                })
+                            |label| match label {
+                                RuleLabel::Name(label) => Some(self.morphisms[&label]),
+                                RuleLabel::Any => None,
                             },
                         )
                     })
