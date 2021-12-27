@@ -31,14 +31,6 @@ pub const GRAPH_OUTLINE_COLOR: Color<f32> = Color::GRAY;
 pub const GRAPH_FOCUSED_OUTLINE_COLOR: Color<f32> = Color::CYAN;
 
 pub const RULES_WIDTH_FRAC: f32 = 0.3;
-pub const RULES_SECTION_SEPARATION_WIDTH_FRAC: f32 = 0.005;
-pub const RULES_SECTION_SEPARATION_COLOR: Color<f32> = Color::GRAY;
-pub const RULE_SELECTION_COLOR: Color<f32> = Color {
-    r: 0.1,
-    g: 0.1,
-    b: 0.1,
-    a: 1.0,
-};
 
 pub const GRAPH_TEXTURE_SCALE: f32 = 2.0;
 

@@ -15,25 +15,25 @@ pub fn goal_graph() -> Graph {
         .object("C", vec![], Color::WHITE, false)
         .object(
             "AxB",
-            vec![ObjectTag::Product("A", "B")],
+            vec![ObjectTag::Product(Some("A".into()), Some("B".into()))],
             Color::WHITE,
             false,
         )
         .object(
             "BxC",
-            vec![ObjectTag::Product("B", "C")],
+            vec![ObjectTag::Product(Some("B".into()), Some("C".into()))],
             Color::WHITE,
             false,
         )
         .object(
             "(AxB)xC",
-            vec![ObjectTag::Product("AxB", "C")],
+            vec![ObjectTag::Product(Some("AxB".into()), Some("C".into()))],
             Color::WHITE,
             false,
         )
         .object(
             "Ax(BxC)",
-            vec![ObjectTag::Product("A", "BxC")],
+            vec![ObjectTag::Product(Some("A".into()), Some("BxC".into()))],
             Color::WHITE,
             false,
         )

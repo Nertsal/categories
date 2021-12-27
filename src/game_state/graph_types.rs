@@ -6,37 +6,19 @@ pub type Edge = ForceEdge<Arrow<VertexId, EdgeId>>;
 
 #[derive(Debug, Clone)]
 pub struct Point<O> {
-    pub label: String,
+    pub label: RuleLabel,
     pub radius: f32,
-    pub tags: Vec<ObjectTag<O>>,
+    pub tags: Vec<ObjectTag<Option<O>>>,
     pub color: Color<f32>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Arrow<O, M> {
-    pub label: Label,
+    pub label: RuleLabel,
     pub from: O,
     pub to: O,
-    pub tags: Vec<MorphismTag<O, M>>,
+    pub tags: Vec<MorphismTag<Option<O>, Option<M>>>,
     pub color: Color<f32>,
-}
-
-impl<O, M> Arrow<O, M> {
-    pub fn new(
-        label: &str,
-        from: O,
-        to: O,
-        tags: Vec<MorphismTag<O, M>>,
-        color: Color<f32>,
-    ) -> Self {
-        Self {
-            label: label.to_owned(),
-            from,
-            to,
-            tags,
-            color,
-        }
-    }
 }
 
 impl graphs::GraphEdge for Arrow<VertexId, EdgeId> {

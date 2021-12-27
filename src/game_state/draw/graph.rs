@@ -106,16 +106,14 @@ fn draw_vertex(
     .draw_2d(geng, framebuffer, camera);
 
     // Label
-    draw_2d::Text::unit(
-        font.clone(),
-        vertex.vertex.label.to_owned(),
-        vertex.vertex.color,
-    )
-    .fit_into(Ellipse::circle(
-        vertex.body.position,
-        (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 0.8,
-    ))
-    .draw_2d(geng, framebuffer, camera);
+    if let RuleLabel::Name(label) = &vertex.vertex.label {
+        draw_2d::Text::unit(font.clone(), label.to_owned(), vertex.vertex.color)
+            .fit_into(Ellipse::circle(
+                vertex.body.position,
+                (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 0.8,
+            ))
+            .draw_2d(geng, framebuffer, camera);
+    }
 }
 
 fn draw_edge(
@@ -248,9 +246,11 @@ fn draw_edge(
 
     if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
         // Label
-        draw_2d::Text::unit(font.clone(), edge.edge.label.to_owned(), Color::GRAY)
-            .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
-            .draw_2d(geng, framebuffer, camera);
+        if let RuleLabel::Name(label) = &edge.edge.label {
+            draw_2d::Text::unit(font.clone(), label.to_owned(), Color::GRAY)
+                .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
+                .draw_2d(geng, framebuffer, camera);
+        }
 
         // Isomorphism
         if isomorphism {

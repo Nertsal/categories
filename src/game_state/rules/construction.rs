@@ -10,8 +10,8 @@ pub type Constraints = Vec<Constraint>;
 
 #[derive(Debug, Clone)]
 pub enum Constraint {
-    RuleObject(Label, RuleObject),
-    MorphismEq(Label, Label),
+    RuleObject(RuleLabel, RuleObject),
+    MorphismEq(RuleLabel, RuleLabel),
 }
 
 pub struct ConstraintsBuilder(Constraints);
@@ -31,34 +31,24 @@ impl ConstraintsBuilder {
         self.0
     }
 
-    pub fn object(mut self, label: &str, tags: Vec<ObjectTag<&str>>) -> Self {
+    pub fn object(mut self, label: impl Into<RuleLabel>, tags: Vec<ObjectTag>) -> Self {
         self.0.push(Constraint::RuleObject(
-            label.to_owned(),
-            RuleObject::vertex(
-                tags.into_iter()
-                    .map(|tag| tag.map(|o| o.to_owned()))
-                    .collect(),
-            ),
+            label.into(),
+            RuleObject::vertex(tags),
         ));
         self
     }
 
     pub fn morphism(
         mut self,
-        label: &str,
-        from: &str,
-        to: &str,
-        tags: Vec<MorphismTag<&str, &str>>,
+        label: impl Into<RuleLabel>,
+        from: impl Into<RuleLabel>,
+        to: impl Into<RuleLabel>,
+        tags: Vec<MorphismTag>,
     ) -> Self {
         self.0.push(Constraint::RuleObject(
-            label.to_owned(),
-            RuleObject::edge(
-                from.to_owned(),
-                to.to_owned(),
-                tags.into_iter()
-                    .map(|tag| tag.map(|o| o.to_owned(), |m| m.to_owned()))
-                    .collect(),
-            ),
+            label.into(),
+            RuleObject::edge(from.into(), to.into(), tags),
         ));
         self
     }

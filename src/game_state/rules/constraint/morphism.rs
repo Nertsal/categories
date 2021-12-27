@@ -1,7 +1,7 @@
 use super::*;
 
 pub fn constraint_morphism<'a>(
-    label: &'a Label,
+    label: &'a RuleLabel,
     constraint: &'a ArrowConstraint,
     bindings: &'a Bindings,
     graph: &'a Graph,
@@ -28,21 +28,25 @@ pub fn constraint_morphism<'a>(
             && constraint.tags.iter().all(|constraint| {
                 edge.edge.tags.iter().any(|tag| match (constraint, tag) {
                     (MorphismTag::Unique, MorphismTag::Unique) => true,
-                    (MorphismTag::Identity(constraint), &MorphismTag::Identity(object)) => {
-                        match bindings.get_object(constraint) {
-                            Some(constraint) => constraint == object,
-                            None => {
-                                binds.bind_object(constraint.to_owned(), object);
-                                true
-                            }
+                    (
+                        MorphismTag::Identity(Some(constraint)),
+                        &MorphismTag::Identity(Some(object)),
+                    ) => match bindings.get_object(constraint) {
+                        Some(constraint) => constraint == object,
+                        None => {
+                            binds.bind_object(constraint.clone(), object);
+                            true
                         }
-                    }
+                    },
                     (
                         MorphismTag::Composition {
-                            first: constraint_first,
-                            second: constraint_second,
+                            first: Some(constraint_first),
+                            second: Some(constraint_second),
                         },
-                        &MorphismTag::Composition { first, second },
+                        &MorphismTag::Composition {
+                            first: Some(first),
+                            second: Some(second),
+                        },
                     ) => {
                         let match_first = match bindings.get_morphism(constraint_first) {
                             Some(constraint) => constraint == first,
@@ -63,8 +67,8 @@ pub fn constraint_morphism<'a>(
                         match_first && match_second
                     }
                     (
-                        MorphismTag::Isomorphism(constraint0, constraint1),
-                        &MorphismTag::Isomorphism(morphism0, morphism1),
+                        MorphismTag::Isomorphism(Some(constraint0), Some(constraint1)),
+                        &MorphismTag::Isomorphism(Some(morphism0), Some(morphism1)),
                     ) => {
                         match (
                             bindings.get_morphism(constraint0),

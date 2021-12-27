@@ -2,8 +2,8 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub enum GraphAction {
-    NewVertices(Vec<(Option<Label>, Vec<ObjectTag<VertexId>>)>),
-    NewEdges(Vec<(Option<Label>, ArrowConstraint<VertexId, EdgeId>)>),
+    NewVertices(Vec<(RuleLabel, Vec<ObjectTag<Option<VertexId>>>)>),
+    NewEdges(Vec<(RuleLabel, ArrowConstraint<VertexId, EdgeId>)>),
     RemoveVertices(Vec<VertexId>),
     RemoveEdges(Vec<EdgeId>),
 }
@@ -20,7 +20,7 @@ impl GameState {
                             is_anchor: false,
                             body: ForceBody::new(util::random_shift(), POINT_MASS),
                             vertex: Point {
-                                label: label.unwrap_or_default(),
+                                label,
                                 radius: POINT_RADIUS,
                                 color: Color::WHITE,
                                 tags,
@@ -50,7 +50,13 @@ impl GameState {
                                 to_pos,
                                 ARROW_BODIES,
                                 ARROW_MASS,
-                                Arrow::new(&label.unwrap_or_default(), from, to, tags, color),
+                                Arrow {
+                                    label,
+                                    from,
+                                    to,
+                                    tags,
+                                    color,
+                                },
                             ))
                             .unwrap();
                         id
@@ -64,12 +70,12 @@ impl GameState {
                     .map(|id| graph.graph.remove_vertex(id))
                     .map(|(vertex, edges)| (vertex.unwrap(), edges))
                     .map(|(vertex, edges)| {
-                        let vertex = (Some(vertex.vertex.label), vertex.vertex.tags);
+                        let vertex = (vertex.vertex.label, vertex.vertex.tags);
                         let edges: Vec<_> = edges
                             .into_iter()
                             .map(|(_, edge)| {
                                 (
-                                    Some(edge.edge.label),
+                                    edge.edge.label,
                                     ArrowConstraint {
                                         from: edge.edge.from,
                                         to: edge.edge.to,
@@ -99,7 +105,7 @@ impl GameState {
                     .map(|id| graph.graph.remove_edge(id).unwrap())
                     .map(|edge| {
                         (
-                            Some(edge.edge.label),
+                            edge.edge.label,
                             ArrowConstraint {
                                 from: edge.edge.from,
                                 to: edge.edge.to,

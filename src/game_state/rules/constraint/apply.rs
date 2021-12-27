@@ -34,15 +34,27 @@ pub fn apply_constraints(
     for (label, tags) in constrained_vertices {
         let tags: Vec<_> = tags
             .iter()
-            .map(|tag| tag.map_borrowed(|label| bindings.get_object(label).unwrap()))
+            .map(|tag| {
+                tag.map_borrowed(|label| {
+                    label
+                        .as_ref()
+                        .map(|label| bindings.get_object(label).unwrap())
+                })
+            })
             .collect();
         let name = tags
             .iter()
             .filter_map(|tag| {
-                tag.map_borrowed(|object| &graph.graph.vertices.get(object).unwrap().vertex.label)
-                    .infer_name()
+                tag.map_borrowed(|object| {
+                    object
+                        .as_ref()
+                        .map(|object| &graph.graph.vertices.get(object).unwrap().vertex.label)
+                })
+                .infer_name()
             })
-            .find(|_| true);
+            .find(|_| true)
+            .map(|name| RuleLabel::Name(name))
+            .unwrap_or(RuleLabel::Any);
         new_vertices.push((name, tags));
         new_vertices_names.push(label.to_owned());
     }
@@ -75,8 +87,16 @@ pub fn apply_constraints(
                 .iter()
                 .map(|tag| {
                     tag.map_borrowed(
-                        |label| bindings.get_object(label).unwrap(),
-                        |label| bindings.get_morphism(label).unwrap(),
+                        |label| {
+                            label
+                                .as_ref()
+                                .map(|label| bindings.get_object(label).unwrap())
+                        },
+                        |label| {
+                            label
+                                .as_ref()
+                                .map(|label| bindings.get_morphism(label).unwrap())
+                        },
                     )
                 })
                 .collect(),
@@ -86,12 +106,20 @@ pub fn apply_constraints(
             .iter()
             .filter_map(|tag| {
                 tag.map_borrowed(
-                    |id| &graph.graph.vertices.get(id).unwrap().vertex.label,
-                    |id| &graph.graph.edges.get(id).unwrap().edge.label,
+                    |id| {
+                        id.as_ref()
+                            .map(|id| &graph.graph.vertices.get(id).unwrap().vertex.label)
+                    },
+                    |id| {
+                        id.as_ref()
+                            .map(|id| &graph.graph.edges.get(id).unwrap().edge.label)
+                    },
                 )
                 .infer_name()
             })
-            .find(|_| true);
+            .find(|_| true)
+            .map(|name| RuleLabel::Name(name))
+            .unwrap_or(RuleLabel::Any);
         new_edges.push((name, constraint));
         new_edges_names.push(label.to_owned());
     }

@@ -1,20 +1,24 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ObjectTag<O = Label> {
+pub enum ObjectTag<O = Option<RuleLabel>> {
     Product(O, O),
 }
 
-impl<O: AsRef<str>> ObjectTag<O> {
-    pub fn infer_name(&self) -> Option<Label> {
+impl ObjectTag<Option<&RuleLabel>> {
+    pub fn infer_name(&self) -> Option<String> {
         match self {
-            ObjectTag::Product(a, b) => {
-                if a.as_ref().is_empty() || b.as_ref().is_empty() {
-                    return None;
-                }
-                Some(label_operation(a.as_ref(), b.as_ref(), "x"))
-            }
+            ObjectTag::Product(Some(a), Some(b)) => tag_name(a.label(), b.label(), "x"),
+            _ => None,
         }
+    }
+}
+
+fn tag_name(label_a: &str, label_b: &str, operation: &str) -> Option<String> {
+    if label_a.is_empty() || label_b.is_empty() {
+        None
+    } else {
+        Some(label_operation(label_a, label_b, operation))
     }
 }
 
@@ -33,25 +37,22 @@ impl<O> ObjectTag<O> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum MorphismTag<O = Label, M = Label> {
+pub enum MorphismTag<O = Option<RuleLabel>, M = Option<RuleLabel>> {
     Identity(O),
     Composition { first: M, second: M },
     Unique,
     Isomorphism(M, M),
 }
 
-impl<O: AsRef<str>, M: AsRef<str>> MorphismTag<O, M> {
-    pub fn infer_name(&self) -> Option<Label> {
+impl MorphismTag<Option<&RuleLabel>, Option<&RuleLabel>> {
+    pub fn infer_name(&self) -> Option<String> {
         match self {
             MorphismTag::Identity(_) => Some(format!("id")),
-            MorphismTag::Composition { first, second } => {
-                if first.as_ref().is_empty() || second.as_ref().is_empty() {
-                    return None;
-                }
-                Some(label_operation(first.as_ref(), second.as_ref(), "."))
-            }
-            MorphismTag::Unique => None,
-            MorphismTag::Isomorphism(_, _) => None,
+            MorphismTag::Composition {
+                first: Some(first),
+                second: Some(second),
+            } => tag_name(first.label(), second.label(), "."),
+            _ => None,
         }
     }
 }

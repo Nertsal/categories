@@ -8,11 +8,11 @@ pub fn selection_constraints(
     let mut selection = selection.iter();
     let mut bindings = Bindings::new();
 
-    fn bind_object(bindings: &mut Bindings, label: &str, constraint: VertexId) -> bool {
+    fn bind_object(bindings: &mut Bindings, label: &RuleLabel, constraint: VertexId) -> bool {
         match bindings.get_object(label) {
             Some(object) => object == constraint,
             None => {
-                bindings.bind_object(label.to_owned(), constraint);
+                bindings.bind_object(label.clone(), constraint);
                 true
             }
         }
@@ -23,7 +23,7 @@ pub fn selection_constraints(
             Constraint::RuleObject(label, object) => match object {
                 RuleObject::Vertex { .. } => match selection.next() {
                     Some(GraphObject::Vertex { id }) => {
-                        if bindings.bind_object(label.to_owned(), *id).is_some() {
+                        if bindings.bind_object(label.clone(), *id).is_some() {
                             return Err(());
                         }
                     }
@@ -38,7 +38,7 @@ pub fn selection_constraints(
                             return Err(());
                         }
 
-                        bindings.bind_morphism(label.to_owned(), *id);
+                        bindings.bind_morphism(label.clone(), *id);
                     }
                     _ => return Err(()),
                 },
