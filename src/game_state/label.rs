@@ -12,12 +12,3 @@ where
         Self::Name(label.as_ref().to_owned())
     }
 }
-
-impl RuleLabel {
-    pub fn label(&self) -> &str {
-        match self {
-            RuleLabel::Name(label) => label,
-            RuleLabel::Any => "?",
-        }
-    }
-}

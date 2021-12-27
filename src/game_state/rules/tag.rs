@@ -8,7 +8,9 @@ pub enum ObjectTag<O = Option<RuleLabel>> {
 impl ObjectTag<Option<&RuleLabel>> {
     pub fn infer_name(&self) -> Option<String> {
         match self {
-            ObjectTag::Product(Some(a), Some(b)) => tag_name(a.label(), b.label(), "x"),
+            ObjectTag::Product(Some(RuleLabel::Name(a)), Some(RuleLabel::Name(b))) => {
+                tag_name(a, b, "x")
+            }
             _ => None,
         }
     }
@@ -49,9 +51,9 @@ impl MorphismTag<Option<&RuleLabel>, Option<&RuleLabel>> {
         match self {
             MorphismTag::Identity(_) => Some(format!("id")),
             MorphismTag::Composition {
-                first: Some(first),
-                second: Some(second),
-            } => tag_name(first.label(), second.label(), "."),
+                first: Some(RuleLabel::Name(first)),
+                second: Some(RuleLabel::Name(second)),
+            } => tag_name(first, second, "."),
             _ => None,
         }
     }
