@@ -8,7 +8,7 @@ pub fn selection_constraints(
     let mut selection = selection.iter();
     let mut bindings = Bindings::new();
 
-    fn bind_object(bindings: &mut Bindings, label: &RuleLabel, constraint: VertexId) -> bool {
+    fn bind_object(bindings: &mut Bindings, label: &Label, constraint: VertexId) -> bool {
         match bindings.get_object(label) {
             Some(object) => object == constraint,
             None => {

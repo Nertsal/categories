@@ -16,31 +16,31 @@ impl Bindings {
         self.morphisms.extend(bindings.morphisms.into_iter());
     }
 
-    pub fn bind_object(&mut self, label: RuleLabel, id: VertexId) -> Option<VertexId> {
+    pub fn bind_object(&mut self, label: Label, id: VertexId) -> Option<VertexId> {
         match label {
-            RuleLabel::Name(label) => self.objects.insert(label, id),
-            RuleLabel::Any => None,
+            Label::Name(label) => self.objects.insert(label, id),
+            Label::Any => None,
         }
     }
 
-    pub fn bind_morphism(&mut self, label: RuleLabel, id: EdgeId) -> Option<EdgeId> {
+    pub fn bind_morphism(&mut self, label: Label, id: EdgeId) -> Option<EdgeId> {
         match label {
-            RuleLabel::Name(label) => self.morphisms.insert(label, id),
-            RuleLabel::Any => None,
+            Label::Name(label) => self.morphisms.insert(label, id),
+            Label::Any => None,
         }
     }
 
-    pub fn get_object(&self, label: &RuleLabel) -> Option<VertexId> {
+    pub fn get_object(&self, label: &Label) -> Option<VertexId> {
         match label {
-            RuleLabel::Name(label) => self.objects.get(label).copied(),
-            RuleLabel::Any => None,
+            Label::Name(label) => self.objects.get(label).copied(),
+            Label::Any => None,
         }
     }
 
-    pub fn get_morphism(&self, label: &RuleLabel) -> Option<EdgeId> {
+    pub fn get_morphism(&self, label: &Label) -> Option<EdgeId> {
         match label {
-            RuleLabel::Name(label) => self.morphisms.get(label).copied(),
-            RuleLabel::Any => None,
+            Label::Name(label) => self.morphisms.get(label).copied(),
+            Label::Any => None,
         }
     }
 }

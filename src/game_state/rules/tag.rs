@@ -1,14 +1,14 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ObjectTag<O = Option<RuleLabel>> {
+pub enum ObjectTag<O = Option<Label>> {
     Product(O, O),
 }
 
-impl ObjectTag<Option<&RuleLabel>> {
+impl ObjectTag<Option<&Label>> {
     pub fn infer_name(&self) -> Option<String> {
         match self {
-            ObjectTag::Product(Some(RuleLabel::Name(a)), Some(RuleLabel::Name(b))) => {
+            ObjectTag::Product(Some(Label::Name(a)), Some(Label::Name(b))) => {
                 tag_name(a, b, "x")
             }
             _ => None,
@@ -39,20 +39,20 @@ impl<O> ObjectTag<O> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum MorphismTag<O = Option<RuleLabel>, M = Option<RuleLabel>> {
+pub enum MorphismTag<O = Option<Label>, M = Option<Label>> {
     Identity(O),
     Composition { first: M, second: M },
     Unique,
     Isomorphism(M, M),
 }
 
-impl MorphismTag<Option<&RuleLabel>, Option<&RuleLabel>> {
+impl MorphismTag<Option<&Label>, Option<&Label>> {
     pub fn infer_name(&self) -> Option<String> {
         match self {
             MorphismTag::Identity(_) => Some(format!("id")),
             MorphismTag::Composition {
-                first: Some(RuleLabel::Name(first)),
-                second: Some(RuleLabel::Name(second)),
+                first: Some(Label::Name(first)),
+                second: Some(Label::Name(second)),
             } => tag_name(first, second, "."),
             _ => None,
         }

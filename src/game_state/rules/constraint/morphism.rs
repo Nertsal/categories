@@ -1,7 +1,7 @@
 use super::*;
 
 pub fn constraint_morphism<'a>(
-    label: &'a RuleLabel,
+    label: &'a Label,
     constraint: &'a ArrowConstraint,
     bindings: &'a Bindings,
     graph: &'a Graph,

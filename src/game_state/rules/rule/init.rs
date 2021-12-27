@@ -10,11 +10,11 @@ impl Rule {
         fn get_object_or_new(
             graph: &mut Graph,
             objects: &mut HashMap<String, VertexId>,
-            label: &RuleLabel,
+            label: &Label,
             tags: Vec<ObjectTag<Option<VertexId>>>,
             color: Color<f32>,
         ) -> VertexId {
-            let mut new_object = |label: &RuleLabel, tags, color| {
+            let mut new_object = |label: &Label, tags, color| {
                 graph.graph.new_vertex(ForceVertex {
                     is_anchor: false,
                     body: ForceBody::new(util::random_shift(), POINT_MASS),
@@ -27,10 +27,10 @@ impl Rule {
                 })
             };
             match label {
-                RuleLabel::Name(name) => *objects
+                Label::Name(name) => *objects
                     .entry(name.to_owned())
                     .or_insert_with(|| new_object(label, tags, color)),
-                RuleLabel::Any => new_object(label, tags, color),
+                Label::Any => new_object(label, tags, color),
             }
         }
 
@@ -44,7 +44,7 @@ impl Rule {
                                 .iter()
                                 .map(|tag| {
                                     tag.map_borrowed(|label| match label {
-                                        Some(RuleLabel::Name(label)) => objects.get(label).copied(),
+                                        Some(Label::Name(label)) => objects.get(label).copied(),
                                         _ => None,
                                     })
                                 })
@@ -57,8 +57,8 @@ impl Rule {
                             constraint: ArrowConstraint { from, to, tags },
                         } => {
                             let create = match label {
-                                RuleLabel::Name(label) => !morphisms.contains_key(label),
-                                RuleLabel::Any => true,
+                                Label::Name(label) => !morphisms.contains_key(label),
+                                Label::Any => true,
                             };
                             if create {
                                 let from = get_object_or_new(
@@ -81,13 +81,13 @@ impl Rule {
                                     .map(|tag| {
                                         tag.map_borrowed(
                                             |label| match label {
-                                                Some(RuleLabel::Name(label)) => {
+                                                Some(Label::Name(label)) => {
                                                     objects.get(label).copied()
                                                 }
                                                 _ => None,
                                             },
                                             |label| match label {
-                                                Some(RuleLabel::Name(label)) => {
+                                                Some(Label::Name(label)) => {
                                                     morphisms.get(label).copied()
                                                 }
                                                 _ => None,
@@ -114,10 +114,10 @@ impl Rule {
                                     .unwrap();
 
                                 match label {
-                                    RuleLabel::Name(label) => {
+                                    Label::Name(label) => {
                                         morphisms.insert(label.clone(), new_morphism);
                                     }
-                                    RuleLabel::Any => (),
+                                    Label::Any => (),
                                 }
                                 Some(GraphObject::Edge { id: new_morphism })
                             } else {

@@ -47,8 +47,6 @@ impl RuleBuilder {
     }
 }
 
-pub type Label = String;
-
 pub struct Rule {
     statement: RuleStatement,
     graph_input: Vec<GraphObject>,

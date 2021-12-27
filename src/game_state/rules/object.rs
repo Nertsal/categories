@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum RuleObject<O = RuleLabel, M = RuleLabel> {
+pub enum RuleObject<O = Label, M = Label> {
     Vertex { tags: Vec<ObjectTag<Option<O>>> },
     Edge { constraint: ArrowConstraint<O, M> },
 }
@@ -19,7 +19,7 @@ impl<O, M> RuleObject<O, M> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ArrowConstraint<V = RuleLabel, E = RuleLabel> {
+pub struct ArrowConstraint<V = Label, E = Label> {
     pub from: V,
     pub to: V,
     pub tags: Vec<MorphismTag<Option<V>, Option<E>>>,

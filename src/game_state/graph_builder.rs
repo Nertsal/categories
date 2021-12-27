@@ -2,8 +2,8 @@ use super::*;
 
 pub struct GraphBuilder {
     graph: Graph,
-    objects: HashMap<Label, VertexId>,
-    morphisms: HashMap<Label, EdgeId>,
+    objects: HashMap<String, VertexId>,
+    morphisms: HashMap<String, EdgeId>,
 }
 
 impl GraphBuilder {
@@ -21,8 +21,8 @@ impl GraphBuilder {
 
     pub fn object(
         mut self,
-        label: impl Into<RuleLabel>,
-        tags: Vec<ObjectTag<RuleLabel>>,
+        label: impl Into<Label>,
+        tags: Vec<ObjectTag<Label>>,
         color: Color<f32>,
         anchor: bool,
     ) -> Self {
@@ -41,8 +41,8 @@ impl GraphBuilder {
                     .into_iter()
                     .map(|tag| {
                         tag.map(|label| match label {
-                            RuleLabel::Name(label) => Some(self.objects[&label]),
-                            RuleLabel::Any => None,
+                            Label::Name(label) => Some(self.objects[&label]),
+                            Label::Any => None,
                         })
                     })
                     .collect(),
@@ -51,10 +51,10 @@ impl GraphBuilder {
         });
 
         match label {
-            RuleLabel::Name(label) => {
+            Label::Name(label) => {
                 self.objects.insert(label, new_object);
             }
-            RuleLabel::Any => (),
+            Label::Any => (),
         }
 
         self
@@ -62,10 +62,10 @@ impl GraphBuilder {
 
     pub fn morphism(
         mut self,
-        label: impl Into<RuleLabel>,
+        label: impl Into<Label>,
         from: &str,
         to: &str,
-        tags: Vec<MorphismTag<RuleLabel, RuleLabel>>,
+        tags: Vec<MorphismTag<Label, Label>>,
     ) -> Self {
         let label = label.into();
         let color = draw::graph::morphism_color(&tags);
@@ -83,12 +83,12 @@ impl GraphBuilder {
                     .map(|tag| {
                         tag.map(
                             |label| match label {
-                                RuleLabel::Name(label) => Some(self.objects[&label]),
-                                RuleLabel::Any => None,
+                                Label::Name(label) => Some(self.objects[&label]),
+                                Label::Any => None,
                             },
                             |label| match label {
-                                RuleLabel::Name(label) => Some(self.morphisms[&label]),
-                                RuleLabel::Any => None,
+                                Label::Name(label) => Some(self.morphisms[&label]),
+                                Label::Any => None,
                             },
                         )
                     })
@@ -98,10 +98,10 @@ impl GraphBuilder {
         ));
 
         match label {
-            RuleLabel::Name(label) => {
+            Label::Name(label) => {
                 self.morphisms.insert(label.to_owned(), new_edge.unwrap());
             }
-            RuleLabel::Any => (),
+            Label::Any => (),
         }
 
         self

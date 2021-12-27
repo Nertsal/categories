@@ -1,7 +1,7 @@
 use super::*;
 
 pub fn constraint_object<'a>(
-    label: &'a RuleLabel,
+    label: &'a Label,
     tags: &'a Vec<ObjectTag>,
     bindings: &'a Bindings,
     graph: &'a Graph,

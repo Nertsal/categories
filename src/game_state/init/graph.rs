@@ -41,7 +41,7 @@ pub fn goal_graph() -> Graph {
             "",
             "Ax(BxC)",
             "(AxB)xC",
-            vec![MorphismTag::Isomorphism(RuleLabel::Any, RuleLabel::Any)],
+            vec![MorphismTag::Isomorphism(Label::Any, Label::Any)],
         )
         .build()
 }

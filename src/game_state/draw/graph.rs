@@ -106,7 +106,7 @@ fn draw_vertex(
     .draw_2d(geng, framebuffer, camera);
 
     // Label
-    if let RuleLabel::Name(label) = &vertex.vertex.label {
+    if let Label::Name(label) = &vertex.vertex.label {
         draw_2d::Text::unit(font.clone(), label.to_owned(), vertex.vertex.color)
             .fit_into(Ellipse::circle(
                 vertex.body.position,
@@ -246,7 +246,7 @@ fn draw_edge(
 
     if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
         // Label
-        if let RuleLabel::Name(label) = &edge.edge.label {
+        if let Label::Name(label) = &edge.edge.label {
             draw_2d::Text::unit(font.clone(), label.to_owned(), Color::GRAY)
                 .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
                 .draw_2d(geng, framebuffer, camera);

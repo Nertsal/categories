@@ -10,8 +10,8 @@ pub type Constraints = Vec<Constraint>;
 
 #[derive(Debug, Clone)]
 pub enum Constraint {
-    RuleObject(RuleLabel, RuleObject),
-    MorphismEq(RuleLabel, RuleLabel),
+    RuleObject(Label, RuleObject),
+    MorphismEq(Label, Label),
 }
 
 pub struct ConstraintsBuilder(Constraints);
@@ -31,7 +31,7 @@ impl ConstraintsBuilder {
         self.0
     }
 
-    pub fn object(mut self, label: impl Into<RuleLabel>, tags: Vec<ObjectTag>) -> Self {
+    pub fn object(mut self, label: impl Into<Label>, tags: Vec<ObjectTag>) -> Self {
         self.0.push(Constraint::RuleObject(
             label.into(),
             RuleObject::vertex(tags),
@@ -41,9 +41,9 @@ impl ConstraintsBuilder {
 
     pub fn morphism(
         mut self,
-        label: impl Into<RuleLabel>,
-        from: impl Into<RuleLabel>,
-        to: impl Into<RuleLabel>,
+        label: impl Into<Label>,
+        from: impl Into<Label>,
+        to: impl Into<Label>,
         tags: Vec<MorphismTag>,
     ) -> Self {
         self.0.push(Constraint::RuleObject(

@@ -2,8 +2,8 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub enum GraphAction {
-    NewVertices(Vec<(RuleLabel, Vec<ObjectTag<Option<VertexId>>>)>),
-    NewEdges(Vec<(RuleLabel, ArrowConstraint<VertexId, EdgeId>)>),
+    NewVertices(Vec<(Label, Vec<ObjectTag<Option<VertexId>>>)>),
+    NewEdges(Vec<(Label, ArrowConstraint<VertexId, EdgeId>)>),
     RemoveVertices(Vec<VertexId>),
     RemoveEdges(Vec<EdgeId>),
 }

@@ -70,7 +70,7 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
                     .morphism("g", "B", "A", vec![]),
             )
             .exists(ConstraintsBuilder::new().morphism(
-                RuleLabel::Any,
+                Label::Any,
                 "A",
                 "B",
                 vec![MorphismTag::Isomorphism(Some("f".into()), Some("g".into()))],

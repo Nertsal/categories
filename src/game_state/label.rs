@@ -1,10 +1,10 @@
 #[derive(Debug, Clone)]
-pub enum RuleLabel {
+pub enum Label {
     Name(String),
     Any,
 }
 
-impl<T> From<T> for RuleLabel
+impl<T> From<T> for Label
 where
     T: AsRef<str>,
 {

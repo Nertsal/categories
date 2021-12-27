@@ -53,8 +53,8 @@ pub fn apply_constraints(
                 .infer_name()
             })
             .find(|_| true)
-            .map(|name| RuleLabel::Name(name))
-            .unwrap_or(RuleLabel::Any);
+            .map(|name| Label::Name(name))
+            .unwrap_or(Label::Any);
         new_vertices.push((name, tags));
         new_vertices_names.push(label.to_owned());
     }
@@ -118,8 +118,8 @@ pub fn apply_constraints(
                 .infer_name()
             })
             .find(|_| true)
-            .map(|name| RuleLabel::Name(name))
-            .unwrap_or(RuleLabel::Any);
+            .map(|name| Label::Name(name))
+            .unwrap_or(Label::Any);
         new_edges.push((name, constraint));
         new_edges_names.push(label.to_owned());
     }
