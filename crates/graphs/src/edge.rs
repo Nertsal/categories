@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::*;
 
-pub trait GraphEdge: PartialEq {
+pub trait GraphEdge {
     fn end_points(&self) -> [&VertexId; 2];
 
     fn is_vertex_incident(&self, vertex: VertexId) -> bool {

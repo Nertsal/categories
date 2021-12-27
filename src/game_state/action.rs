@@ -1,159 +1,127 @@
 use super::*;
 
 #[derive(Debug, Clone)]
-pub enum GraphActionDo {
-    ApplyRule {
-        input_vertices: Vec<VertexId>,
-        new_vertices: usize,
-        new_edges: Vec<ArrowConstraint<usize>>,
-        remove_vertices: Vec<VertexId>,
-        remove_edges: Vec<EdgeId>,
-    },
-}
-
-pub enum GraphActionUndo {
-    ApplyRule {
-        new_vertices: Vec<(VertexId, Vertex)>,
-        new_edges: Vec<(EdgeId, Edge)>,
-        remove_vertices: Vec<VertexId>,
-        remove_edges: Vec<EdgeId>,
-    },
+pub enum GraphAction {
+    NewVertices(Vec<(RuleLabel, Vec<ObjectTag<Option<VertexId>>>)>),
+    NewEdges(Vec<(RuleLabel, ArrowConstraint<VertexId, EdgeId>)>),
+    RemoveVertices(Vec<VertexId>),
+    RemoveEdges(Vec<EdgeId>),
 }
 
 impl GameState {
-    pub fn action_do(&mut self, action_do: GraphActionDo) {
-        let action_undo = match action_do {
-            GraphActionDo::ApplyRule {
-                mut input_vertices,
-                new_vertices,
-                new_edges,
-                remove_vertices,
-                remove_edges,
-            } => {
-                // Validate
-                let available_vertices = input_vertices.len() + new_vertices;
-                if !new_edges
-                    .iter()
-                    .all(|edge| edge.from < available_vertices || edge.to < available_vertices)
-                {
-                    warn!("Attempted to apply an illegal rule");
-                    return;
-                }
-
-                // Create new vertices
-                let new_len = new_vertices;
-                let mut new_vertices = Vec::with_capacity(new_len);
-                input_vertices.reserve(new_len);
-                for _ in 0..new_len {
-                    let vertex = self.main_graph.graph.new_vertex(ForceVertex {
-                        is_anchor: false,
-                        body: ForceBody::new(random_shift(), POINT_MASS),
-                        vertex: Point {
-                            label: "".to_owned(),
-                            radius: POINT_RADIUS,
-                            color: Color::WHITE,
-                        },
-                    });
-                    new_vertices.push(vertex);
-                    input_vertices.push(vertex);
-                }
-
-                // Add edges
-                let new_edges: Vec<_> = new_edges
+    /// Perform the action and returns the inverse action
+    pub fn graph_action_do(graph: &mut Graph, action_do: GraphAction) -> Vec<GraphAction> {
+        match action_do {
+            GraphAction::NewVertices(vertices) => {
+                let vertices = vertices
                     .into_iter()
-                    .map(|edge| {
-                        let from = input_vertices[edge.from];
-                        let to = input_vertices[edge.to];
-                        let from_pos = self
-                            .main_graph
-                            .graph
-                            .vertices
-                            .get(&from)
-                            .unwrap()
-                            .body
-                            .position
-                            + random_shift();
-                        let to_pos = self
-                            .main_graph
-                            .graph
-                            .vertices
-                            .get(&to)
-                            .unwrap()
-                            .body
-                            .position
-                            + random_shift();
-                        self.main_graph
+                    .map(|(label, tags)| {
+                        let id = graph.graph.new_vertex(ForceVertex {
+                            is_anchor: false,
+                            body: ForceBody::new(util::random_shift(), POINT_MASS),
+                            vertex: Point {
+                                label,
+                                radius: POINT_RADIUS,
+                                color: Color::WHITE,
+                                tags,
+                            },
+                        });
+                        id
+                    })
+                    .collect();
+                vec![GraphAction::RemoveVertices(vertices)]
+            }
+            GraphAction::NewEdges(edges) => {
+                let edges = edges
+                    .into_iter()
+                    .map(|(label, constraint)| {
+                        let from = constraint.from;
+                        let to = constraint.to;
+                        let from_pos = graph.graph.vertices.get(&from).unwrap().body.position
+                            + util::random_shift();
+                        let to_pos = graph.graph.vertices.get(&to).unwrap().body.position
+                            + util::random_shift();
+                        let tags = constraint.tags;
+                        let color = draw::graph::morphism_color(&tags);
+                        let id = graph
                             .graph
                             .new_edge(ForceEdge::new(
                                 from_pos,
                                 to_pos,
                                 ARROW_BODIES,
                                 ARROW_MASS,
-                                Arrow::new("", from, to, edge.connection, edge.connection.color()),
+                                Arrow {
+                                    label,
+                                    from,
+                                    to,
+                                    tags,
+                                    color,
+                                },
                             ))
-                            .unwrap()
+                            .unwrap();
+                        id
                     })
                     .collect();
-
-                // Remove edges
-                let mut removed_edges: Vec<_> = remove_edges
-                    .into_iter()
-                    .map(|edge_id| (edge_id, self.main_graph.graph.remove_edge(edge_id).unwrap()))
-                    .collect();
-
-                // Remove vertices
-                let mut removed_vertices = Vec::new();
-                for (vertex_id, vertex, edges) in remove_vertices.into_iter().map(|vertex_id| {
-                    let (vertex, edges) = self.main_graph.graph.remove_vertex(vertex_id);
-                    (vertex_id, vertex.unwrap(), edges)
-                }) {
-                    removed_vertices.push((vertex_id, vertex));
-                    removed_edges.extend(edges.into_iter());
-                }
-
-                // Undo
-                GraphActionUndo::ApplyRule {
-                    new_vertices: removed_vertices,
-                    new_edges: removed_edges,
-                    remove_vertices: new_vertices,
-                    remove_edges: new_edges,
-                }
+                vec![GraphAction::RemoveEdges(edges)]
             }
-        };
-
-        self.action_history.push(action_undo);
+            GraphAction::RemoveVertices(vertices) => {
+                let (vertices, edges) = vertices
+                    .into_iter()
+                    .map(|id| graph.graph.remove_vertex(id))
+                    .map(|(vertex, edges)| (vertex.unwrap(), edges))
+                    .map(|(vertex, edges)| {
+                        let vertex = (vertex.vertex.label, vertex.vertex.tags);
+                        let edges: Vec<_> = edges
+                            .into_iter()
+                            .map(|(_, edge)| {
+                                (
+                                    edge.edge.label,
+                                    ArrowConstraint {
+                                        from: edge.edge.from,
+                                        to: edge.edge.to,
+                                        tags: edge.edge.tags,
+                                    },
+                                )
+                            })
+                            .collect();
+                        (vertex, edges)
+                    })
+                    .fold(
+                        (Vec::new(), Vec::new()),
+                        |(mut acc_vertices, mut acc_edges), (vertex, edges)| {
+                            acc_vertices.push(vertex);
+                            acc_edges.extend(edges);
+                            (acc_vertices, acc_edges)
+                        },
+                    );
+                vec![
+                    GraphAction::NewEdges(edges),
+                    GraphAction::NewVertices(vertices),
+                ]
+            }
+            GraphAction::RemoveEdges(edges) => {
+                let edges: Vec<_> = edges
+                    .into_iter()
+                    .map(|id| graph.graph.remove_edge(id).unwrap())
+                    .map(|edge| {
+                        (
+                            edge.edge.label,
+                            ArrowConstraint {
+                                from: edge.edge.from,
+                                to: edge.edge.to,
+                                tags: edge.edge.tags,
+                            },
+                        )
+                    })
+                    .collect();
+                vec![GraphAction::NewEdges(edges)]
+            }
+        }
     }
 
     pub fn action_undo(&mut self) {
         if let Some(action) = self.action_history.pop() {
-            match action {
-                GraphActionUndo::ApplyRule {
-                    new_vertices,
-                    new_edges,
-                    remove_vertices,
-                    remove_edges,
-                } => {
-                    // Remove edges
-                    for edge in remove_edges {
-                        self.main_graph.graph.remove_edge(edge);
-                    }
-
-                    // Remove vertices
-                    for vertex in remove_vertices {
-                        self.main_graph.graph.remove_vertex(vertex);
-                    }
-
-                    // Add vertices
-                    for (id, vertex) in new_vertices {
-                        self.main_graph.graph.insert_vertex(vertex, id).unwrap();
-                    }
-
-                    // Add edges
-                    for (id, edge) in new_edges {
-                        self.main_graph.graph.insert_edge(edge, id).unwrap();
-                    }
-                }
-            }
+            Self::graph_action_do(&mut self.main_graph.graph, action);
         }
     }
 }

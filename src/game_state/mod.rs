@@ -1,5 +1,5 @@
 use force_graph::{ForceBody, ForceEdge, ForceParameters, ForceVertex};
-use geng::{prelude::rand::thread_rng, Camera2d};
+use geng::{Camera2d, PixelPerfectCamera};
 
 use graphs::{EdgeId, GraphObject, VertexId};
 
@@ -7,184 +7,61 @@ use super::*;
 
 mod action;
 mod constants;
+mod drag;
 mod draw;
 mod focus;
+mod graph_builder;
 mod graph_types;
+mod graph_util;
 mod handle_event;
+mod init;
+mod label;
+mod renderable;
 mod rules;
 mod selection;
+mod state;
 mod update;
 
 use action::*;
 use constants::*;
+use drag::*;
 use focus::*;
+use graph_builder::*;
 use graph_types::*;
+use label::*;
+use renderable::*;
 use rules::*;
+use state::*;
 
 pub struct GameState {
     geng: Geng,
-    assets: Rc<Assets>,
-    camera: Camera2d,
-    framebuffer_size: Vec2<f32>,
-    main_graph: Graph,
+    ui_camera: PixelPerfectCamera,
+    state: State,
     rules: Rules,
+    main_graph: RenderableGraph,
+    goal_graph: RenderableGraph,
     focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
-    selection: Option<RuleSelection>,
-    action_history: Vec<GraphActionUndo>,
+    main_selection: Option<RuleSelection>,
+    goal_selection: Option<RuleSelection>,
+    action_history: Vec<GraphAction>,
 }
 
 impl GameState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+        let state = State::default();
         Self {
             geng: geng.clone(),
-            assets: assets.clone(),
             dragging: None,
-            framebuffer_size: vec2(1.0, 1.0),
-            selection: None,
+            main_selection: None,
+            goal_selection: None,
             focused_graph: FocusedGraph::Main,
             action_history: vec![],
-            camera: Camera2d {
-                center: Vec2::ZERO,
-                rotation: 0.0,
-                fov: 100.0,
-            },
-            rules: Rules::new(
-                geng,
-                assets,
-                vec![
-                    // Identity
-                    RuleBuilder {
-                        inputs: vec![RuleObject::vertex("1")],
-                        constraints: vec![],
-                        infers: vec![],
-                        removes: vec![],
-                        outputs: vec![RuleObject::edge("id", "1", "1", ArrowConnection::Regular)],
-                    }
-                    .build()
-                    .unwrap(),
-                    // Composition
-                    RuleBuilder {
-                        inputs: vec![
-                            RuleObject::edge("f", "0", "1", ArrowConnection::Regular),
-                            RuleObject::edge("g", "1", "2", ArrowConnection::Regular),
-                        ],
-                        constraints: vec![],
-                        infers: vec![],
-                        removes: vec![],
-                        outputs: vec![RuleObject::edge("g.f", "0", "2", ArrowConnection::Regular)],
-                    }
-                    .build()
-                    .unwrap(),
-                    // Product
-                    RuleBuilder {
-                        inputs: vec![RuleObject::vertex("2"), RuleObject::vertex("3")],
-                        constraints: vec![],
-                        infers: vec![],
-                        removes: vec![],
-                        outputs: vec![
-                            RuleObject::edge("p1", "2x3", "2", ArrowConnection::Best),
-                            RuleObject::edge("p2", "2x3", "3", ArrowConnection::Best),
-                        ],
-                    }
-                    .build()
-                    .unwrap(),
-                    // Universal property of product
-                    RuleBuilder {
-                        inputs: vec![
-                            RuleObject::edge("", "1", "2", ArrowConnection::Regular),
-                            RuleObject::edge("", "1", "3", ArrowConnection::Regular),
-                        ],
-                        constraints: vec![],
-                        infers: vec![
-                            RuleObject::edge("", "2x3", "2", ArrowConnection::Best),
-                            RuleObject::edge("", "2x3", "3", ArrowConnection::Best),
-                        ],
-                        removes: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Regular)], // Uniqueness of morphism to the product
-                        outputs: vec![RuleObject::edge("", "1", "2x3", ArrowConnection::Unique)],
-                    }
-                    .build()
-                    .unwrap(),
-                    // Isomorphism
-                    RuleBuilder {
-                        inputs: vec![
-                            RuleObject::edge("f", "1", "2", ArrowConnection::Regular),
-                            RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
-                        ],
-                        constraints: vec![],
-                        infers: vec![
-                            RuleObject::edge("id", "1", "1", ArrowConnection::Regular),
-                            RuleObject::edge("id", "2", "2", ArrowConnection::Regular),
-                        ],
-                        removes: vec![
-                            RuleObject::edge("f", "1", "2", ArrowConnection::Regular), // TODO: Check labels for edges with non-empty names
-                            RuleObject::edge("g", "2", "1", ArrowConnection::Regular),
-                        ],
-                        outputs: vec![RuleObject::edge("", "1", "2", ArrowConnection::Isomorphism)],
-                    }
-                    .build()
-                    .unwrap(),
-                ],
-            ),
-            main_graph: {
-                let mut graph = Graph::new(ForceParameters::default());
-
-                let mut rng = thread_rng();
-
-                let mut point = |label: &str, color: Color<f32>, anchor: bool| {
-                    graph.graph.new_vertex(ForceVertex {
-                        is_anchor: anchor,
-                        body: ForceBody {
-                            position: vec2(rng.gen(), rng.gen()),
-                            mass: POINT_MASS,
-                            velocity: Vec2::ZERO,
-                        },
-                        vertex: Point {
-                            label: label.to_owned(),
-                            radius: POINT_RADIUS,
-                            color,
-                        },
-                    })
-                };
-
-                let vertices = vec![
-                    point("A", Color::WHITE, false),
-                    point("B", Color::WHITE, false),
-                    point("C", Color::WHITE, false),
-                    point("AxB", Color::WHITE, false),
-                    point("BxC", Color::WHITE, false),
-                    point("(AxB)xC", Color::WHITE, false),
-                    point("Ax(BxC)", Color::WHITE, false),
-                ];
-
-                let mut connect =
-                    |label: &str, from: usize, to: usize, connection: ArrowConnection| {
-                        graph.graph.new_edge(ForceEdge::new(
-                            vec2(rng.gen(), rng.gen()),
-                            vec2(rng.gen(), rng.gen()),
-                            ARROW_BODIES,
-                            ARROW_MASS,
-                            Arrow::new(
-                                label,
-                                vertices[from],
-                                vertices[to],
-                                connection,
-                                connection.color(),
-                            ),
-                        ))
-                    };
-
-                connect("", 3, 0, ArrowConnection::Best);
-                connect("", 3, 1, ArrowConnection::Best);
-                connect("", 4, 1, ArrowConnection::Best);
-                connect("", 4, 2, ArrowConnection::Best);
-                connect("", 5, 3, ArrowConnection::Best);
-                connect("", 5, 2, ArrowConnection::Best);
-                connect("", 6, 0, ArrowConnection::Best);
-                connect("", 6, 4, ArrowConnection::Best);
-
-                graph
-            },
+            ui_camera: PixelPerfectCamera,
+            rules: init::rules::default_rules(geng, assets),
+            main_graph: RenderableGraph::new(geng, assets, init::graph::main_graph(), vec2(1, 1)),
+            goal_graph: RenderableGraph::new(geng, assets, init::graph::goal_graph(), vec2(1, 1)),
+            state,
         }
     }
 }
@@ -202,53 +79,4 @@ impl geng::State for GameState {
     fn handle_event(&mut self, event: geng::Event) {
         self.handle_event_impl(event);
     }
-}
-
-struct Dragging {
-    mouse_start_position: Vec2<f64>,
-    world_start_position: Vec2<f32>,
-    action: DragAction,
-    current_mouse_position: Vec2<f64>,
-}
-
-enum DragAction {
-    Move {
-        target: DragTarget,
-    },
-    Selection {},
-    TwoTouchMove {
-        initial_camera_fov: f32,
-        initial_touch: Vec2<f64>,
-        initial_touch_other: Vec2<f64>,
-    },
-}
-
-enum DragTarget {
-    GraphCamera {
-        graph: FocusedGraph,
-        initial_mouse_pos: Vec2<f32>,
-        initial_camera_pos: Vec2<f32>,
-    },
-    Vertex {
-        graph: FocusedGraph,
-        id: VertexId,
-    },
-    Edge {
-        graph: FocusedGraph,
-        id: EdgeId,
-    },
-}
-
-fn random_shift() -> Vec2<f32> {
-    let mut rng = global_rng();
-    vec2(rng.gen(), rng.gen())
-}
-
-fn camera_view(camera: &Camera2d, framebuffer_size: Vec2<f32>) -> AABB<f32> {
-    AABB::point(camera.center).extend_symmetric(
-        vec2(
-            camera.fov / framebuffer_size.y * framebuffer_size.x,
-            camera.fov,
-        ) / 2.0,
-    )
 }

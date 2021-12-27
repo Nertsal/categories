@@ -2,54 +2,91 @@ use super::*;
 
 mod dashed;
 pub mod graph;
-mod rule;
 
 use dashed::*;
-use graph::*;
+use geng::Draw2d;
 
 impl GameState {
     pub fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        self.framebuffer_size = framebuffer.size().map(|x| x as f32);
+        let framebuffer_size = framebuffer.size().map(|x| x as f32);
+        let old_framebuffer_size = self.state.framebuffer_size;
+        self.state.update(framebuffer_size, self.rules.len());
+        if old_framebuffer_size != framebuffer_size {
+            self.resize_textures();
+        }
+
         ugli::clear(framebuffer, Some(Color::BLACK), None);
 
-        // Main graph
-        let rule_options = self
-            .selection
-            .as_ref()
-            .and_then(|selection| selection.inferred_options().as_ref());
-        draw_graph(
-            &self.geng,
-            &self.assets,
-            self.geng.default_font(),
-            framebuffer,
-            &self.camera,
-            &self.main_graph,
-            Color::BLACK,
-            rule_options,
-        );
+        let mut selected_rule = match self.focused_graph {
+            FocusedGraph::Rule { .. } | FocusedGraph::Main => self.main_selection.as_ref(),
+            FocusedGraph::Goal => self.goal_selection.as_ref(),
+        }
+        .and_then(|selection| {
+            selection
+                .current()
+                .map(|&current| (selection.rule(), vec![current]))
+        });
 
-        // Rules
-        self.draw_rules(framebuffer);
-
-        // Dragging
-        if let Some(dragging) = &self.dragging {
-            match &dragging.action {
-                DragAction::Selection {} => {
-                    let world_pos = self.camera.screen_to_world(
-                        self.framebuffer_size,
-                        dragging.current_mouse_position.map(|x| x as f32),
-                    );
-                    self.geng.draw_2d(
-                        framebuffer,
-                        &self.camera,
-                        &draw_2d::Quad::new(
-                            AABB::from_corners(dragging.world_start_position, world_pos),
-                            SELECTION_COLOR,
-                        ),
-                    );
+        // Render graphs
+        for (focused_graph, graph_aabb) in
+            self.state.graphs_layout.iter().copied().collect::<Vec<_>>()
+        {
+            // Choose selected objects
+            let selection = match (&selected_rule, focused_graph) {
+                (Some((rule_index, _)), FocusedGraph::Rule { index }) if index == *rule_index => {
+                    let (_, selection) = selected_rule.take().unwrap();
+                    Some(selection)
                 }
-                _ => (),
-            }
+                (_, focused_graph) => match focused_graph {
+                    FocusedGraph::Main => self.main_selection.as_ref(),
+                    FocusedGraph::Goal => self.goal_selection.as_ref(),
+                    _ => None,
+                }
+                .and_then(|selection| selection.inferred_options().clone()),
+            };
+
+            // Render graph to a texture
+            let graph = self.get_renderable_graph_mut(&focused_graph).unwrap();
+            graph.update_texture(Color::BLACK, selection.as_ref());
+            let graph = self.get_renderable_graph(&focused_graph).unwrap();
+
+            // Render texture to the dedicated part on the screen
+            self.geng.draw_2d(
+                framebuffer,
+                &self.ui_camera,
+                &draw_2d::TexturedQuad::new(graph_aabb, &graph.texture),
+            );
+
+            // Draw graph outline
+            let outline_color = if focused_graph == self.focused_graph {
+                GRAPH_FOCUSED_OUTLINE_COLOR
+            } else {
+                GRAPH_OUTLINE_COLOR
+            };
+
+            let outline = graph_aabb.extend_uniform(-GRAPH_OUTLINE_WIDTH / 2.0);
+            draw_2d::Chain::new(
+                Chain::new(vec![
+                    outline.bottom_left(),
+                    outline.top_left(),
+                    outline.top_right(),
+                    outline.bottom_right(),
+                    outline.bottom_left(),
+                ]),
+                GRAPH_OUTLINE_WIDTH,
+                outline_color,
+                0,
+            )
+            .draw_2d(&self.geng, framebuffer, &self.ui_camera);
+        }
+    }
+
+    fn resize_textures(&mut self) {
+        for (graph, graph_aabb) in self.state.graphs_layout.clone() {
+            let graph = self.get_renderable_graph_mut(&graph).unwrap();
+            let texture_width = graph_aabb.width() * GRAPH_TEXTURE_SCALE;
+            let texture_height = texture_width / graph_aabb.width() * graph_aabb.height();
+            graph.resize_texture(vec2(texture_width, texture_height).map(|x| x.ceil() as usize));
         }
     }
 }

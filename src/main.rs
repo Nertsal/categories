@@ -2,6 +2,7 @@ use geng::prelude::*;
 
 mod assets;
 mod game_state;
+mod util;
 
 use assets::*;
 

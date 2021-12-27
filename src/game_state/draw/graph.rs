@@ -2,6 +2,18 @@ use geng::draw_2d::Draw2d;
 
 use super::*;
 
+pub fn morphism_color<O, M>(tags: &[MorphismTag<O, M>]) -> Color<f32> {
+    for tag in tags {
+        match tag {
+            MorphismTag::Identity(_) => (),
+            MorphismTag::Composition { .. } => (),
+            MorphismTag::Unique => return ARROW_UNIQUE_COLOR,
+            MorphismTag::Isomorphism(_, _) => return ARROW_ISOMORPHISM_COLOR,
+        }
+    }
+    ARROW_REGULAR_COLOR
+}
+
 pub fn draw_graph(
     geng: &Geng,
     assets: &Rc<Assets>,
@@ -62,7 +74,7 @@ fn draw_vertex(
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    vertex: &ForceVertex<Point>,
+    vertex: &Vertex,
     background_color: Color<f32>,
     is_selected: bool,
 ) {
@@ -94,16 +106,14 @@ fn draw_vertex(
     .draw_2d(geng, framebuffer, camera);
 
     // Label
-    draw_2d::Text::unit(
-        font.clone(),
-        vertex.vertex.label.to_owned(),
-        vertex.vertex.color,
-    )
-    .fit_into(Ellipse::circle(
-        vertex.body.position,
-        (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 0.8,
-    ))
-    .draw_2d(geng, framebuffer, camera);
+    if let RuleLabel::Name(label) = &vertex.vertex.label {
+        draw_2d::Text::unit(font.clone(), label.to_owned(), vertex.vertex.color)
+            .fit_into(Ellipse::circle(
+                vertex.body.position,
+                (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 0.8,
+            ))
+            .draw_2d(geng, framebuffer, camera);
+    }
 }
 
 fn draw_edge(
@@ -114,7 +124,7 @@ fn draw_edge(
     camera: &Camera2d,
     background_color: Color<f32>,
     graph: &Graph,
-    edge: &ForceEdge<Arrow<VertexId>>,
+    edge: &Edge,
     is_selected: bool,
 ) {
     // Find endpoints
@@ -152,15 +162,22 @@ fn draw_edge(
     let scale = ARROW_HEAD_LENGTH.min(chain_len * ARROW_LENGTH_MAX_FRAC) / ARROW_HEAD_LENGTH;
     let head_length = ARROW_HEAD_LENGTH * scale;
 
-    let (min, max) = match edge.edge.connection {
-        ArrowConnection::Isomorphism => (
+    let isomorphism = edge
+        .edge
+        .tags
+        .iter()
+        .any(|tag| matches!(tag, MorphismTag::Isomorphism(_, _)));
+
+    let (min, max) = if isomorphism {
+        (
             from.vertex.radius / chain_len,
             1.0 - to.vertex.radius / chain_len,
-        ),
-        _ => (
+        )
+    } else {
+        (
             from.vertex.radius / chain_len,
             1.0 - (to.vertex.radius + head_length) / chain_len,
-        ),
+        )
     };
     let chain = chain.take_range_ratio(min..=max);
 
@@ -186,24 +203,26 @@ fn draw_edge(
 
     let head_direction = end - *chain.vertices.last().unwrap();
 
-    match edge.edge.connection {
-        ArrowConnection::Best | ArrowConnection::Regular | ArrowConnection::Isomorphism => {
-            draw_2d::Chain::new(chain, ARROW_WIDTH, edge.edge.color, 1).draw_2d(
-                geng,
-                framebuffer,
-                camera,
-            );
-        }
-        ArrowConnection::Unique => {
-            draw_dashed_chain(
-                geng,
-                framebuffer,
-                camera,
-                &chain,
-                ARROW_WIDTH,
-                edge.edge.color,
-            );
-        }
+    if edge
+        .edge
+        .tags
+        .iter()
+        .any(|tag| matches!(tag, MorphismTag::Unique))
+    {
+        draw_dashed_chain(
+            geng,
+            framebuffer,
+            camera,
+            &chain,
+            ARROW_WIDTH,
+            edge.edge.color,
+        );
+    } else {
+        draw_2d::Chain::new(chain, ARROW_WIDTH, edge.edge.color, 1).draw_2d(
+            geng,
+            framebuffer,
+            camera,
+        );
     }
 
     // Line head
@@ -212,9 +231,9 @@ fn draw_edge(
     let head_offset = direction_norm * (head_length + to.vertex.radius);
     let head = end - head_offset;
     let head_width = normal * ARROW_HEAD_WIDTH * scale;
-    match edge.edge.connection {
-        ArrowConnection::Isomorphism => (),
-        _ => draw_2d::Polygon::new(
+
+    if !isomorphism {
+        draw_2d::Polygon::new(
             vec![
                 end - direction_norm * to.vertex.radius,
                 head + head_width,
@@ -222,17 +241,19 @@ fn draw_edge(
             ],
             edge.edge.color,
         )
-        .draw_2d(geng, framebuffer, camera),
+        .draw_2d(geng, framebuffer, camera)
     }
 
     if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
         // Label
-        draw_2d::Text::unit(font.clone(), edge.edge.label.to_owned(), Color::GRAY)
-            .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
-            .draw_2d(geng, framebuffer, camera);
+        if let RuleLabel::Name(label) = &edge.edge.label {
+            draw_2d::Text::unit(font.clone(), label.to_owned(), Color::GRAY)
+                .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
+                .draw_2d(geng, framebuffer, camera);
+        }
 
         // Isomorphism
-        if let ArrowConnection::Isomorphism = edge.edge.connection {
+        if isomorphism {
             draw_2d::Ellipse::circle(center.position, ARROW_ICON_RADIUS, edge.edge.color).draw_2d(
                 geng,
                 framebuffer,
