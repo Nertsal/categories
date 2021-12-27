@@ -11,6 +11,7 @@ mod drag;
 mod draw;
 mod focus;
 mod graph_builder;
+mod graph_link;
 mod graph_types;
 mod graph_util;
 mod handle_event;
@@ -21,12 +22,14 @@ mod rules;
 mod selection;
 mod state;
 mod update;
+mod goal;
 
 use action::*;
 use constants::*;
 use drag::*;
 use focus::*;
 use graph_builder::*;
+use graph_link::*;
 use graph_types::*;
 use label::*;
 use renderable::*;
@@ -40,6 +43,7 @@ pub struct GameState {
     rules: Rules,
     main_graph: RenderableGraph,
     goal_graph: RenderableGraph,
+    graph_link: GraphLink,
     focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
     main_selection: Option<RuleSelection>,
@@ -50,6 +54,8 @@ pub struct GameState {
 impl GameState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         let state = State::default();
+        let main_graph = RenderableGraph::new(geng, assets, init::graph::main_graph(), vec2(1, 1));
+        let goal_graph = RenderableGraph::new(geng, assets, init::graph::goal_graph(), vec2(1, 1));
         Self {
             geng: geng.clone(),
             dragging: None,
@@ -59,8 +65,9 @@ impl GameState {
             action_history: vec![],
             ui_camera: PixelPerfectCamera,
             rules: init::rules::default_rules(geng, assets),
-            main_graph: RenderableGraph::new(geng, assets, init::graph::main_graph(), vec2(1, 1)),
-            goal_graph: RenderableGraph::new(geng, assets, init::graph::goal_graph(), vec2(1, 1)),
+            graph_link: GraphLink::new(&main_graph.graph, &goal_graph.graph),
+            main_graph,
+            goal_graph,
             state,
         }
     }

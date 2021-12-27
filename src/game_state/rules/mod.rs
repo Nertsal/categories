@@ -8,7 +8,7 @@ mod rule;
 mod selection;
 mod tag;
 
-use bindings::*;
+pub use bindings::*;
 use constraint::*;
 pub use construction::*;
 pub use object::*;

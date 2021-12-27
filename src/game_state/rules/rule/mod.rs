@@ -16,6 +16,8 @@ impl GameState {
         let rule = &self.rules[selection.rule()];
         let actions = rule.apply(graph, selection.selection());
         self.action_history.extend(actions);
+
+        self.check_goal();
     }
 }
 

@@ -38,7 +38,7 @@ pub fn goal_graph() -> Graph {
             false,
         )
         .morphism(
-            "",
+            Label::Any,
             "Ax(BxC)",
             "(AxB)xC",
             vec![MorphismTag::Isomorphism(Label::Any, Label::Any)],

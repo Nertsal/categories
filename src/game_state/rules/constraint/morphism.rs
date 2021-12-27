@@ -28,81 +28,104 @@ pub fn constraint_morphism<'a>(
             && constraint.tags.iter().all(|constraint| {
                 edge.edge.tags.iter().any(|tag| match (constraint, tag) {
                     (MorphismTag::Unique, MorphismTag::Unique) => true,
-                    (
-                        MorphismTag::Identity(Some(constraint)),
-                        &MorphismTag::Identity(Some(object)),
-                    ) => match bindings.get_object(constraint) {
-                        Some(constraint) => constraint == object,
-                        None => {
-                            binds.bind_object(constraint.clone(), object);
-                            true
+                    (MorphismTag::Identity(constraint), &MorphismTag::Identity(object)) => {
+                        match (constraint, object) {
+                            (Some(constraint), Some(object)) => {
+                                match bindings.get_object(constraint) {
+                                    Some(constraint) => constraint == object,
+                                    None => {
+                                        binds.bind_object(constraint.clone(), object);
+                                        true
+                                    }
+                                }
+                            }
+                            _ => true,
                         }
-                    },
+                    }
                     (
                         MorphismTag::Composition {
-                            first: Some(constraint_first),
-                            second: Some(constraint_second),
+                            first: constraint_first,
+                            second: constraint_second,
                         },
-                        &MorphismTag::Composition {
-                            first: Some(first),
-                            second: Some(second),
-                        },
+                        &MorphismTag::Composition { first, second },
                     ) => {
-                        let match_first = match bindings.get_morphism(constraint_first) {
-                            Some(constraint) => constraint == first,
-                            None => {
-                                binds.bind_morphism(constraint_first.to_owned(), first);
-                                true
+                        let match_first = match (constraint_first, first) {
+                            (Some(constraint_first), Some(first)) => {
+                                match bindings.get_morphism(constraint_first) {
+                                    Some(constraint) => constraint == first,
+                                    None => {
+                                        binds.bind_morphism(constraint_first.to_owned(), first);
+                                        true
+                                    }
+                                }
                             }
+                            _ => true,
                         };
 
-                        let match_second = match bindings.get_morphism(constraint_second) {
-                            Some(constraint) => constraint == second,
-                            None => {
-                                binds.bind_morphism(constraint_second.to_owned(), second);
-                                true
+                        let match_second = match (constraint_second, second) {
+                            (Some(constraint_second), Some(second)) => {
+                                match bindings.get_morphism(constraint_second) {
+                                    Some(constraint) => constraint == second,
+                                    None => {
+                                        binds.bind_morphism(constraint_second.to_owned(), second);
+                                        true
+                                    }
+                                }
                             }
+                            _ => true,
                         };
 
                         match_first && match_second
                     }
                     (
-                        MorphismTag::Isomorphism(Some(constraint0), Some(constraint1)),
-                        &MorphismTag::Isomorphism(Some(morphism0), Some(morphism1)),
+                        MorphismTag::Isomorphism(constraint0, constraint1),
+                        &MorphismTag::Isomorphism(morphism0, morphism1),
                     ) => {
+                        let mut bind = |label, id| match (label, id) {
+                            (Some(label), Some(id)) => {
+                                binds.bind_morphism(label, id);
+                            }
+                            _ => (),
+                        };
+
                         match (
-                            bindings.get_morphism(constraint0),
-                            bindings.get_morphism(constraint1),
+                            constraint0
+                                .as_ref()
+                                .and_then(|constraint| bindings.get_morphism(constraint)),
+                            constraint1
+                                .as_ref()
+                                .and_then(|constraint| bindings.get_morphism(constraint)),
                         ) {
                             (Some(constraint0), Some(constraint1)) => {
-                                constraint0 == morphism0 && constraint1 == morphism1
-                                    || constraint0 == morphism1 && constraint1 == morphism0
+                                check(constraint0, morphism0) && check(constraint1, morphism1)
+                                    || check(constraint0, morphism1)
+                                        && check(constraint1, morphism0)
                             }
                             (Some(constraint0), None) => {
-                                if constraint0 == morphism0 {
-                                    binds.bind_morphism(constraint1.to_owned(), morphism1);
+                                if check(constraint0, morphism0) {
+                                    bind(constraint1.clone(), morphism1);
                                     true
-                                } else if constraint0 == morphism1 {
-                                    binds.bind_morphism(constraint1.to_owned(), morphism0);
+                                } else if check(constraint0, morphism1) {
+                                    bind(constraint1.clone(), morphism0);
                                     true
                                 } else {
                                     false
                                 }
                             }
                             (None, Some(constraint1)) => {
-                                if constraint1 == morphism0 {
-                                    binds.bind_morphism(constraint0.to_owned(), morphism1);
+                                if check(constraint1, morphism0) {
+                                    bind(constraint0.clone(), morphism1);
                                     true
-                                } else if constraint1 == morphism1 {
-                                    binds.bind_morphism(constraint0.to_owned(), morphism0);
+                                } else if check(constraint1, morphism1) {
+                                    bind(constraint0.clone(), morphism0);
                                     true
                                 } else {
                                     false
                                 }
                             }
                             (None, None) => {
-                                binds.bind_morphism(constraint0.to_owned(), morphism0);
-                                binds.bind_morphism(constraint1.to_owned(), morphism1);
+                                bind(constraint0.clone(), morphism0);
+                                bind(constraint1.clone(), morphism1);
                                 true
                             }
                         }
