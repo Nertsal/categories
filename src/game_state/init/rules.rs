@@ -58,7 +58,7 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
                     .morphism("g", "C", "B", vec![]),
             )
             .exists(ConstraintsBuilder::new().morphism("m", "C", "AxB", vec![MorphismTag::Unique]))
-            .forall(ConstraintsBuilder::new().morphism("m'", "C", "AxB", vec![]))
+            // .forall(ConstraintsBuilder::new().morphism("m'", "C", "AxB", vec![]))
             // TODO: m = m'
             .build(geng, assets),
         // Isomorphism: forall (morphism f A->B, morphism g B->A) // TODO: f.g = id_a, g.f = id_b

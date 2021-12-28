@@ -179,8 +179,42 @@ fn invert_statement(statement: &RuleStatement) -> RuleStatement {
         .iter()
         .rev()
         .map(|construction| match construction {
-            RuleConstruction::Forall(constraints) => RuleConstruction::Exists(constraints.clone()),
-            RuleConstruction::Exists(constraints) => RuleConstruction::Forall(constraints.clone()),
+            RuleConstruction::Forall(constraints) => {
+                RuleConstruction::Exists(invert_constraints(constraints))
+            }
+            RuleConstruction::Exists(constraints) => {
+                RuleConstruction::Forall(invert_constraints(constraints))
+            }
+        })
+        .collect()
+}
+
+fn invert_constraints(constraints: &Constraints) -> Constraints {
+    constraints
+        .iter()
+        .map(|constraint| match constraint {
+            Constraint::RuleObject(label, object) => match object {
+                RuleObject::Vertex { .. } => constraint.clone(),
+                RuleObject::Edge { constraint } => Constraint::RuleObject(
+                    label.clone(),
+                    RuleObject::Edge {
+                        constraint: ArrowConstraint {
+                            tags: constraint
+                                .tags
+                                .iter()
+                                .filter_map(|tag| match tag {
+                                    MorphismTag::Identity(_) | MorphismTag::Isomorphism(_, _) => {
+                                        Some(tag.clone())
+                                    }
+                                    _ => None,
+                                })
+                                .collect(),
+                            ..constraint.clone()
+                        },
+                    },
+                ),
+            },
+            Constraint::MorphismEq(_, _) => todo!(),
         })
         .collect()
 }

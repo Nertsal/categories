@@ -5,7 +5,6 @@ mod init;
 
 impl GameState {
     /// Attempts to apply a rule.
-    /// Returns whether the rule was applied successfully.
     pub fn apply_rule(&mut self, graph: FocusedGraph, selection: RuleSelection) {
         let graph = match graph {
             FocusedGraph::Rule { .. } => return,
@@ -21,6 +20,20 @@ impl GameState {
 
         let actions = Rule::apply(statement, graph, selection.selection());
         self.action_history.extend(actions);
+
+        if selection.inverse() {
+            // TODO: smarter removal
+            for edge in selection
+                .selection()
+                .iter()
+                .filter_map(|object| match object {
+                    GraphObject::Vertex { .. } => None,
+                    GraphObject::Edge { id } => Some(id),
+                })
+            {
+                graph.graph.edges.remove(edge);
+            }
+        }
 
         self.check_goal();
     }
