@@ -9,7 +9,7 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
                 "id",
                 "A",
                 "A",
-                vec![MorphismTag::Identity(Some("A".into()))],
+                vec![MorphismTag::Identity(Some("A"))],
             ))
             .build(geng, assets),
         // Composition: forall (morphism f A->B, morphism g B->C) exists (morphism g.f A->C [Composition f g])
@@ -24,8 +24,8 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
                 "A",
                 "C",
                 vec![MorphismTag::Composition {
-                    first: Some("f".into()),
-                    second: Some("g".into()),
+                    first: Some("f"),
+                    second: Some("g"),
                 }],
             ))
             .build(geng, assets),
@@ -42,10 +42,10 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
                     .object("A", vec![])
                     .object("B", vec![]),
             )
-            .exists(ConstraintsBuilder::new().object(
-                "AxB",
-                vec![ObjectTag::Product(Some("A".into()), Some("B".into()))],
-            ))
+            .exists(
+                ConstraintsBuilder::new()
+                    .object("AxB", vec![ObjectTag::Product(Some("A"), Some("B"))]),
+            )
             .exists(
                 ConstraintsBuilder::new()
                     .morphism("fst", "AxB", "A", vec![])
@@ -70,10 +70,10 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
                     .morphism("g", "B", "A", vec![]),
             )
             .exists(ConstraintsBuilder::new().morphism(
-                Label::Any,
+                "",
                 "A",
                 "B",
-                vec![MorphismTag::Isomorphism(Some("f".into()), Some("g".into()))],
+                vec![MorphismTag::Isomorphism(Some("f"), Some("g"))],
             ))
             .build(geng, assets),
     ]

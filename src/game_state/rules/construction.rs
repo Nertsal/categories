@@ -31,24 +31,39 @@ impl ConstraintsBuilder {
         self.0
     }
 
-    pub fn object(mut self, label: impl Into<Label>, tags: Vec<ObjectTag>) -> Self {
+    pub fn object(mut self, label: &str, tags: Vec<ObjectTag<Option<&str>>>) -> Self {
         self.0.push(Constraint::RuleObject(
-            label.into(),
-            RuleObject::vertex(tags),
+            Label::Name(label.to_owned()),
+            RuleObject::vertex(
+                tags.into_iter()
+                    .map(|tag| tag.map(|label| label.map(|label| label.into())))
+                    .collect(),
+            ),
         ));
         self
     }
 
     pub fn morphism(
         mut self,
-        label: impl Into<Label>,
+        label: &str,
         from: impl Into<Label>,
         to: impl Into<Label>,
-        tags: Vec<MorphismTag>,
+        tags: Vec<MorphismTag<Option<&str>, Option<&str>>>,
     ) -> Self {
         self.0.push(Constraint::RuleObject(
-            label.into(),
-            RuleObject::edge(from.into(), to.into(), tags),
+            Label::Name(label.to_owned()),
+            RuleObject::edge(
+                from.into(),
+                to.into(),
+                tags.into_iter()
+                    .map(|tag| {
+                        tag.map(
+                            |label| label.map(|label| label.into()),
+                            |label| label.map(|label| label.into()),
+                        )
+                    })
+                    .collect(),
+            ),
         ));
         self
     }

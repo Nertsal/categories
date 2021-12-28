@@ -285,7 +285,7 @@ impl GameState {
                                 false,
                             );
                             let goal_selection = RuleSelection::new(
-                                &self.main_graph.graph,
+                                &self.goal_graph.graph,
                                 index,
                                 &self.rules,
                                 true,

@@ -14,7 +14,12 @@ impl GameState {
         };
 
         let rule = &self.rules[selection.rule()];
-        let actions = rule.apply(graph, selection.selection());
+        let statement = match selection.inverse() {
+            false => rule.statement(),
+            true => rule.inverse_statement(),
+        };
+
+        let actions = Rule::apply(statement, graph, selection.selection());
         self.action_history.extend(actions);
 
         self.check_goal();

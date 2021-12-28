@@ -49,11 +49,11 @@ impl Rule {
 
     /// Attempts to apply the rule and returns the action history (undo actions).
     pub(super) fn apply(
-        &self,
+        statement: &[RuleConstruction],
         graph: &mut Graph,
         selection: &Vec<GraphObject>,
     ) -> Vec<GraphAction> {
-        let bindings = match self.statement.first() {
+        let bindings = match statement.first() {
             Some(RuleConstruction::Forall(constraints))
             | Some(RuleConstruction::Exists(constraints)) => {
                 match selection_constraints(selection, constraints, graph) {
@@ -64,6 +64,6 @@ impl Rule {
             _ => Bindings::new(),
         };
 
-        Self::apply_impl(&self.statement, bindings, graph)
+        Self::apply_impl(statement, bindings, graph)
     }
 }

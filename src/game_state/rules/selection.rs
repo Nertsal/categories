@@ -30,6 +30,10 @@ impl RuleSelection {
         selection
     }
 
+    pub fn inverse(&self) -> bool {
+        self.inverse
+    }
+
     pub fn rule(&self) -> usize {
         self.rule_index
     }
@@ -125,10 +129,14 @@ fn infer_construction(
         options
             .map(|binds| match next_object {
                 RuleObject::Vertex { .. } => GraphObject::Vertex {
-                    id: binds.get_object(next_label).unwrap(),
+                    id: binds
+                        .get_object(next_label)
+                        .expect("An object was expected to be inferred, does it not have a name?"),
                 },
                 RuleObject::Edge { .. } => GraphObject::Edge {
-                    id: binds.get_morphism(next_label).unwrap(),
+                    id: binds
+                        .get_morphism(next_label)
+                        .expect("A morphism was expected to be inferred, does it not have a name?"),
                 },
             })
             .collect()
