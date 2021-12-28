@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug)]
 pub struct RuleSelection {
     rule_index: usize,
     rule_input: Vec<GraphObject>,
