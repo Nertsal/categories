@@ -18,8 +18,7 @@ impl GameState {
             true => rule.inverse_statement(),
         };
 
-        let actions = Rule::apply(statement, graph, selection.selection());
-        let applied = !actions.is_empty();
+        let (actions, applied) = Rule::apply(statement, graph, selection.selection());
         self.action_history.extend(actions);
 
         if applied && selection.inverse() {

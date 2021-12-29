@@ -191,9 +191,8 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
                         RuleConstruction::Exists(inv_exists),
                     ]);
                     prelude.extend(forall);
+                    prelude.extend(constraints.clone());
                 }
-
-                prelude.extend(constraints.clone());
             }
         };
     }
