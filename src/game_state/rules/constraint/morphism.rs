@@ -1,34 +1,45 @@
 use super::*;
 
-pub fn constraint_morphism<'a>(
-    label: &'a Label,
-    constraint: &'a ArrowConstraint,
-    bindings: &'a Bindings,
-    graph: &'a Graph,
-) -> impl Iterator<Item = Bindings> + 'a {
-    assert!(
-        bindings.get_morphism(label).is_none(),
-        "Morphisms must have unique names!"
-    );
-
+pub fn constraint_morphism(
+    label: &Label,
+    constraint: &ArrowConstraint,
+    bindings: &Bindings,
+    graph: &Graph,
+) -> Vec<Bindings> {
     let from = bindings.get_object(&constraint.from);
     let to = bindings.get_object(&constraint.to);
 
-    graph.graph.edges.iter().filter_map(move |(&id, edge)| {
-        let mut binds = Bindings::new();
-        if morphism_match(from, to, &constraint.tag, edge, bindings, &mut binds) {
-            binds.bind_morphism(label.to_owned(), id);
-            if from.is_none() {
-                binds.bind_object(constraint.from.to_owned(), edge.edge.from);
+    match bindings.get_morphism(label) {
+        Some(edge_id) => {
+            let mut binds = Bindings::new();
+            let edge = graph.graph.edges.get(&edge_id).unwrap();
+            if morphism_match(from, to, &constraint.tag, edge, bindings, &mut binds) {
+                vec![binds]
+            } else {
+                vec![]
             }
-            if to.is_none() {
-                binds.bind_object(constraint.to.to_owned(), edge.edge.to);
-            }
-            Some(binds)
-        } else {
-            None
         }
-    })
+        None => graph
+            .graph
+            .edges
+            .iter()
+            .filter_map(move |(&id, edge)| {
+                let mut binds = Bindings::new();
+                if morphism_match(from, to, &constraint.tag, edge, bindings, &mut binds) {
+                    binds.bind_morphism(label.to_owned(), id);
+                    if from.is_none() {
+                        binds.bind_object(constraint.from.to_owned(), edge.edge.from);
+                    }
+                    if to.is_none() {
+                        binds.bind_object(constraint.to.to_owned(), edge.edge.to);
+                    }
+                    Some(binds)
+                } else {
+                    None
+                }
+            })
+            .collect(),
+    }
 }
 
 fn morphism_match(

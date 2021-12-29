@@ -1,25 +1,36 @@
 use super::*;
 
-pub fn constraint_object<'a>(
-    label: &'a Label,
-    tag: &'a Option<ObjectTag>,
-    bindings: &'a Bindings,
-    graph: &'a Graph,
-) -> impl Iterator<Item = Bindings> + 'a {
-    assert!(
-        bindings.get_object(label).is_none(),
-        "Objects must have unique names!"
-    );
-
-    graph.graph.vertices.iter().filter_map(|(&id, vertex)| {
-        let mut binds = Bindings::new();
-        if object_match(tag, vertex, bindings, &mut binds) {
-            binds.bind_object(label.clone(), id);
-            Some(binds)
-        } else {
-            None
+pub fn constraint_object(
+    label: &Label,
+    tag: &Option<ObjectTag>,
+    bindings: &Bindings,
+    graph: &Graph,
+) -> Vec<Bindings> {
+    match bindings.get_object(label) {
+        Some(vertex_id) => {
+            let mut binds = Bindings::new();
+            let vertex = graph.graph.vertices.get(&vertex_id).unwrap();
+            if object_match(tag, vertex, bindings, &mut binds) {
+                vec![binds]
+            } else {
+                vec![]
+            }
         }
-    })
+        None => graph
+            .graph
+            .vertices
+            .iter()
+            .filter_map(|(&id, vertex)| {
+                let mut binds = Bindings::new();
+                if object_match(tag, vertex, bindings, &mut binds) {
+                    binds.bind_object(label.clone(), id);
+                    Some(binds)
+                } else {
+                    None
+                }
+            })
+            .collect(),
+    }
 }
 
 fn object_match(

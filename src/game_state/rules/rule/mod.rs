@@ -119,20 +119,12 @@ pub fn find_candidates(
     let constraints = &constraints[1..];
 
     let binds: Vec<_> = match constraint {
-        Constraint::RuleObject(label, object) => {
-            if bindings.get_object(label).is_some() || bindings.get_morphism(label).is_some() {
-                vec![Bindings::new()]
-            } else {
-                match object {
-                    RuleObject::Vertex { tag } => {
-                        constraint_object(label, tag, bindings, graph).collect()
-                    }
-                    RuleObject::Edge { constraint } => {
-                        constraint_morphism(label, constraint, bindings, graph).collect()
-                    }
-                }
+        Constraint::RuleObject(label, object) => match object {
+            RuleObject::Vertex { tag } => constraint_object(label, tag, bindings, graph),
+            RuleObject::Edge { constraint } => {
+                constraint_morphism(label, constraint, bindings, graph)
             }
-        }
+        },
         Constraint::MorphismEq(_, _) => unimplemented!(),
     };
 

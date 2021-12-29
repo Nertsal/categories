@@ -37,6 +37,14 @@ pub fn goal_graph() -> Graph {
             Color::WHITE,
             false,
         )
+        .morphism(Label::Any, "AxB", "A", None)
+        .morphism(Label::Any, "AxB", "B", None)
+        .morphism(Label::Any, "BxC", "B", None)
+        .morphism(Label::Any, "BxC", "C", None)
+        .morphism(Label::Any, "(AxB)xC", "AxB", None)
+        .morphism(Label::Any, "(AxB)xC", "C", None)
+        .morphism(Label::Any, "Ax(BxC)", "A", None)
+        .morphism(Label::Any, "Ax(BxC)", "BxC", None)
         .morphism(
             Label::Any,
             "Ax(BxC)",

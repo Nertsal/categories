@@ -39,21 +39,27 @@ pub fn apply_constraints(
                     .map(|label| bindings.get_object(label).unwrap())
             })
         });
-        let name = tag
-            .iter()
-            .filter_map(|tag| {
-                tag.map_borrowed(|object| {
-                    object
-                        .as_ref()
-                        .map(|object| &graph.graph.vertices.get(object).unwrap().vertex.label)
+
+        if let Some(_) = bindings.get_object(label) {
+            // TODO: possibly need to add a tag
+        } else {
+            let name = tag
+                .iter()
+                .filter_map(|tag| {
+                    tag.map_borrowed(|object| {
+                        object
+                            .as_ref()
+                            .map(|object| &graph.graph.vertices.get(object).unwrap().vertex.label)
+                    })
+                    .infer_name()
                 })
-                .infer_name()
-            })
-            .find(|_| true)
-            .map(|name| Label::Name(name))
-            .unwrap_or(Label::Any);
-        new_vertices.push((name, tag));
-        new_vertices_names.push(label.to_owned());
+                .find(|_| true)
+                .map(|name| Label::Name(name))
+                .unwrap_or(Label::Any);
+
+            new_vertices.push((name, tag));
+            new_vertices_names.push(label.to_owned());
+        }
     }
 
     // Create new vertices
@@ -94,27 +100,33 @@ pub fn apply_constraints(
                 )
             }),
         };
-        let name = constraint
-            .tag
-            .iter()
-            .filter_map(|tag| {
-                tag.map_borrowed(
-                    |id| {
-                        id.as_ref()
-                            .map(|id| &graph.graph.vertices.get(id).unwrap().vertex.label)
-                    },
-                    |id| {
-                        id.as_ref()
-                            .map(|id| &graph.graph.edges.get(id).unwrap().edge.label)
-                    },
-                )
-                .infer_name()
-            })
-            .find(|_| true)
-            .map(|name| Label::Name(name))
-            .unwrap_or(Label::Any);
-        new_edges.push((name, constraint));
-        new_edges_names.push(label.to_owned());
+
+        if let Some(_) = bindings.get_morphism(label) {
+            // TODO: possible add a tag
+        } else {
+            let name = constraint
+                .tag
+                .iter()
+                .filter_map(|tag| {
+                    tag.map_borrowed(
+                        |id| {
+                            id.as_ref()
+                                .map(|id| &graph.graph.vertices.get(id).unwrap().vertex.label)
+                        },
+                        |id| {
+                            id.as_ref()
+                                .map(|id| &graph.graph.edges.get(id).unwrap().edge.label)
+                        },
+                    )
+                    .infer_name()
+                })
+                .find(|_| true)
+                .map(|name| Label::Name(name))
+                .unwrap_or(Label::Any);
+
+            new_edges.push((name, constraint));
+            new_edges_names.push(label.to_owned());
+        }
     }
 
     // Create new edges
