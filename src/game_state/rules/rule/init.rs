@@ -165,7 +165,7 @@ impl Rule {
             .unwrap_or_default();
 
         Self {
-            inverse_statement: invert_statement(&statement),
+            inverse_statement: invert_statement(&statement).into_iter().last().unwrap(),
             graph: RenderableGraph::new(geng, assets, graph, vec2(1, 1)),
             statement,
             graph_input,
@@ -174,19 +174,39 @@ impl Rule {
     }
 }
 
-fn invert_statement(statement: &RuleStatement) -> RuleStatement {
-    statement
-        .iter()
-        .rev()
-        .map(|construction| match construction {
+fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
+    let mut prelude = Vec::new();
+    let mut statements = Vec::new();
+
+    let mut last_forall = None;
+
+    for construction in statement {
+        match construction {
             RuleConstruction::Forall(constraints) => {
-                RuleConstruction::Exists(invert_constraints(constraints))
+                if let Some(forall) = last_forall.take() {
+                    prelude.extend(forall);
+                }
+                last_forall = Some(constraints.clone());
             }
             RuleConstruction::Exists(constraints) => {
-                RuleConstruction::Forall(invert_constraints(constraints))
+                if let Some(forall) = last_forall.take() {
+                    // Construct an inverse rule
+                    let inv_forall = invert_constraints(constraints);
+                    let inv_exists = invert_constraints(&forall);
+                    statements.push(vec![
+                        RuleConstruction::Forall(inv_forall),
+                        RuleConstruction::Forall(prelude.clone()),
+                        RuleConstruction::Exists(inv_exists),
+                    ]);
+                    prelude.extend(forall);
+                } else {
+                    prelude.extend(constraints.clone());
+                }
             }
-        })
-        .collect()
+        };
+    }
+
+    statements
 }
 
 fn invert_constraints(constraints: &Constraints) -> Constraints {

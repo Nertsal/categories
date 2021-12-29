@@ -19,9 +19,10 @@ impl GameState {
         };
 
         let actions = Rule::apply(statement, graph, selection.selection());
+        let applied = !actions.is_empty();
         self.action_history.extend(actions);
 
-        if selection.inverse() {
+        if applied && selection.inverse() {
             // TODO: smarter removal
             for edge in selection
                 .selection()
