@@ -41,8 +41,8 @@ impl GameState {
                             + util::random_shift();
                         let to_pos = graph.graph.vertices.get(&to).unwrap().body.position
                             + util::random_shift();
-                        let tags = constraint.tag;
-                        let color = draw::graph::morphism_color(&tags);
+                        let tag = constraint.tag;
+                        let color = draw::graph::morphism_color(&tag);
                         let id = graph
                             .graph
                             .new_edge(ForceEdge::new(
@@ -54,7 +54,7 @@ impl GameState {
                                     label,
                                     from,
                                     to,
-                                    tag: tags,
+                                    tag,
                                     color,
                                 },
                             ))

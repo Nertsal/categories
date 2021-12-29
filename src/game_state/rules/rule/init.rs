@@ -14,14 +14,14 @@ impl Rule {
             tag: Option<ObjectTag<Option<VertexId>>>,
             color: Color<f32>,
         ) -> VertexId {
-            let mut new_object = |label: &Label, tags, color| {
+            let mut new_object = |label: &Label, tag, color| {
                 graph.graph.new_vertex(ForceVertex {
                     is_anchor: false,
                     body: ForceBody::new(util::random_shift(), POINT_MASS),
                     vertex: Point {
                         label: label.clone(),
                         radius: POINT_RADIUS,
-                        tag: tags,
+                        tag,
                         color,
                     },
                 })

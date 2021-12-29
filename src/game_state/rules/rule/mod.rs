@@ -124,8 +124,8 @@ pub fn find_candidates(
                 vec![Bindings::new()]
             } else {
                 match object {
-                    RuleObject::Vertex { tag: tags } => {
-                        constraint_object(label, tags, bindings, graph).collect()
+                    RuleObject::Vertex { tag } => {
+                        constraint_object(label, tag, bindings, graph).collect()
                     }
                     RuleObject::Edge { constraint } => {
                         constraint_morphism(label, constraint, bindings, graph).collect()
