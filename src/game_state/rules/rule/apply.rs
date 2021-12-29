@@ -1,8 +1,7 @@
 use super::*;
 
 impl Rule {
-    /// Attempts to apply the rule and returns the action history (undo actions).
-    pub(super) fn apply_impl(
+    fn apply_impl(
         statement: &[RuleConstruction],
         bindings: Bindings,
         graph: &mut Graph,
@@ -15,22 +14,17 @@ impl Rule {
         let statement = &statement[1..];
         match construction {
             RuleConstruction::Forall(constraints) => find_candidates(constraints, &bindings, graph)
-                .map(|candidates| candidates.collect::<Vec<_>>())
-                .map(|candidates| {
-                    candidates
-                        .into_iter()
-                        .map(|mut binds| {
-                            binds.extend(bindings.clone());
-                            Self::apply_impl(statement, binds, graph)
-                        })
-                        .flatten()
-                        .collect()
+                .into_iter()
+                .map(|mut binds| {
+                    binds.extend(bindings.clone());
+                    Self::apply_impl(statement, binds, graph)
                 })
-                .unwrap_or_default(),
+                .flatten()
+                .collect(),
             RuleConstruction::Exists(constraints) => {
                 match find_candidates(constraints, &bindings, graph)
-                    .map(|mut binds| binds.next())
-                    .flatten()
+                    .into_iter()
+                    .next()
                 {
                     Some(mut binds) => {
                         binds.extend(bindings);

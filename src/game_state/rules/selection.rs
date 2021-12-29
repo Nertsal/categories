@@ -76,7 +76,7 @@ impl RuleSelection {
             true => rule.inverse_statement().first(),
         });
         self.inferred_options = construction
-            .and_then(|construction| infer_construction(construction, graph, &self.selection));
+            .map(|construction| infer_construction(construction, graph, &self.selection));
     }
 }
 
@@ -84,7 +84,7 @@ fn infer_construction(
     construction: &RuleConstruction,
     graph: &Graph,
     selection: &Vec<GraphObject>,
-) -> Option<Vec<GraphObject>> {
+) -> Vec<GraphObject> {
     let input_constraints = match construction {
         RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
             constraints
@@ -107,7 +107,7 @@ fn infer_construction(
                     bindings.bind_object(constraint.to.to_owned(), edge.edge.to);
                 }
                 _ => {
-                    return None;
+                    return vec![];
                 }
             },
             Constraint::MorphismEq(_, _) => (),
@@ -121,24 +121,23 @@ fn infer_construction(
     let (next_label, next_object) = match next {
         Some(next) => next,
         None => {
-            return None;
+            return vec![];
         }
     };
 
-    find_candidates(input_constraints, &bindings, graph).map(|options| {
-        options
-            .map(|binds| match next_object {
-                RuleObject::Vertex { .. } => GraphObject::Vertex {
-                    id: binds
-                        .get_object(next_label)
-                        .expect("An object was expected to be inferred, does it not have a name?"),
-                },
-                RuleObject::Edge { .. } => GraphObject::Edge {
-                    id: binds
-                        .get_morphism(next_label)
-                        .expect("A morphism was expected to be inferred, does it not have a name?"),
-                },
-            })
-            .collect()
-    })
+    find_candidates(input_constraints, &bindings, graph)
+        .into_iter()
+        .map(|binds| match next_object {
+            RuleObject::Vertex { .. } => GraphObject::Vertex {
+                id: binds
+                    .get_object(next_label)
+                    .expect("An object was expected to be inferred, does it not have a name?"),
+            },
+            RuleObject::Edge { .. } => GraphObject::Edge {
+                id: binds
+                    .get_morphism(next_label)
+                    .expect("A morphism was expected to be inferred, does it not have a name?"),
+            },
+        })
+        .collect()
 }

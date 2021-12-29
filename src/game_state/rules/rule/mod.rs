@@ -107,14 +107,14 @@ impl Rule {
     }
 }
 
-pub fn find_candidates<'a>(
-    constraints: &'a [Constraint],
-    bindings: &'a Bindings,
-    graph: &'a Graph,
-) -> Option<impl Iterator<Item = Bindings> + 'a> {
+pub fn find_candidates(
+    constraints: &[Constraint],
+    bindings: &Bindings,
+    graph: &Graph,
+) -> Vec<Bindings> {
     let constraint = match constraints.first() {
         Some(constraint) => constraint,
-        None => return None,
+        None => return vec![Bindings::new()],
     };
     let constraints = &constraints[1..];
 
@@ -136,18 +136,19 @@ pub fn find_candidates<'a>(
         Constraint::MorphismEq(_, _) => unimplemented!(),
     };
 
-    Some(binds.into_iter().flat_map(|binds| {
-        let mut old_binds = binds.clone();
-        old_binds.extend(bindings.clone());
-        let binds = match find_candidates(constraints, &old_binds, graph) {
-            Some(new_binds) => new_binds
+    binds
+        .into_iter()
+        .flat_map(|binds| {
+            let mut old_binds = binds.clone();
+            old_binds.extend(bindings.clone());
+            let binds = find_candidates(constraints, &old_binds, graph)
+                .into_iter()
                 .map(move |mut next_binds| {
                     next_binds.extend(binds.clone());
                     next_binds
                 })
-                .collect::<Vec<_>>(),
-            None => vec![binds],
-        };
-        binds
-    }))
+                .collect::<Vec<_>>();
+            binds
+        })
+        .collect()
 }
