@@ -170,6 +170,50 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
     let mut prelude = Vec::new();
     let mut statements = Vec::new();
 
+    let add_object_constraint = |label: Option<&Label>, prelude: &mut Vec<_>| {
+        let label = match label {
+            Some(Label::Name(label)) => label,
+            _ => return,
+        };
+
+        let constraints = statement
+            .iter()
+            .filter_map(|construction| match construction {
+                RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
+                    constraints.iter().find(|constraint| match constraint {
+                        Constraint::RuleObject(Label::Name(name), RuleObject::Vertex { .. }) => {
+                            *name == *label
+                        }
+                        _ => false,
+                    })
+                }
+            })
+            .cloned();
+        prelude.extend(constraints);
+    };
+
+    let add_morphism_constraint = |label: Option<&Label>, prelude: &mut Vec<_>| {
+        let label = match label {
+            Some(Label::Name(label)) => label,
+            _ => return,
+        };
+
+        let constraints = statement
+            .iter()
+            .filter_map(|construction| match construction {
+                RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
+                    constraints.iter().find(|constraint| match constraint {
+                        Constraint::RuleObject(Label::Name(name), RuleObject::Vertex { .. }) => {
+                            *name == *label
+                        }
+                        _ => false,
+                    })
+                }
+            })
+            .cloned();
+        prelude.extend(constraints);
+    };
+
     let mut last_forall = None;
 
     for construction in statement {
@@ -182,6 +226,54 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
             }
             RuleConstruction::Exists(constraints) => {
                 if let Some(forall) = last_forall.take() {
+                    // Constraint used objects
+                    for constraint in constraints.iter().chain(forall.iter()) {
+                        match constraint {
+                            Constraint::RuleObject(label, object) => match object {
+                                RuleObject::Vertex { tag } => {
+                                    add_object_constraint(Some(label), &mut prelude);
+
+                                    if let Some(tag) = tag {
+                                        match tag {
+                                            ObjectTag::Product(a, b) => {
+                                                add_object_constraint(a.as_ref(), &mut prelude);
+                                                add_object_constraint(b.as_ref(), &mut prelude);
+                                            }
+                                        }
+                                    }
+                                }
+                                RuleObject::Edge { constraint } => {
+                                    if let Some(tag) = &constraint.tag {
+                                        match tag {
+                                            MorphismTag::Identity(a) => {
+                                                add_object_constraint(a.as_ref(), &mut prelude);
+                                            }
+                                            MorphismTag::Composition { first, second } => {
+                                                add_morphism_constraint(
+                                                    first.as_ref(),
+                                                    &mut prelude,
+                                                );
+                                                add_morphism_constraint(
+                                                    second.as_ref(),
+                                                    &mut prelude,
+                                                );
+                                            }
+                                            MorphismTag::Unique => (),
+                                            MorphismTag::Isomorphism(f, g) => {
+                                                add_morphism_constraint(f.as_ref(), &mut prelude);
+                                                add_morphism_constraint(g.as_ref(), &mut prelude);
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            Constraint::MorphismEq(f, g) => {
+                                add_morphism_constraint(Some(f), &mut prelude);
+                                add_morphism_constraint(Some(g), &mut prelude);
+                            }
+                        }
+                    }
+
                     // Construct an inverse rule
                     let inv_forall = invert_constraints(constraints);
                     let inv_exists = invert_constraints(&forall);
@@ -191,7 +283,6 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
                         RuleConstruction::Exists(inv_exists),
                     ]);
                     prelude.extend(forall);
-                    prelude.extend(constraints.clone());
                 }
             }
         };
