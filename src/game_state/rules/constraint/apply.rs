@@ -19,8 +19,8 @@ pub fn apply_constraints(
     for constraint in constraints {
         match constraint {
             Constraint::RuleObject(label, rule_object) => match rule_object {
-                RuleObject::Vertex { tags } => {
-                    constrained_vertices.push((label, tags));
+                RuleObject::Vertex { tag } => {
+                    constrained_vertices.push((label, tag));
                 }
                 RuleObject::Edge { constraint } => {
                     constrained_edges.push((label, constraint));
@@ -31,18 +31,15 @@ pub fn apply_constraints(
     }
 
     // Constraint vertices
-    for (label, tags) in constrained_vertices {
-        let tags: Vec<_> = tags
-            .iter()
-            .map(|tag| {
-                tag.map_borrowed(|label| {
-                    label
-                        .as_ref()
-                        .map(|label| bindings.get_object(label).unwrap())
-                })
+    for (label, tag) in constrained_vertices {
+        let tag = tag.as_ref().map(|tag| {
+            tag.map_borrowed(|label| {
+                label
+                    .as_ref()
+                    .map(|label| bindings.get_object(label).unwrap())
             })
-            .collect();
-        let name = tags
+        });
+        let name = tag
             .iter()
             .filter_map(|tag| {
                 tag.map_borrowed(|object| {
@@ -55,7 +52,7 @@ pub fn apply_constraints(
             .find(|_| true)
             .map(|name| Label::Name(name))
             .unwrap_or(Label::Any);
-        new_vertices.push((name, tags));
+        new_vertices.push((name, tag));
         new_vertices_names.push(label.to_owned());
     }
 
@@ -82,27 +79,23 @@ pub fn apply_constraints(
         let constraint = ArrowConstraint {
             from: bindings.get_object(&constraint.from).unwrap(),
             to: bindings.get_object(&constraint.to).unwrap(),
-            tags: constraint
-                .tags
-                .iter()
-                .map(|tag| {
-                    tag.map_borrowed(
-                        |label| {
-                            label
-                                .as_ref()
-                                .map(|label| bindings.get_object(label).unwrap())
-                        },
-                        |label| {
-                            label
-                                .as_ref()
-                                .map(|label| bindings.get_morphism(label).unwrap())
-                        },
-                    )
-                })
-                .collect(),
+            tag: constraint.tag.as_ref().map(|tag| {
+                tag.map_borrowed(
+                    |label| {
+                        label
+                            .as_ref()
+                            .map(|label| bindings.get_object(label).unwrap())
+                    },
+                    |label| {
+                        label
+                            .as_ref()
+                            .map(|label| bindings.get_morphism(label).unwrap())
+                    },
+                )
+            }),
         };
         let name = constraint
-            .tags
+            .tag
             .iter()
             .filter_map(|tag| {
                 tag.map_borrowed(

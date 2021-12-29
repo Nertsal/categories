@@ -11,7 +11,7 @@ impl Rule {
             graph: &mut Graph,
             objects: &mut HashMap<String, VertexId>,
             label: &Label,
-            tags: Vec<ObjectTag<Option<VertexId>>>,
+            tag: Option<ObjectTag<Option<VertexId>>>,
             color: Color<f32>,
         ) -> VertexId {
             let mut new_object = |label: &Label, tags, color| {
@@ -21,7 +21,7 @@ impl Rule {
                     vertex: Point {
                         label: label.clone(),
                         radius: POINT_RADIUS,
-                        tags,
+                        tag: tags,
                         color,
                     },
                 })
@@ -29,8 +29,8 @@ impl Rule {
             match label {
                 Label::Name(name) => *objects
                     .entry(name.to_owned())
-                    .or_insert_with(|| new_object(label, tags, color)),
-                Label::Any => new_object(label, tags, color),
+                    .or_insert_with(|| new_object(label, tag, color)),
+                Label::Any => new_object(label, tag, color),
             }
         }
 
@@ -39,22 +39,19 @@ impl Rule {
                 .iter()
                 .filter_map(|constraint| match constraint {
                     Constraint::RuleObject(label, object) => match object {
-                        RuleObject::Vertex { tags } => {
-                            let tags = tags
-                                .iter()
-                                .map(|tag| {
-                                    tag.map_borrowed(|label| match label {
-                                        Some(Label::Name(label)) => objects.get(label).copied(),
-                                        _ => None,
-                                    })
+                        RuleObject::Vertex { tag } => {
+                            let tag = tag.as_ref().map(|tag| {
+                                tag.map_borrowed(|label| match label {
+                                    Some(Label::Name(label)) => objects.get(label).copied(),
+                                    _ => None,
                                 })
-                                .collect();
+                            });
                             Some(GraphObject::Vertex {
-                                id: get_object_or_new(&mut graph, &mut objects, label, tags, color),
+                                id: get_object_or_new(&mut graph, &mut objects, label, tag, color),
                             })
                         }
                         RuleObject::Edge {
-                            constraint: ArrowConstraint { from, to, tags },
+                            constraint: ArrowConstraint { from, to, tag },
                         } => {
                             let create = match label {
                                 Label::Name(label) => !morphisms.contains_key(label),
@@ -65,36 +62,31 @@ impl Rule {
                                     &mut graph,
                                     &mut objects,
                                     from,
-                                    vec![],
+                                    None,
                                     RULE_INFER_COLOR,
                                 );
                                 let to = get_object_or_new(
                                     &mut graph,
                                     &mut objects,
                                     to,
-                                    vec![],
+                                    None,
                                     RULE_INFER_COLOR,
                                 );
 
-                                let tags: Vec<_> = tags
-                                    .iter()
-                                    .map(|tag| {
-                                        tag.map_borrowed(
-                                            |label| match label {
-                                                Some(Label::Name(label)) => {
-                                                    objects.get(label).copied()
-                                                }
-                                                _ => None,
-                                            },
-                                            |label| match label {
-                                                Some(Label::Name(label)) => {
-                                                    morphisms.get(label).copied()
-                                                }
-                                                _ => None,
-                                            },
-                                        )
-                                    })
-                                    .collect();
+                                let tag = tag.as_ref().map(|tag| {
+                                    tag.map_borrowed(
+                                        |label| match label {
+                                            Some(Label::Name(label)) => objects.get(label).copied(),
+                                            _ => None,
+                                        },
+                                        |label| match label {
+                                            Some(Label::Name(label)) => {
+                                                morphisms.get(label).copied()
+                                            }
+                                            _ => None,
+                                        },
+                                    )
+                                });
 
                                 let new_morphism = graph
                                     .graph
@@ -107,7 +99,7 @@ impl Rule {
                                             label: label.clone(),
                                             from,
                                             to,
-                                            tags,
+                                            tag,
                                             color,
                                         },
                                     ))
@@ -219,16 +211,12 @@ fn invert_constraints(constraints: &Constraints) -> Constraints {
                     label.clone(),
                     RuleObject::Edge {
                         constraint: ArrowConstraint {
-                            tags: constraint
-                                .tags
-                                .iter()
-                                .filter_map(|tag| match tag {
-                                    MorphismTag::Identity(_) | MorphismTag::Isomorphism(_, _) => {
-                                        Some(tag.clone())
-                                    }
-                                    _ => None,
-                                })
-                                .collect(),
+                            tag: constraint.tag.as_ref().and_then(|tag| match tag {
+                                MorphismTag::Identity(_) | MorphismTag::Isomorphism(_, _) => {
+                                    Some(tag.clone())
+                                }
+                                _ => None,
+                            }),
                             ..constraint.clone()
                         },
                     },

@@ -2,16 +2,12 @@ use geng::draw_2d::Draw2d;
 
 use super::*;
 
-pub fn morphism_color<O, M>(tags: &[MorphismTag<O, M>]) -> Color<f32> {
-    for tag in tags {
-        match tag {
-            MorphismTag::Identity(_) => (),
-            MorphismTag::Composition { .. } => (),
-            MorphismTag::Unique => return ARROW_UNIQUE_COLOR,
-            MorphismTag::Isomorphism(_, _) => return ARROW_ISOMORPHISM_COLOR,
-        }
+pub fn morphism_color<O, M>(tag: &Option<MorphismTag<O, M>>) -> Color<f32> {
+    match tag {
+        Some(MorphismTag::Unique) => ARROW_UNIQUE_COLOR,
+        Some(MorphismTag::Isomorphism(_, _)) => ARROW_ISOMORPHISM_COLOR,
+        _ => ARROW_REGULAR_COLOR,
     }
-    ARROW_REGULAR_COLOR
 }
 
 pub fn draw_graph(
@@ -164,7 +160,7 @@ fn draw_edge(
 
     let isomorphism = edge
         .edge
-        .tags
+        .tag
         .iter()
         .any(|tag| matches!(tag, MorphismTag::Isomorphism(_, _)));
 
@@ -205,7 +201,7 @@ fn draw_edge(
 
     if edge
         .edge
-        .tags
+        .tag
         .iter()
         .any(|tag| matches!(tag, MorphismTag::Unique))
     {

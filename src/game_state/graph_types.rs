@@ -8,7 +8,7 @@ pub type Edge = ForceEdge<Arrow<VertexId, EdgeId>>;
 pub struct Point<O> {
     pub label: Label,
     pub radius: f32,
-    pub tags: Vec<ObjectTag<Option<O>>>,
+    pub tag: Option<ObjectTag<Option<O>>>,
     pub color: Color<f32>,
 }
 
@@ -17,7 +17,7 @@ pub struct Arrow<O, M> {
     pub label: Label,
     pub from: O,
     pub to: O,
-    pub tags: Vec<MorphismTag<Option<O>, Option<M>>>,
+    pub tag: Option<MorphismTag<Option<O>, Option<M>>>,
     pub color: Color<f32>,
 }
 

@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub enum GraphAction {
-    NewVertices(Vec<(Label, Vec<ObjectTag<Option<VertexId>>>)>),
+    NewVertices(Vec<(Label, Option<ObjectTag<Option<VertexId>>>)>),
     NewEdges(Vec<(Label, ArrowConstraint<VertexId, EdgeId>)>),
     RemoveVertices(Vec<VertexId>),
     RemoveEdges(Vec<EdgeId>),
@@ -15,7 +15,7 @@ impl GameState {
             GraphAction::NewVertices(vertices) => {
                 let vertices = vertices
                     .into_iter()
-                    .map(|(label, tags)| {
+                    .map(|(label, tag)| {
                         let id = graph.graph.new_vertex(ForceVertex {
                             is_anchor: false,
                             body: ForceBody::new(util::random_shift(), POINT_MASS),
@@ -23,7 +23,7 @@ impl GameState {
                                 label,
                                 radius: POINT_RADIUS,
                                 color: Color::WHITE,
-                                tags,
+                                tag,
                             },
                         });
                         id
@@ -41,7 +41,7 @@ impl GameState {
                             + util::random_shift();
                         let to_pos = graph.graph.vertices.get(&to).unwrap().body.position
                             + util::random_shift();
-                        let tags = constraint.tags;
+                        let tags = constraint.tag;
                         let color = draw::graph::morphism_color(&tags);
                         let id = graph
                             .graph
@@ -54,7 +54,7 @@ impl GameState {
                                     label,
                                     from,
                                     to,
-                                    tags,
+                                    tag: tags,
                                     color,
                                 },
                             ))
@@ -70,7 +70,7 @@ impl GameState {
                     .map(|id| graph.graph.remove_vertex(id))
                     .map(|(vertex, edges)| (vertex.unwrap(), edges))
                     .map(|(vertex, edges)| {
-                        let vertex = (vertex.vertex.label, vertex.vertex.tags);
+                        let vertex = (vertex.vertex.label, vertex.vertex.tag);
                         let edges: Vec<_> = edges
                             .into_iter()
                             .map(|(_, edge)| {
@@ -79,7 +79,7 @@ impl GameState {
                                     ArrowConstraint {
                                         from: edge.edge.from,
                                         to: edge.edge.to,
-                                        tags: edge.edge.tags,
+                                        tag: edge.edge.tag,
                                     },
                                 )
                             })
@@ -109,7 +109,7 @@ impl GameState {
                             ArrowConstraint {
                                 from: edge.edge.from,
                                 to: edge.edge.to,
-                                tags: edge.edge.tags,
+                                tag: edge.edge.tag,
                             },
                         )
                     })

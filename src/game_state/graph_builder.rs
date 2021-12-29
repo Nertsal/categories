@@ -22,7 +22,7 @@ impl GraphBuilder {
     pub fn object(
         mut self,
         label: impl Into<Label>,
-        tags: Vec<ObjectTag<Label>>,
+        tag: Option<ObjectTag<Label>>,
         color: Color<f32>,
         anchor: bool,
     ) -> Self {
@@ -37,15 +37,12 @@ impl GraphBuilder {
             vertex: Point {
                 label: label.clone(),
                 radius: POINT_RADIUS,
-                tags: tags
-                    .into_iter()
-                    .map(|tag| {
-                        tag.map(|label| match label {
-                            Label::Name(label) => Some(self.objects[&label]),
-                            Label::Any => None,
-                        })
+                tag: tag.map(|tag| {
+                    tag.map(|label| match label {
+                        Label::Name(label) => Some(self.objects[&label]),
+                        Label::Any => None,
                     })
-                    .collect(),
+                }),
                 color,
             },
         });
@@ -65,10 +62,10 @@ impl GraphBuilder {
         label: impl Into<Label>,
         from: &str,
         to: &str,
-        tags: Vec<MorphismTag<Label, Label>>,
+        tag: Option<MorphismTag<Label, Label>>,
     ) -> Self {
         let label = label.into();
-        let color = draw::graph::morphism_color(&tags);
+        let color = draw::graph::morphism_color(&tag);
         let new_edge = self.graph.graph.new_edge(ForceEdge::new(
             util::random_shift(),
             util::random_shift(),
@@ -78,21 +75,18 @@ impl GraphBuilder {
                 label: label.clone(),
                 from: self.objects[from],
                 to: self.objects[to],
-                tags: tags
-                    .into_iter()
-                    .map(|tag| {
-                        tag.map(
-                            |label| match label {
-                                Label::Name(label) => Some(self.objects[&label]),
-                                Label::Any => None,
-                            },
-                            |label| match label {
-                                Label::Name(label) => Some(self.morphisms[&label]),
-                                Label::Any => None,
-                            },
-                        )
-                    })
-                    .collect(),
+                tag: tag.map(|tag| {
+                    tag.map(
+                        |label| match label {
+                            Label::Name(label) => Some(self.objects[&label]),
+                            Label::Any => None,
+                        },
+                        |label| match label {
+                            Label::Name(label) => Some(self.morphisms[&label]),
+                            Label::Any => None,
+                        },
+                    )
+                }),
                 color,
             },
         ));

@@ -42,14 +42,9 @@ fn graph_to_constraints(graph: &Graph) -> Constraints {
             Constraint::RuleObject(
                 vertex.vertex.label.clone(),
                 RuleObject::Vertex {
-                    tags: vertex
-                        .vertex
-                        .tags
-                        .iter()
-                        .map(|tag| {
-                            tag.map_borrowed(|object| object.map(|object| get_object_label(object)))
-                        })
-                        .collect(),
+                    tag: vertex.vertex.tag.as_ref().map(|tag| {
+                        tag.map_borrowed(|object| object.map(|object| get_object_label(object)))
+                    }),
                 },
             )
         })
@@ -60,16 +55,12 @@ fn graph_to_constraints(graph: &Graph) -> Constraints {
                     constraint: ArrowConstraint::new(
                         get_object_label(edge.edge.from),
                         get_object_label(edge.edge.to),
-                        edge.edge
-                            .tags
-                            .iter()
-                            .map(|tag| {
-                                tag.map_borrowed(
-                                    |object| object.map(|object| get_object_label(object)),
-                                    |edge| edge.map(|edge| get_morphism_label(edge)),
-                                )
-                            })
-                            .collect(),
+                        edge.edge.tag.as_ref().map(|tag| {
+                            tag.map_borrowed(
+                                |object| object.map(|object| get_object_label(object)),
+                                |edge| edge.map(|edge| get_morphism_label(edge)),
+                            )
+                        }),
                     ),
                 },
             )
