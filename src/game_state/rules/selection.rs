@@ -125,7 +125,8 @@ fn infer_construction(
         }
     };
 
-    find_candidates(input_constraints, &bindings, graph)
+    find_candidates(input_constraints, &bindings, graph).map(|candidates|
+    candidates
         .into_iter()
         .map(|binds| match next_object {
             RuleObject::Vertex { .. } => GraphObject::Vertex {
@@ -138,6 +139,6 @@ fn infer_construction(
                     .get_morphism(next_label)
                     .expect("A morphism was expected to be inferred, does it not have a name?"),
             },
-        })
-        .collect()
+        }).collect()).unwrap_or_default()
+        
 }
