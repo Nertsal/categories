@@ -62,29 +62,72 @@ pub fn apply_constraints(
         }
     }
 
-    // Create new vertices
     let mut action_history = Vec::new();
-    if new_vertices.len() > 0 {
+
+    fn create_vertices(
+        graph: &mut Graph,
+        bindings: &mut Bindings,
+        action_history: &mut Vec<GraphAction>,
+        new_vertices: Vec<(Label, Option<ObjectTag<Option<VertexId>>>)>,
+        new_vertices_names: Vec<Label>,
+    ) -> Vec<VertexId> {
         let actions = GameState::graph_action_do(graph, GraphAction::NewVertices(new_vertices));
         assert_eq!(actions.len(), 1);
         // Bind new vertices
-        match &actions[0] {
+        let new_vertices = match &actions[0] {
             GraphAction::RemoveVertices(vertices) => {
                 assert_eq!(vertices.len(), new_vertices_names.len());
                 for (label, id) in new_vertices_names.into_iter().zip(vertices.iter().copied()) {
                     bindings.bind_object(label, id);
                 }
+                vertices.clone()
             }
             _ => unreachable!(),
-        }
+        };
         action_history.extend(actions);
+        new_vertices
+    }
+
+    // Create new vertices
+    if new_vertices.len() > 0 {
+        create_vertices(
+            graph,
+            &mut bindings,
+            &mut action_history,
+            new_vertices,
+            new_vertices_names,
+        );
+    }
+
+    fn get_object_or_new(
+        label: &Label,
+        graph: &mut Graph,
+        bindings: &mut Bindings,
+        action_history: &mut Vec<GraphAction>,
+    ) -> VertexId {
+        bindings.get_object(label).unwrap_or_else(|| {
+            create_vertices(
+                graph,
+                bindings,
+                action_history,
+                vec![(Label::Any, None)],
+                vec![label.clone()],
+            )[0]
+        })
     }
 
     // Constraint edges
     for (label, constraint) in constrained_edges {
+        constraint.tag.as_ref().map(|tag| match tag {
+            MorphismTag::Identity(Some(label)) => {
+                get_object_or_new(label, graph, &mut bindings, &mut action_history);
+            }
+            _ => (),
+        });
+
         let constraint = ArrowConstraint {
-            from: bindings.get_object(&constraint.from).unwrap(),
-            to: bindings.get_object(&constraint.to).unwrap(),
+            from: get_object_or_new(&constraint.from, graph, &mut bindings, &mut action_history),
+            to: get_object_or_new(&constraint.to, graph, &mut bindings, &mut action_history),
             tag: constraint.tag.as_ref().map(|tag| {
                 tag.map_borrowed(
                     |label| {
@@ -102,7 +145,7 @@ pub fn apply_constraints(
         };
 
         if let Some(_) = bindings.get_morphism(label) {
-            // TODO: possible add a tag
+            // TODO: possibly add a tag
         } else {
             let name = constraint
                 .tag
