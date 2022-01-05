@@ -9,10 +9,10 @@ pub use find::*;
 impl GameState {
     /// Attempts to apply a rule.
     pub fn apply_rule(&mut self, graph: FocusedGraph, selection: RuleSelection) {
-        let graph = match graph {
+        let (graph, graph_equalities) = match graph {
             FocusedGraph::Rule { .. } => return,
-            FocusedGraph::Main => &mut self.main_graph.graph,
-            FocusedGraph::Goal => &mut self.goal_graph.graph,
+            FocusedGraph::Main => (&mut self.main_graph.graph, &mut self.main_equalities),
+            FocusedGraph::Goal => (&mut self.goal_graph.graph, &mut self.goal_equalities),
         };
 
         let rule = &self.rules[selection.rule()];
@@ -21,7 +21,8 @@ impl GameState {
             true => rule.inverse_statement(),
         };
 
-        let (actions, applied) = Rule::apply(statement, graph, selection.selection());
+        let (actions, applied) =
+            Rule::apply(statement, graph, graph_equalities, selection.selection());
         self.action_history.extend(actions);
 
         if applied && selection.inverse() {

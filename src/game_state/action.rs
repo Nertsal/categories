@@ -6,11 +6,17 @@ pub enum GraphAction {
     NewEdges(Vec<(Label, ArrowConstraint<VertexId, EdgeId>)>),
     RemoveVertices(Vec<VertexId>),
     RemoveEdges(Vec<EdgeId>),
+    AddEquality(EdgeId, EdgeId),
+    RemoveEquality(EdgeId, EdgeId),
 }
 
 impl GameState {
     /// Perform the action and returns the inverse action
-    pub fn graph_action_do(graph: &mut Graph, action_do: GraphAction) -> Vec<GraphAction> {
+    pub fn graph_action_do(
+        graph: &mut Graph,
+        graph_equalities: &mut GraphEqualities,
+        action_do: GraphAction,
+    ) -> Vec<GraphAction> {
         match action_do {
             GraphAction::NewVertices(vertices) => {
                 let vertices = vertices
@@ -116,12 +122,24 @@ impl GameState {
                     .collect();
                 vec![GraphAction::NewEdges(edges)]
             }
+            GraphAction::AddEquality(morphism_f, morphism_g) => {
+                graph_equalities.insert((morphism_f, morphism_g));
+                vec![GraphAction::RemoveEquality(morphism_f, morphism_g)]
+            }
+            GraphAction::RemoveEquality(morphism_f, morphism_g) => {
+                graph_equalities.remove(&(morphism_f, morphism_g));
+                vec![GraphAction::AddEquality(morphism_f, morphism_g)]
+            }
         }
     }
 
     pub fn action_undo(&mut self) {
         if let Some(action) = self.action_history.pop() {
-            Self::graph_action_do(&mut self.main_graph.graph, action);
+            Self::graph_action_do(
+                &mut self.main_graph.graph,
+                &mut self.main_equalities,
+                action,
+            );
         }
     }
 }

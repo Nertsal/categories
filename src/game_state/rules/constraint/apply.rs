@@ -3,6 +3,7 @@ use super::*;
 /// Applies the rule constraints to the graph.
 pub fn apply_constraints(
     graph: &mut Graph,
+    graph_equalities: &mut GraphEqualities,
     constraints: &Constraints,
     bindings: &Bindings,
 ) -> (Vec<GraphAction>, Bindings) {
@@ -15,6 +16,7 @@ pub fn apply_constraints(
 
     let mut constrained_vertices = Vec::new();
     let mut constrained_edges = Vec::new();
+    let mut constrained_equalities = Vec::new();
 
     for constraint in constraints {
         match constraint {
@@ -24,9 +26,42 @@ pub fn apply_constraints(
                 }
                 RuleObject::Edge { constraint } => {
                     constrained_edges.push((label, constraint));
+
+                    // Check that the objects exist, or create them later
+                    let mut objects = vec![&constraint.from, &constraint.to];
+                    objects.extend(
+                        constraint
+                            .tag
+                            .iter()
+                            .flat_map(|tag| tag.objects().into_iter().filter_map(|x| x.as_ref())),
+                    );
+                    for object in objects {
+                        if let Label::Name(name) = object {
+                            if !constrained_vertices.iter().any(|(label, _)| match label {
+                                Label::Name(label) if *label == *name => true,
+                                _ => false,
+                            }) {
+                                constrained_vertices.push((object, &None));
+                            }
+                        }
+                    }
                 }
             },
-            Constraint::MorphismEq(_, _) => todo!(),
+            Constraint::MorphismEq(f, g) => {
+                constrained_equalities.push((f, g));
+
+                // Check that morphisms exist
+                for morphism in vec![f, g] {
+                    if let Label::Name(name) = morphism {
+                        if constrained_edges.iter().all(|(label, _)| match label {
+                            Label::Name(label) if *label == *name => true,
+                            _ => false,
+                        }) {
+                            panic!("Unknown morphism {:?} in an equality constraint", name);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -64,34 +99,11 @@ pub fn apply_constraints(
 
     let mut action_history = Vec::new();
 
-    fn create_vertices(
-        graph: &mut Graph,
-        bindings: &mut Bindings,
-        action_history: &mut Vec<GraphAction>,
-        new_vertices: Vec<(Label, Option<ObjectTag<Option<VertexId>>>)>,
-        new_vertices_names: Vec<Label>,
-    ) -> Vec<VertexId> {
-        let actions = GameState::graph_action_do(graph, GraphAction::NewVertices(new_vertices));
-        assert_eq!(actions.len(), 1);
-        // Bind new vertices
-        let new_vertices = match &actions[0] {
-            GraphAction::RemoveVertices(vertices) => {
-                assert_eq!(vertices.len(), new_vertices_names.len());
-                for (label, id) in new_vertices_names.into_iter().zip(vertices.iter().copied()) {
-                    bindings.bind_object(label, id);
-                }
-                vertices.clone()
-            }
-            _ => unreachable!(),
-        };
-        action_history.extend(actions);
-        new_vertices
-    }
-
     // Create new vertices
     if new_vertices.len() > 0 {
         create_vertices(
             graph,
+            graph_equalities,
             &mut bindings,
             &mut action_history,
             new_vertices,
@@ -99,46 +111,30 @@ pub fn apply_constraints(
         );
     }
 
-    fn get_object_or_new(
-        label: &Label,
-        graph: &mut Graph,
-        bindings: &mut Bindings,
-        action_history: &mut Vec<GraphAction>,
-    ) -> VertexId {
-        bindings.get_object(label).unwrap_or_else(|| {
-            create_vertices(
-                graph,
-                bindings,
-                action_history,
-                vec![(Label::Any, None)],
-                vec![label.clone()],
-            )[0]
-        })
-    }
-
     // Constraint edges
     for (label, constraint) in constrained_edges {
-        constraint.tag.as_ref().map(|tag| match tag {
-            MorphismTag::Identity(Some(label)) => {
-                get_object_or_new(label, graph, &mut bindings, &mut action_history);
-            }
-            _ => (),
-        });
-
         let constraint = ArrowConstraint {
-            from: get_object_or_new(&constraint.from, graph, &mut bindings, &mut action_history),
-            to: get_object_or_new(&constraint.to, graph, &mut bindings, &mut action_history),
+            from: get_object_or_new(
+                &constraint.from,
+                graph,
+                graph_equalities,
+                &mut bindings,
+                &mut action_history,
+            ),
+            to: get_object_or_new(
+                &constraint.to,
+                graph,
+                graph_equalities,
+                &mut bindings,
+                &mut action_history,
+            ),
             tag: constraint.tag.as_ref().map(|tag| {
                 tag.map_borrowed(
+                    |label| label.as_ref().and_then(|label| bindings.get_object(label)),
                     |label| {
                         label
                             .as_ref()
-                            .map(|label| bindings.get_object(label).unwrap())
-                    },
-                    |label| {
-                        label
-                            .as_ref()
-                            .map(|label| bindings.get_morphism(label).unwrap())
+                            .and_then(|label| bindings.get_morphism(label))
                     },
                 )
             }),
@@ -174,7 +170,8 @@ pub fn apply_constraints(
 
     // Create new edges
     if new_edges.len() > 0 {
-        let actions = GameState::graph_action_do(graph, GraphAction::NewEdges(new_edges));
+        let actions =
+            GameState::graph_action_do(graph, graph_equalities, GraphAction::NewEdges(new_edges));
         assert_eq!(actions.len(), 1);
         // Bind new edges
         match &actions[0] {
@@ -189,5 +186,68 @@ pub fn apply_constraints(
         action_history.extend(actions);
     }
 
+    // Constraint equalities
+    for (f, g) in constrained_equalities {
+        let f = bindings
+            .get_morphism(f)
+            .expect("Should have been constrained earlier");
+        let g = bindings
+            .get_morphism(g)
+            .expect("Should have been constrained earlier");
+        let actions =
+            GameState::graph_action_do(graph, graph_equalities, GraphAction::AddEquality(f, g));
+        assert_eq!(actions.len(), 1);
+
+        action_history.extend(actions);
+    }
+
     (action_history, bindings)
+}
+
+fn create_vertices(
+    graph: &mut Graph,
+    graph_equalities: &mut GraphEqualities,
+    bindings: &mut Bindings,
+    action_history: &mut Vec<GraphAction>,
+    new_vertices: Vec<(Label, Option<ObjectTag<Option<VertexId>>>)>,
+    new_vertices_names: Vec<Label>,
+) -> Vec<VertexId> {
+    let actions = GameState::graph_action_do(
+        graph,
+        graph_equalities,
+        GraphAction::NewVertices(new_vertices),
+    );
+    assert_eq!(actions.len(), 1);
+    // Bind new vertices
+    let new_vertices = match &actions[0] {
+        GraphAction::RemoveVertices(vertices) => {
+            assert_eq!(vertices.len(), new_vertices_names.len());
+            for (label, id) in new_vertices_names.into_iter().zip(vertices.iter().copied()) {
+                bindings.bind_object(label, id);
+            }
+            vertices.clone()
+        }
+        _ => unreachable!(),
+    };
+    action_history.extend(actions);
+    new_vertices
+}
+
+fn get_object_or_new(
+    label: &Label,
+    graph: &mut Graph,
+    graph_equalities: &mut GraphEqualities,
+    bindings: &mut Bindings,
+    action_history: &mut Vec<GraphAction>,
+) -> VertexId {
+    bindings.get_object(label).unwrap_or_else(|| {
+        create_vertices(
+            graph,
+            graph_equalities,
+            bindings,
+            action_history,
+            vec![(Label::Any, None)],
+            vec![label.clone()],
+        )[0]
+    })
 }

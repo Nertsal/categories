@@ -61,4 +61,12 @@ impl ConstraintsBuilder {
         ));
         self
     }
+
+    pub fn equality(mut self, label_f: &str, label_g: &str) -> Self {
+        self.0.push(Constraint::MorphismEq(
+            Label::Name(label_f.to_owned()),
+            Label::Name(label_g.to_owned()),
+        ));
+        self
+    }
 }

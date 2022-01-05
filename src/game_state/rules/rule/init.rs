@@ -117,7 +117,27 @@ impl Rule {
                             }
                         }
                     },
-                    Constraint::MorphismEq(_, _) => unimplemented!(),
+                    Constraint::MorphismEq(f, g) => {
+                        // Check that morphisms exist
+                        for morphism in vec![f, g] {
+                            let name = match morphism {
+                                Label::Name(name) => name,
+                                Label::Any => panic!("An equality must have named labels"),
+                            };
+
+                            if !morphisms.contains_key(name) && !constraints.iter().any(|constraint| match constraint {
+                                Constraint::RuleObject(
+                                    Label::Name(label),
+                                    RuleObject::Edge { .. },
+                                ) if *name == *label => true,
+                                _ => false,
+                            }) {
+                                panic!("An equality expected the morphism {:?} to be constrained explicitly", name);
+                            }
+                        }
+
+                        None
+                    }
                 })
                 .collect()
         };
@@ -312,7 +332,7 @@ fn invert_constraints(constraints: &Constraints) -> Constraints {
                     },
                 ),
             },
-            Constraint::MorphismEq(_, _) => todo!(),
+            Constraint::MorphismEq(_, _) => constraint.clone(),
         })
         .collect()
 }

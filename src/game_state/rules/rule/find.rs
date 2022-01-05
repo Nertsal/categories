@@ -18,7 +18,7 @@ pub fn find_candidates<'a>(
                 constraint_morphism(label, constraint, bindings, graph)
             }
         },
-        Constraint::MorphismEq(_, _) => unimplemented!(),
+        Constraint::MorphismEq(_, _) => vec![],
     };
 
     Some(binds.into_iter().flat_map(|binds| {

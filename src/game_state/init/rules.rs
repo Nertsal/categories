@@ -35,7 +35,7 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
         //          forall (object C, morphism f C->A, morphism g C->B)
         //          exists (morphism m C->AxB [Unique])
         //          forall (morphism m' C->AxB)
-        //                  m = m'
+        //          exists (equality m m')
         RuleBuilder::new()
             .forall(
                 ConstraintsBuilder::new()
@@ -58,16 +58,44 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
                     .morphism("g", "C", "B", None),
             )
             .exists(ConstraintsBuilder::new().morphism("m", "C", "AxB", Some(MorphismTag::Unique)))
-            // .forall(ConstraintsBuilder::new().morphism("m'", "C", "AxB", None))
-            // TODO: m = m'
+            .forall(ConstraintsBuilder::new().morphism("m'", "C", "AxB", None))
+            .exists(ConstraintsBuilder::new().equality("m", "m'"))
             .build(geng, assets),
-        // Isomorphism: forall (morphism f A->B, morphism g B->A) // TODO: f.g = id_a, g.f = id_b
+        // Isomorphism: forall (morphism f A->B, morphism g B->A)
+        //              forall (morphism g.f A->A [Composition f g], morphism f.g B->B [Composition g f],
+        //                      morphism id_a A->A [Identity A], morphism id_b B->B [Identity B],
+        //                      equality g.f id_a, equality f.g id_b)
         //              exists (morphism _ A<=>B [Isomorphism f g])
         RuleBuilder::new()
             .forall(
                 ConstraintsBuilder::new()
                     .morphism("f", "A", "B", None)
                     .morphism("g", "B", "A", None),
+            )
+            .forall(
+                ConstraintsBuilder::new()
+                    .morphism(
+                        "g.f",
+                        "A",
+                        "A",
+                        Some(MorphismTag::Composition {
+                            first: Some("f"),
+                            second: Some("g"),
+                        }),
+                    )
+                    .morphism(
+                        "f.g",
+                        "B",
+                        "B",
+                        Some(MorphismTag::Composition {
+                            first: Some("g"),
+                            second: Some("f"),
+                        }),
+                    )
+                    .morphism("id_a", "A", "A", Some(MorphismTag::Identity(Some("A"))))
+                    .morphism("id_b", "B", "B", Some(MorphismTag::Identity(Some("B"))))
+                    .equality("g.f", "id_a")
+                    .equality("f.g", "id_b"),
             )
             .exists(ConstraintsBuilder::new().morphism(
                 "",

@@ -1,5 +1,7 @@
 use super::*;
 
+pub type GraphEqualities = HashSet<(EdgeId, EdgeId)>;
+
 pub type Graph = force_graph::ForceGraph<Point<VertexId>, Arrow<VertexId, EdgeId>>;
 pub type Vertex = ForceVertex<Point<VertexId>>;
 pub type Edge = ForceEdge<Arrow<VertexId, EdgeId>>;

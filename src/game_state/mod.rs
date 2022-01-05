@@ -10,6 +10,7 @@ mod constants;
 mod drag;
 mod draw;
 mod focus;
+mod goal;
 mod graph_builder;
 mod graph_link;
 mod graph_types;
@@ -22,7 +23,6 @@ mod rules;
 mod selection;
 mod state;
 mod update;
-mod goal;
 
 use action::*;
 use constants::*;
@@ -42,7 +42,9 @@ pub struct GameState {
     state: State,
     rules: Rules,
     main_graph: RenderableGraph,
+    main_equalities: GraphEqualities,
     goal_graph: RenderableGraph,
+    goal_equalities: GraphEqualities,
     graph_link: GraphLink,
     focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
@@ -66,6 +68,8 @@ impl GameState {
             ui_camera: PixelPerfectCamera,
             rules: init::rules::default_rules(geng, assets),
             graph_link: GraphLink::new(&main_graph.graph, &goal_graph.graph),
+            main_equalities: GraphEqualities::new(),
+            goal_equalities: GraphEqualities::new(),
             main_graph,
             goal_graph,
             state,

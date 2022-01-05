@@ -4,6 +4,7 @@ pub fn selection_constraints(
     selection: &Vec<GraphObject>,
     constraints: &Constraints,
     graph: &Graph,
+    graph_equalities: &GraphEqualities,
 ) -> Result<Bindings, ()> {
     let mut selection = selection.iter();
     let mut bindings = Bindings::new();
@@ -43,7 +44,19 @@ pub fn selection_constraints(
                     _ => return Err(()),
                 },
             },
-            Constraint::MorphismEq(_, _) => todo!(),
+            Constraint::MorphismEq(f, g) => {
+                if !bindings
+                    .get_morphism(f)
+                    .and_then(|f| {
+                        bindings
+                            .get_morphism(g)
+                            .map(|g| graph_equalities.contains(&(f, g)))
+                    })
+                    .unwrap_or(false)
+                {
+                    return Err(());
+                }
+            }
         }
     }
 
