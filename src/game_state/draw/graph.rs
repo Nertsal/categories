@@ -75,7 +75,7 @@ pub fn draw_graph(
 
         let get = |edge| match &graph.graph.edges.get(edge).unwrap().edge.label {
             Label::Name(name) => name,
-            Label::Any => "?",
+            Label::Unknown => "?",
         };
         let text = format!("{} = {}", get(&equality.0), get(&equality.1));
         draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)

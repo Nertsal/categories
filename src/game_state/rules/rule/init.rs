@@ -30,7 +30,7 @@ impl Rule {
                 Label::Name(name) => *objects
                     .entry(name.to_owned())
                     .or_insert_with(|| new_object(label, tag, color)),
-                Label::Any => new_object(label, tag, color),
+                Label::Unknown => new_object(label, tag, color),
             }
         }
 
@@ -57,7 +57,7 @@ impl Rule {
                         } => {
                             let create = match label {
                                 Label::Name(label) => !morphisms.contains_key(label),
-                                Label::Any => true,
+                                Label::Unknown => true,
                             };
                             if create {
                                 let from = get_object_or_new(
@@ -111,7 +111,7 @@ impl Rule {
                                     Label::Name(label) => {
                                         morphisms.insert(label.clone(), new_morphism);
                                     }
-                                    Label::Any => (),
+                                    Label::Unknown => (),
                                 }
                                 Some(GraphObject::Edge { id: new_morphism })
                             } else {
@@ -124,7 +124,7 @@ impl Rule {
                         let check = |label: &Label| {
                             let name = match label {
                                 Label::Name(name) => name,
-                                Label::Any => panic!("An equality must have named labels"),
+                                Label::Unknown => panic!("An equality must have named labels"),
                             };
                             morphisms.get(name).copied().expect(&format!("An equality expected the morphism {:?} to be constrained explicitly before the equality", name))
                         };

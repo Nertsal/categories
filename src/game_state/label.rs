@@ -1,7 +1,7 @@
 #[derive(Debug, Clone)]
 pub enum Label {
     Name(String),
-    Any,
+    Unknown,
 }
 
 impl Label {

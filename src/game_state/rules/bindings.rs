@@ -19,28 +19,28 @@ impl Bindings {
     pub fn bind_object(&mut self, label: Label, id: VertexId) -> Option<VertexId> {
         match label {
             Label::Name(label) => self.objects.insert(label, id),
-            Label::Any => None,
+            Label::Unknown => None,
         }
     }
 
     pub fn bind_morphism(&mut self, label: Label, id: EdgeId) -> Option<EdgeId> {
         match label {
             Label::Name(label) => self.morphisms.insert(label, id),
-            Label::Any => None,
+            Label::Unknown => None,
         }
     }
 
     pub fn get_object(&self, label: &Label) -> Option<VertexId> {
         match label {
             Label::Name(label) => self.objects.get(label).copied(),
-            Label::Any => None,
+            Label::Unknown => None,
         }
     }
 
     pub fn get_morphism(&self, label: &Label) -> Option<EdgeId> {
         match label {
             Label::Name(label) => self.morphisms.get(label).copied(),
-            Label::Any => None,
+            Label::Unknown => None,
         }
     }
 }

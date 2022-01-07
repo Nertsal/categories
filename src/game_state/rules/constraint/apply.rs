@@ -59,7 +59,7 @@ pub fn apply_constraints(
                 })
                 .find(|_| true)
                 .map(|name| Label::Name(name))
-                .unwrap_or(Label::Any);
+                .unwrap_or(Label::Unknown);
 
             new_vertices.push((name, tag));
             new_vertices_names.push(label.to_owned());
@@ -130,7 +130,7 @@ pub fn apply_constraints(
                 })
                 .find(|_| true)
                 .map(|name| Label::Name(name))
-                .unwrap_or(Label::Any);
+                .unwrap_or(Label::Unknown);
 
             new_edges.push((name, constraint));
             new_edges_names.push(label.to_owned());
@@ -219,7 +219,7 @@ fn get_object_or_new(
             graph_equalities,
             bindings,
             action_history,
-            vec![(Label::Any, None)],
+            vec![(Label::Unknown, None)],
             vec![label.clone()],
         )[0]
     })

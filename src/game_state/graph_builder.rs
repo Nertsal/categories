@@ -40,7 +40,7 @@ impl GraphBuilder {
                 tag: tag.map(|tag| {
                     tag.map(|label| match label {
                         Label::Name(label) => Some(self.objects[&label]),
-                        Label::Any => None,
+                        Label::Unknown => None,
                     })
                 }),
                 color,
@@ -51,7 +51,7 @@ impl GraphBuilder {
             Label::Name(label) => {
                 self.objects.insert(label, new_object);
             }
-            Label::Any => (),
+            Label::Unknown => (),
         }
 
         self
@@ -79,11 +79,11 @@ impl GraphBuilder {
                     tag.map(
                         |label| match label {
                             Label::Name(label) => Some(self.objects[&label]),
-                            Label::Any => None,
+                            Label::Unknown => None,
                         },
                         |label| match label {
                             Label::Name(label) => Some(self.morphisms[&label]),
-                            Label::Any => None,
+                            Label::Unknown => None,
                         },
                     )
                 }),
@@ -95,7 +95,7 @@ impl GraphBuilder {
             Label::Name(label) => {
                 self.morphisms.insert(label.to_owned(), new_edge.unwrap());
             }
-            Label::Any => (),
+            Label::Unknown => (),
         }
 
         self

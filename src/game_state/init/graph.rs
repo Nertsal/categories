@@ -38,10 +38,10 @@ pub fn goal_graph() -> Graph {
             false,
         )
         .morphism(
-            Label::Any,
+            Label::Unknown,
             "Ax(BxC)",
             "(AxB)xC",
-            Some(MorphismTag::Isomorphism(Label::Any, Label::Any)),
+            Some(MorphismTag::Isomorphism(Label::Unknown, Label::Unknown)),
         )
         .build()
 }
