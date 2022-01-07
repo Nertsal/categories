@@ -74,7 +74,6 @@ impl GameState {
                 let (vertices, edges) = vertices
                     .into_iter()
                     .filter_map(|id| graph.graph.remove_vertex(id))
-                    .map(|(vertex, edges)| (vertex, edges))
                     .map(|(vertex, edges)| {
                         let vertex = (vertex.vertex.label, vertex.vertex.tag);
                         let edges: Vec<_> = edges
