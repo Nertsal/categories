@@ -4,6 +4,7 @@ pub fn find_candidates<'a>(
     constraints: &'a [Constraint],
     bindings: &'a Bindings,
     graph: &'a Graph,
+    equalities: &'a GraphEqualities,
 ) -> Option<impl Iterator<Item = Bindings> + 'a> {
     let constraint = match constraints.first() {
         Some(constraint) => constraint,
@@ -18,13 +19,15 @@ pub fn find_candidates<'a>(
                 constraint_morphism(label, constraint, bindings, graph)
             }
         },
-        Constraint::MorphismEq(_, _) => vec![],
+        Constraint::MorphismEq(morphism_f, morphism_g) => {
+            constraint_equality(morphism_f, morphism_g, bindings, equalities)
+        }
     };
 
     Some(binds.into_iter().flat_map(|binds| {
         let mut old_binds = binds.clone();
         old_binds.extend(bindings.clone());
-        let binds = match find_candidates(constraints, &old_binds, graph) {
+        let binds = match find_candidates(constraints, &old_binds, graph, equalities) {
             Some(new_binds) => new_binds
                 .map(|mut next_binds| {
                     next_binds.extend(binds.clone());

@@ -62,7 +62,7 @@ pub fn apply_constraints(
                 .unwrap_or(Label::Unknown);
 
             new_vertices.push((name, tag));
-            new_vertices_names.push(label.to_owned());
+            new_vertices_names.push(label.clone());
         }
     }
 
@@ -133,7 +133,7 @@ pub fn apply_constraints(
                 .unwrap_or(Label::Unknown);
 
             new_edges.push((name, constraint));
-            new_edges_names.push(label.to_owned());
+            new_edges_names.push(label.clone());
         }
     }
 

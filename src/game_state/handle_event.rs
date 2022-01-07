@@ -280,12 +280,14 @@ impl GameState {
                         if let &FocusedGraph::Rule { index } = &self.focused_graph {
                             let main_selection = RuleSelection::new(
                                 &self.main_graph.graph,
+                                &self.main_graph.equalities,
                                 index,
                                 &self.rules,
                                 false,
                             );
                             let goal_selection = RuleSelection::new(
                                 &self.goal_graph.graph,
+                                &self.goal_graph.equalities,
                                 index,
                                 &self.rules,
                                 true,
@@ -326,15 +328,19 @@ impl GameState {
                         if let Some((focused_graph, selected)) = selected {
                             let selection = match focused_graph {
                                 FocusedGraph::Rule { .. } => None,
-                                FocusedGraph::Main => {
-                                    Some((&self.main_graph.graph, &mut self.main_selection))
-                                }
-                                FocusedGraph::Goal => {
-                                    Some((&self.goal_graph.graph, &mut self.goal_selection))
-                                }
+                                FocusedGraph::Main => Some((
+                                    &self.main_graph.graph,
+                                    &self.main_graph.equalities,
+                                    &mut self.main_selection,
+                                )),
+                                FocusedGraph::Goal => Some((
+                                    &self.goal_graph.graph,
+                                    &self.goal_graph.equalities,
+                                    &mut self.goal_selection,
+                                )),
                             };
 
-                            if let Some((graph, selection)) = selection {
+                            if let Some((graph, equalities, selection)) = selection {
                                 match selection
                                     .as_ref()
                                     .and_then(|selection| selection.inferred_options().as_ref())
@@ -344,7 +350,7 @@ impl GameState {
                                             && selection
                                                 .as_mut()
                                                 .unwrap()
-                                                .select(graph, selected, &self.rules)
+                                                .select(graph, equalities, selected, &self.rules)
                                                 .is_none()
                                         {
                                             let selection = selection.take().unwrap();

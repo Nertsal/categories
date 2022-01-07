@@ -6,9 +6,14 @@ impl GameState {
         let bindings = self.graph_link.bindings();
         let constraints = graph_to_constraints(&self.goal_graph.graph);
 
-        if find_candidates(&constraints, bindings, &self.main_graph.graph)
-            .map(|mut candidates| candidates.next().is_some())
-            .unwrap_or(false)
+        if find_candidates(
+            &constraints,
+            bindings,
+            &self.main_graph.graph,
+            &self.main_graph.equalities,
+        )
+        .map(|mut candidates| candidates.next().is_some())
+        .unwrap_or(false)
         {
             //  The goal has been reached
             println!("Hooray! Goal reached!");

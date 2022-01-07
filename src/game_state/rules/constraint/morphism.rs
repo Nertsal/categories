@@ -26,12 +26,12 @@ pub fn constraint_morphism(
             .filter_map(move |(&id, edge)| {
                 let mut binds = Bindings::new();
                 if morphism_match(from, to, &constraint.tag, edge, bindings, &mut binds) {
-                    binds.bind_morphism(label.to_owned(), id);
+                    binds.bind_morphism(label.clone(), id);
                     if from.is_none() {
-                        binds.bind_object(constraint.from.to_owned(), edge.edge.from);
+                        binds.bind_object(constraint.from.clone(), edge.edge.from);
                     }
                     if to.is_none() {
-                        binds.bind_object(constraint.to.to_owned(), edge.edge.to);
+                        binds.bind_object(constraint.to.clone(), edge.edge.to);
                     }
                     Some(binds)
                 } else {
@@ -81,7 +81,7 @@ fn morphism_match(
                         match bindings.get_morphism(constraint_first) {
                             Some(constraint) => constraint == first,
                             None => {
-                                binds.bind_morphism(constraint_first.to_owned(), first);
+                                binds.bind_morphism(constraint_first.clone(), first);
                                 true
                             }
                         }
@@ -94,7 +94,7 @@ fn morphism_match(
                         match bindings.get_morphism(constraint_second) {
                             Some(constraint) => constraint == second,
                             None => {
-                                binds.bind_morphism(constraint_second.to_owned(), second);
+                                binds.bind_morphism(constraint_second.clone(), second);
                                 true
                             }
                         }

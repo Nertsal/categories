@@ -142,8 +142,9 @@ impl GameState {
                 equalities
                     .iter()
                     .copied()
-                    .for_each(|(morphism_f, morphism_g)| {
-                        graph_equalities.insert((morphism_f, morphism_g));
+                    .filter(|&(f, g)| f != g)
+                    .for_each(|(f, g)| {
+                        graph_equalities.insert((f, g));
                     });
                 vec![GraphAction::RemoveEqualities(equalities)]
             }
@@ -151,8 +152,8 @@ impl GameState {
                 equalities
                     .iter()
                     .copied()
-                    .for_each(|(morphism_f, morphism_g)| {
-                        graph_equalities.remove(&(morphism_f, morphism_g));
+                    .for_each(|(f, g)| {
+                        graph_equalities.remove(&(f, g));
                     });
                 vec![GraphAction::NewEqualities(equalities)]
             }
