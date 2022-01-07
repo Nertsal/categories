@@ -48,18 +48,21 @@ pub fn apply_constraints(
                 }
             },
             Constraint::MorphismEq(f, g) => {
-                constrained_equalities.push((f, g));
-
                 // Check that morphisms exist
-                for morphism in vec![f, g] {
-                    if let Label::Name(name) = morphism {
-                        if constrained_edges.iter().all(|(label, _)| match label {
+                if vec![f, g]
+                    .into_iter()
+                    .filter_map(|label| match label {
+                        Label::Name(name) => Some(name),
+                        Label::Any => None,
+                    })
+                    .all(|name| {
+                        constrained_edges.iter().any(|(label, _)| match label {
                             Label::Name(label) if *label == *name => true,
                             _ => false,
-                        }) {
-                            panic!("Unknown morphism {:?} in an equality constraint", name);
-                        }
-                    }
+                        })
+                    })
+                {
+                    constrained_equalities.push((f, g));
                 }
             }
         }
