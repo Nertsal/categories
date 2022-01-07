@@ -58,21 +58,20 @@ impl<V: GraphVertex, E: GraphEdge> Graph<V, E> {
     }
 
     /// Removes the vertex and connected edges from the graph.
-    pub fn remove_vertex(&mut self, vertex_id: VertexId) -> (Option<V>, Vec<(EdgeId, E)>) {
-        let vertex = self.vertices.remove(&vertex_id);
-
-        let removes: Vec<_> = self
-            .edges
-            .iter()
-            .filter(|(_, edge)| edge.is_vertex_incident(vertex_id))
-            .map(|(&id, _)| id)
-            .collect();
-        let mut edges = Vec::new();
-        for remove in removes {
-            edges.push((remove, self.edges.remove(&remove).unwrap()));
-        }
-
-        (vertex, edges)
+    pub fn remove_vertex(&mut self, vertex_id: VertexId) -> Option<(V, Vec<(EdgeId, E)>)> {
+        self.vertices.remove(&vertex_id).map(|vertex| {
+            let removes: Vec<_> = self
+                .edges
+                .iter()
+                .filter(|(_, edge)| edge.is_vertex_incident(vertex_id))
+                .map(|(&id, _)| id)
+                .collect();
+            let mut edges = Vec::new();
+            for remove in removes {
+                edges.push((remove, self.edges.remove(&remove).unwrap()));
+            }
+            (vertex, edges)
+        })
     }
 
     /// Removes the edge from the graph.

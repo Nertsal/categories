@@ -73,8 +73,8 @@ impl GameState {
             GraphAction::RemoveVertices(vertices) => {
                 let (vertices, edges) = vertices
                     .into_iter()
-                    .map(|id| graph.graph.remove_vertex(id))
-                    .map(|(vertex, edges)| (vertex.unwrap(), edges))
+                    .filter_map(|id| graph.graph.remove_vertex(id))
+                    .map(|(vertex, edges)| (vertex, edges))
                     .map(|(vertex, edges)| {
                         let vertex = (vertex.vertex.label, vertex.vertex.tag);
                         let edges: Vec<_> = edges
@@ -122,7 +122,7 @@ impl GameState {
                     .collect();
                 let edges: Vec<_> = edges
                     .into_iter()
-                    .map(|id| graph.graph.remove_edge(id).unwrap())
+                    .filter_map(|id| graph.graph.remove_edge(id))
                     .map(|edge| {
                         (
                             edge.edge.label,
