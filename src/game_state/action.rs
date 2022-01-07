@@ -164,7 +164,7 @@ impl GameState {
         if let Some(action) = self.action_history.pop() {
             Self::graph_action_do(
                 &mut self.main_graph.graph,
-                &mut self.main_equalities,
+                &mut self.main_graph.equalities,
                 action,
             );
         }

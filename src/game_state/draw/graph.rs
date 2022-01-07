@@ -17,6 +17,7 @@ pub fn draw_graph(
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     graph: &Graph,
+    graph_equalities: &GraphEqualities,
     background_color: Color<f32>,
     selection: Option<&Vec<GraphObject>>,
 ) {
@@ -62,6 +63,26 @@ pub fn draw_graph(
             background_color,
             selected_vertices.contains(id),
         );
+    }
+
+    let framebuffer_size = framebuffer.size().map(|x| x as f32);
+    let height = constants::EQUALITY_FONT_SIZE_FRAC * framebuffer_size.y;
+    let offset = vec2(height / 2.0, height / 2.0);
+
+    // Equalities
+    for (i, equality) in graph_equalities.iter().enumerate() {
+        let pos = framebuffer_size - offset - vec2(0.0, i as f32 * height * 1.5);
+
+        let get = |edge| match &graph.graph.edges.get(edge).unwrap().edge.label {
+            Label::Name(name) => name,
+            Label::Any => "?",
+        };
+        let text = format!("{} = {}", get(&equality.0), get(&equality.1));
+        draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)
+            .fit_into(AABB::ZERO.extend_positive(vec2(framebuffer_size.x, height)))
+            .align_bounding_box(vec2(1.0, 1.0))
+            .translate(pos)
+            .draw_2d(geng, framebuffer, &geng::PixelPerfectCamera);
     }
 }
 

@@ -42,9 +42,7 @@ pub struct GameState {
     state: State,
     rules: Rules,
     main_graph: RenderableGraph,
-    main_equalities: GraphEqualities,
     goal_graph: RenderableGraph,
-    goal_equalities: GraphEqualities,
     graph_link: GraphLink,
     focused_graph: FocusedGraph,
     dragging: Option<Dragging>,
@@ -56,8 +54,20 @@ pub struct GameState {
 impl GameState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         let state = State::default();
-        let main_graph = RenderableGraph::new(geng, assets, init::graph::main_graph(), vec2(1, 1));
-        let goal_graph = RenderableGraph::new(geng, assets, init::graph::goal_graph(), vec2(1, 1));
+        let main_graph = RenderableGraph::new(
+            geng,
+            assets,
+            init::graph::main_graph(),
+            GraphEqualities::new(),
+            vec2(1, 1),
+        );
+        let goal_graph = RenderableGraph::new(
+            geng,
+            assets,
+            init::graph::goal_graph(),
+            GraphEqualities::new(),
+            vec2(1, 1),
+        );
         Self {
             geng: geng.clone(),
             dragging: None,
@@ -68,8 +78,6 @@ impl GameState {
             ui_camera: PixelPerfectCamera,
             rules: init::rules::default_rules(geng, assets),
             graph_link: GraphLink::new(&main_graph.graph, &goal_graph.graph),
-            main_equalities: GraphEqualities::new(),
-            goal_equalities: GraphEqualities::new(),
             main_graph,
             goal_graph,
             state,

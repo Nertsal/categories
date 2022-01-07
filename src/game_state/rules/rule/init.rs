@@ -34,6 +34,8 @@ impl Rule {
             }
         }
 
+        let mut equalities = GraphEqualities::new();
+
         let mut add_constraints = |constraints: &Constraints, color| -> Vec<GraphObject> {
             constraints
                 .iter()
@@ -119,23 +121,18 @@ impl Rule {
                     },
                     Constraint::MorphismEq(f, g) => {
                         // Check that morphisms exist
-                        for morphism in vec![f, g] {
-                            let name = match morphism {
+                        let check = |label: &Label| {
+                            let name = match label {
                                 Label::Name(name) => name,
                                 Label::Any => panic!("An equality must have named labels"),
                             };
+                            morphisms.get(name).copied().expect(&format!("An equality expected the morphism {:?} to be constrained explicitly before the equality", name))
+                        };
 
-                            if !morphisms.contains_key(name) && !constraints.iter().any(|constraint| match constraint {
-                                Constraint::RuleObject(
-                                    Label::Name(label),
-                                    RuleObject::Edge { .. },
-                                ) if *name == *label => true,
-                                _ => false,
-                            }) {
-                                panic!("An equality expected the morphism {:?} to be constrained explicitly", name);
-                            }
-                        }
+                        let f = check(f);
+                        let g = check(g);
 
+                        equalities.insert((f, g));
                         None
                     }
                 })
@@ -178,7 +175,7 @@ impl Rule {
 
         Self {
             inverse_statement: invert_statement(&statement).into_iter().last().unwrap(),
-            graph: RenderableGraph::new(geng, assets, graph, vec2(1, 1)),
+            graph: RenderableGraph::new(geng, assets, graph, equalities, vec2(1, 1)),
             statement,
             graph_input,
             inverse_graph_input,

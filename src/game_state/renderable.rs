@@ -4,17 +4,25 @@ pub struct RenderableGraph {
     geng: Geng,
     assets: Rc<Assets>,
     pub graph: Graph,
+    pub equalities: GraphEqualities,
     pub camera: Camera2d,
     pub texture: ugli::Texture,
     pub texture_size: Vec2<usize>,
 }
 
 impl RenderableGraph {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, graph: Graph, texture_size: Vec2<usize>) -> Self {
+    pub fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        graph: Graph,
+        equalities: GraphEqualities,
+        texture_size: Vec2<usize>,
+    ) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
             graph,
+            equalities,
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
@@ -48,6 +56,7 @@ impl RenderableGraph {
             &mut temp_framebuffer,
             &self.camera,
             &self.graph,
+            &self.equalities,
             background_color,
             selection,
         );

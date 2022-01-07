@@ -11,8 +11,8 @@ impl GameState {
     pub fn apply_rule(&mut self, graph: FocusedGraph, selection: RuleSelection) {
         let (graph, graph_equalities) = match graph {
             FocusedGraph::Rule { .. } => return,
-            FocusedGraph::Main => (&mut self.main_graph.graph, &mut self.main_equalities),
-            FocusedGraph::Goal => (&mut self.goal_graph.graph, &mut self.goal_equalities),
+            FocusedGraph::Main => (&mut self.main_graph.graph, &mut self.main_graph.equalities),
+            FocusedGraph::Goal => (&mut self.goal_graph.graph, &mut self.goal_graph.equalities),
         };
 
         let rule = &self.rules[selection.rule()];
