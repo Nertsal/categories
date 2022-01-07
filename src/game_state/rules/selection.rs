@@ -11,7 +11,13 @@ pub struct RuleSelection {
 }
 
 impl RuleSelection {
-    pub fn new(graph: &Graph, graph_equalities: &GraphEqualities, rule_index: usize, rules: &Rules, inverse: bool) -> Self {
+    pub fn new(
+        graph: &Graph,
+        graph_equalities: &GraphEqualities,
+        rule_index: usize,
+        rules: &Rules,
+        inverse: bool,
+    ) -> Self {
         let mut selection = RuleSelection {
             rule_input: match inverse {
                 false => rules[rule_index].graph_input(),
@@ -72,32 +78,48 @@ impl RuleSelection {
 
     /// Infer possible selections for the current rule selection
     fn infer_current(&mut self, graph: &Graph, graph_equalities: &GraphEqualities, rules: &Rules) {
-        let construction = rules.get(self.rule()).and_then(|rule| match self.inverse {
-            false => rule.statement().first(),
-            true => rule.inverse_statement().first(),
+        let constraints = rules.get(self.rule()).map(|rule| {
+            let statement = match self.inverse {
+                false => rule.statement().iter(),
+                true => rule.inverse_statement().iter(),
+            };
+            statement.map_while(|construction| match construction {
+                RuleConstruction::Forall(constraints) => Some(constraints),
+                RuleConstruction::Exists(_) => None,
+            })
         });
-        self.inferred_options = construction.map(|construction| {
-            infer_construction(construction, graph, graph_equalities, &self.selection)
+
+        self.inferred_options = constraints.and_then(|mut constraints| {
+            constraints.next().map(|construction| {
+                let constraints = construction
+                    .iter()
+                    .chain(constraints.flat_map(|x| x.iter()))
+                    .cloned()
+                    .collect();
+                infer_construction(
+                    construction,
+                    &constraints,
+                    graph,
+                    graph_equalities,
+                    &self.selection,
+                )
+            })
         });
     }
 }
 
 fn infer_construction(
-    construction: &RuleConstruction,
+    input_constraints: &Constraints,
+    all_constraints: &Constraints,
     graph: &Graph,
     graph_equalities: &GraphEqualities,
     selection: &Vec<GraphObject>,
 ) -> Vec<GraphObject> {
-    let input_constraints = match construction {
-        RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
-            constraints
-        }
-    };
-    let mut constraints = input_constraints.iter();
+    let mut input_constraints = input_constraints.iter();
 
     let mut bindings = Bindings::new();
     for selected in selection {
-        let constraint = constraints.next().unwrap();
+        let constraint = input_constraints.next().unwrap();
         match constraint {
             Constraint::RuleObject(label, object) => match (selected, object) {
                 (GraphObject::Vertex { id }, RuleObject::Vertex { .. }) => {
@@ -117,7 +139,7 @@ fn infer_construction(
         }
     }
 
-    let next = match constraints.next() {
+    let next = match input_constraints.next() {
         Some(Constraint::RuleObject(label, object)) => Some((label, object)),
         _ => None,
     };
@@ -128,7 +150,7 @@ fn infer_construction(
         }
     };
 
-    find_candidates(input_constraints, &bindings, graph, graph_equalities)
+    find_candidates(all_constraints, &bindings, graph, graph_equalities)
         .map(|candidates| {
             candidates
                 .into_iter()
