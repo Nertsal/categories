@@ -4,6 +4,7 @@ pub fn constraint_equality(
     morphism_f: &Label,
     morphism_g: &Label,
     bindings: &Bindings,
+    graph: &Graph,
     equalities: &GraphEqualities,
 ) -> Vec<Bindings> {
     match (
@@ -60,6 +61,12 @@ pub fn constraint_equality(
                 binds.bind_morphism(morphism_g.clone(), g);
                 binds
             })
+            .chain(graph.graph.edges.iter().map(|(&edge, _)| {
+                let mut binds = Bindings::new();
+                binds.bind_morphism(morphism_f.clone(), edge);
+                binds.bind_morphism(morphism_g.clone(), edge);
+                binds
+            }))
             .collect(),
     }
 }

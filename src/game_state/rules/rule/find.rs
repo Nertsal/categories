@@ -20,7 +20,7 @@ pub fn find_candidates<'a>(
             }
         },
         Constraint::MorphismEq(morphism_f, morphism_g) => {
-            constraint_equality(morphism_f, morphism_g, bindings, equalities)
+            constraint_equality(morphism_f, morphism_g, bindings, graph, equalities)
         }
     };
 
