@@ -190,22 +190,27 @@ pub fn apply_constraints(
     }
 
     // Constraint equalities
-    for (f, g) in constrained_equalities {
-        let f = bindings
-            .get_morphism(f)
-            .expect("Should have been constrained earlier");
-        let g = bindings
-            .get_morphism(g)
-            .expect("Should have been constrained earlier");
-        let actions = GameState::graph_action_do(
-            graph,
-            graph_equalities,
-            GraphAction::NewEqualities(vec![(f, g)]),
-        );
-        assert_eq!(actions.len(), 1);
+    let constrained_equalities = constrained_equalities
+        .into_iter()
+        .map(|(f, g)| {
+            let f = bindings
+                .get_morphism(f)
+                .expect("Should have been constrained earlier");
+            let g = bindings
+                .get_morphism(g)
+                .expect("Should have been constrained earlier");
+            (f, g)
+        })
+        .collect();
 
-        action_history.extend(actions);
-    }
+    let actions = GameState::graph_action_do(
+        graph,
+        graph_equalities,
+        GraphAction::NewEqualities(dbg!(constrained_equalities)),
+    );
+    assert_eq!(actions.len(), 1);
+
+    action_history.extend(actions);
 
     (action_history, bindings)
 }
