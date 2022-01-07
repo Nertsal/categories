@@ -6,8 +6,8 @@ pub enum GraphAction {
     NewEdges(Vec<(Label, ArrowConstraint<VertexId, EdgeId>)>),
     RemoveVertices(Vec<VertexId>),
     RemoveEdges(Vec<EdgeId>),
-    AddEquality(EdgeId, EdgeId),
-    RemoveEquality(EdgeId, EdgeId),
+    NewEqualities(Vec<(EdgeId, EdgeId)>),
+    RemoveEqualities(Vec<(EdgeId, EdgeId)>),
 }
 
 impl GameState {
@@ -106,6 +106,20 @@ impl GameState {
                 ]
             }
             GraphAction::RemoveEdges(edges) => {
+                let equalities: Vec<_> = edges
+                    .iter()
+                    .flat_map(|&edge| {
+                        let equalities: Vec<_> = graph_equalities
+                            .iter()
+                            .filter(move |&&(f, g)| f == edge || g == edge)
+                            .copied()
+                            .collect();
+                        equalities.iter().for_each(|equality| {
+                            graph_equalities.remove(equality);
+                        });
+                        equalities
+                    })
+                    .collect();
                 let edges: Vec<_> = edges
                     .into_iter()
                     .map(|id| graph.graph.remove_edge(id).unwrap())
@@ -120,15 +134,28 @@ impl GameState {
                         )
                     })
                     .collect();
-                vec![GraphAction::NewEdges(edges)]
+                vec![
+                    GraphAction::NewEqualities(equalities),
+                    GraphAction::NewEdges(edges),
+                ]
             }
-            GraphAction::AddEquality(morphism_f, morphism_g) => {
-                graph_equalities.insert((morphism_f, morphism_g));
-                vec![GraphAction::RemoveEquality(morphism_f, morphism_g)]
+            GraphAction::NewEqualities(equalities) => {
+                equalities
+                    .iter()
+                    .copied()
+                    .for_each(|(morphism_f, morphism_g)| {
+                        graph_equalities.insert((morphism_f, morphism_g));
+                    });
+                vec![GraphAction::RemoveEqualities(equalities)]
             }
-            GraphAction::RemoveEquality(morphism_f, morphism_g) => {
-                graph_equalities.remove(&(morphism_f, morphism_g));
-                vec![GraphAction::AddEquality(morphism_f, morphism_g)]
+            GraphAction::RemoveEqualities(equalities) => {
+                equalities
+                    .iter()
+                    .copied()
+                    .for_each(|(morphism_f, morphism_g)| {
+                        graph_equalities.remove(&(morphism_f, morphism_g));
+                    });
+                vec![GraphAction::NewEqualities(equalities)]
             }
         }
     }

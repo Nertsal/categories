@@ -197,8 +197,11 @@ pub fn apply_constraints(
         let g = bindings
             .get_morphism(g)
             .expect("Should have been constrained earlier");
-        let actions =
-            GameState::graph_action_do(graph, graph_equalities, GraphAction::AddEquality(f, g));
+        let actions = GameState::graph_action_do(
+            graph,
+            graph_equalities,
+            GraphAction::NewEqualities(vec![(f, g)]),
+        );
         assert_eq!(actions.len(), 1);
 
         action_history.extend(actions);
