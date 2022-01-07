@@ -19,6 +19,12 @@ pub struct Edges<E: GraphEdge> {
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
 pub struct EdgeId(u64);
 
+impl EdgeId {
+    pub fn raw(&self) -> u64 {
+        self.0
+    }
+}
+
 impl<E: GraphEdge> Edges<E> {
     pub fn new() -> Self {
         Self {

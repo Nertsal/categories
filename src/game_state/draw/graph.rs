@@ -74,9 +74,10 @@ pub fn draw_graph(
         let pos = framebuffer_size - offset - vec2(0.0, i as f32 * height * 1.5);
 
         let get = |edge| match &graph.graph.edges.get(edge).unwrap().edge.label {
-            Label::Name(name) => name,
-            Label::Unknown => "?",
+            Label::Name(name) => name.to_owned(),
+            Label::Unknown => format!("[{}]", edge.raw()),
         };
+
         let text = format!("{} = {}", get(&equality.0), get(&equality.1));
         draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)
             .fit_into(AABB::ZERO.extend_positive(vec2(framebuffer_size.x, height)))
