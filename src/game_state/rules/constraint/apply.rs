@@ -9,11 +9,6 @@ pub fn apply_constraints(
 ) -> (Vec<GraphAction>, Bindings) {
     let mut bindings = bindings.clone();
 
-    let mut new_vertices = Vec::new();
-    let mut new_vertices_names = Vec::new();
-    let mut new_edges = Vec::new();
-    let mut new_edges_names = Vec::new();
-
     let mut constrained_vertices = Vec::new();
     let mut constrained_edges = Vec::new();
     let mut constrained_equalities = Vec::new();
@@ -26,47 +21,18 @@ pub fn apply_constraints(
                 }
                 RuleObject::Edge { constraint } => {
                     constrained_edges.push((label, constraint));
-
-                    // Check that the objects exist, or create them later
-                    let mut objects = vec![&constraint.from, &constraint.to];
-                    objects.extend(
-                        constraint
-                            .tag
-                            .iter()
-                            .flat_map(|tag| tag.objects().into_iter().filter_map(|x| x.as_ref())),
-                    );
-                    for object in objects {
-                        if let Label::Name(name) = object {
-                            if !constrained_vertices.iter().any(|(label, _)| match label {
-                                Label::Name(label) if *label == *name => true,
-                                _ => false,
-                            }) {
-                                constrained_vertices.push((object, &None));
-                            }
-                        }
-                    }
                 }
             },
             Constraint::MorphismEq(f, g) => {
-                // Check that morphisms exist
-                if vec![f, g]
-                    .into_iter()
-                    .filter_map(|label| match label {
-                        Label::Name(name) => Some(name),
-                        Label::Any => None,
-                    })
-                    .all(|name| {
-                        constrained_edges.iter().any(|(label, _)| match label {
-                            Label::Name(label) if *label == *name => true,
-                            _ => false,
-                        })
-                    })
-                {
-                    constrained_equalities.push((f, g));
-                }
+                constrained_equalities.push((f, g));
             }
         }
     }
+
+    let mut new_vertices = Vec::new();
+    let mut new_vertices_names = Vec::new();
+    let mut new_edges = Vec::new();
+    let mut new_edges_names = Vec::new();
 
     // Constraint vertices
     for (label, tag) in constrained_vertices {
@@ -192,21 +158,17 @@ pub fn apply_constraints(
     // Constraint equalities
     let constrained_equalities = constrained_equalities
         .into_iter()
-        .map(|(f, g)| {
-            let f = bindings
+        .filter_map(|(f, g)| {
+            bindings
                 .get_morphism(f)
-                .expect("Should have been constrained earlier");
-            let g = bindings
-                .get_morphism(g)
-                .expect("Should have been constrained earlier");
-            (f, g)
+                .and_then(|f| bindings.get_morphism(g).map(|g| (f, g)))
         })
         .collect();
 
     let actions = GameState::graph_action_do(
         graph,
         graph_equalities,
-        GraphAction::NewEqualities(dbg!(constrained_equalities)),
+        GraphAction::NewEqualities(constrained_equalities),
     );
     assert_eq!(actions.len(), 1);
 

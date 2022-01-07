@@ -58,15 +58,6 @@ impl MorphismTag<Option<&Label>, Option<&Label>> {
 }
 
 impl<O, M> MorphismTag<O, M> {
-    pub fn objects(&self) -> Vec<&O> {
-        match self {
-            MorphismTag::Identity(a) => vec![a],
-            MorphismTag::Composition { .. }
-            | MorphismTag::Unique
-            | MorphismTag::Isomorphism(_, _) => vec![],
-        }
-    }
-
     pub fn map<V, E, Fv: Fn(O) -> V, Fe: Fn(M) -> E>(self, fv: Fv, fe: Fe) -> MorphismTag<V, E> {
         match self {
             Self::Identity(v) => MorphismTag::Identity(fv(v)),

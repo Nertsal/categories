@@ -66,7 +66,7 @@ pub fn draw_graph(
     }
 
     let framebuffer_size = framebuffer.size().map(|x| x as f32);
-    let height = constants::EQUALITY_FONT_SIZE_FRAC * framebuffer_size.y;
+    let height = constants::EQUALITY_FONT_SIZE_FRAC * framebuffer_size.x;
     let offset = vec2(height / 2.0, height / 2.0);
 
     // Equalities
