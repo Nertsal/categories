@@ -13,6 +13,10 @@ pub fn apply_constraints(
     let mut constrained_edges = Vec::new();
     let mut constrained_equalities = Vec::new();
 
+    println!("\n------");
+    println!("binds: {:?}", bindings);
+    println!("constraitns: {:?}", constraints);
+
     for constraint in constraints {
         match constraint {
             Constraint::RuleObject(label, rule_object) => match rule_object {

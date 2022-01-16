@@ -184,7 +184,8 @@ impl Rule {
 }
 
 fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
-    let mut prelude = Vec::new();
+    let mut prelude_forall = Vec::new();
+    let mut prelude_exists = Vec::new();
     let mut statements = Vec::new();
 
     let add_object_constraint = |label: Option<&Label>, prelude: &mut Vec<_>| {
@@ -237,7 +238,7 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
         match construction {
             RuleConstruction::Forall(constraints) => {
                 if let Some(forall) = last_forall.take() {
-                    prelude.extend(forall);
+                    prelude_exists.extend(forall);
                 }
                 last_forall = Some(constraints.clone());
             }
@@ -248,13 +249,19 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
                         match constraint {
                             Constraint::RuleObject(label, object) => match object {
                                 RuleObject::Vertex { tag } => {
-                                    add_object_constraint(Some(label), &mut prelude);
+                                    add_object_constraint(Some(label), &mut prelude_forall);
 
                                     if let Some(tag) = tag {
                                         match tag {
                                             ObjectTag::Product(a, b) => {
-                                                add_object_constraint(a.as_ref(), &mut prelude);
-                                                add_object_constraint(b.as_ref(), &mut prelude);
+                                                add_object_constraint(
+                                                    a.as_ref(),
+                                                    &mut prelude_forall,
+                                                );
+                                                add_object_constraint(
+                                                    b.as_ref(),
+                                                    &mut prelude_forall,
+                                                );
                                             }
                                         }
                                     }
@@ -263,43 +270,59 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
                                     if let Some(tag) = &constraint.tag {
                                         match tag {
                                             MorphismTag::Identity(a) => {
-                                                add_object_constraint(a.as_ref(), &mut prelude);
+                                                add_object_constraint(
+                                                    a.as_ref(),
+                                                    &mut prelude_forall,
+                                                );
                                             }
                                             MorphismTag::Composition { first, second } => {
                                                 add_morphism_constraint(
                                                     first.as_ref(),
-                                                    &mut prelude,
+                                                    &mut prelude_forall,
                                                 );
                                                 add_morphism_constraint(
                                                     second.as_ref(),
-                                                    &mut prelude,
+                                                    &mut prelude_forall,
                                                 );
                                             }
                                             MorphismTag::Unique => (),
                                             MorphismTag::Isomorphism(f, g) => {
-                                                add_morphism_constraint(f.as_ref(), &mut prelude);
-                                                add_morphism_constraint(g.as_ref(), &mut prelude);
+                                                add_morphism_constraint(
+                                                    f.as_ref(),
+                                                    &mut prelude_forall,
+                                                );
+                                                add_morphism_constraint(
+                                                    g.as_ref(),
+                                                    &mut prelude_forall,
+                                                );
                                             }
                                         }
                                     }
                                 }
                             },
                             Constraint::MorphismEq(f, g) => {
-                                add_morphism_constraint(Some(f), &mut prelude);
-                                add_morphism_constraint(Some(g), &mut prelude);
+                                add_morphism_constraint(Some(f), &mut prelude_forall);
+                                add_morphism_constraint(Some(g), &mut prelude_forall);
                             }
                         }
                     }
 
                     // Construct an inverse rule
-                    let inv_forall = invert_constraints(constraints);
-                    let inv_exists = invert_constraints(&forall);
-                    statements.push(vec![
-                        RuleConstruction::Forall(inv_forall),
-                        RuleConstruction::Forall(prelude.clone()),
-                        RuleConstruction::Exists(inv_exists),
-                    ]);
-                    prelude.extend(forall);
+                    let inv_forall = invert_constraints(constraints, false);
+                    let inv_exists = invert_constraints(&forall, true);
+
+                    let mut statement = Vec::new();
+                    statement.push(RuleConstruction::Forall(inv_forall));
+                    if !prelude_forall.is_empty() {
+                        statement.push(RuleConstruction::Forall(prelude_forall.clone()));
+                    }
+                    if !prelude_exists.is_empty() {
+                        statement.push(RuleConstruction::Exists(prelude_exists.clone()));
+                    }
+                    statement.push(RuleConstruction::Exists(inv_exists));
+
+                    statements.push(statement);
+                    prelude_forall.extend(forall);
                 }
             }
         };
@@ -308,7 +331,7 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
     statements
 }
 
-fn invert_constraints(constraints: &Constraints) -> Constraints {
+fn invert_constraints(constraints: &Constraints, keep_tags: bool) -> Constraints {
     constraints
         .iter()
         .map(|constraint| match constraint {
@@ -318,12 +341,16 @@ fn invert_constraints(constraints: &Constraints) -> Constraints {
                     label.clone(),
                     RuleObject::Edge {
                         constraint: ArrowConstraint {
-                            tag: constraint.tag.as_ref().and_then(|tag| match tag {
-                                MorphismTag::Identity(_) | MorphismTag::Isomorphism(_, _) => {
-                                    Some(tag.clone())
-                                }
-                                _ => None,
-                            }),
+                            tag: if keep_tags {
+                                constraint.tag.clone()
+                            } else {
+                                constraint.tag.as_ref().and_then(|tag| match tag {
+                                    MorphismTag::Identity(_) | MorphismTag::Isomorphism(_, _) => {
+                                        Some(tag.clone())
+                                    }
+                                    _ => None,
+                                })
+                            },
                             ..constraint.clone()
                         },
                     },

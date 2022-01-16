@@ -55,8 +55,8 @@ fn morphism_match(
         && match (constraint_tag, &edge.edge.tag) {
             (None, Some(MorphismTag::Isomorphism(_, _))) => false,
             (None, _) => true,
-            (_, None) => false,
-            (Some(MorphismTag::Unique), Some(MorphismTag::Unique)) => true,
+            (Some(_), None) => false,
+            (Some(MorphismTag::Unique), _) => true,
             (Some(MorphismTag::Identity(constraint)), &Some(MorphismTag::Identity(object))) => {
                 match (constraint, object) {
                     (Some(constraint), Some(object)) => match bindings.get_object(constraint) {

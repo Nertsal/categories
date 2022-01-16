@@ -1,5 +1,6 @@
 use super::*;
 
+/// Returns `None` if there are no constraints.
 pub fn find_candidates<'a>(
     constraints: &'a [Constraint],
     bindings: &'a Bindings,

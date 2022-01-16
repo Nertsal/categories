@@ -25,33 +25,33 @@ pub fn constraint_equality(
             .iter()
             .filter_map(|&(f, g)| {
                 if f == morphism_f {
-                    let mut binds = Bindings::new();
-                    binds.bind_morphism(morphism_g.clone(), g);
-                    Some(binds)
+                    Some(Bindings::single_morphism(morphism_g.clone(), g))
                 } else if g == morphism_f {
-                    let mut binds = Bindings::new();
-                    binds.bind_morphism(morphism_g.clone(), f);
-                    Some(binds)
+                    Some(Bindings::single_morphism(morphism_g.clone(), f))
                 } else {
                     None
                 }
             })
+            .chain(std::iter::once(Bindings::single_morphism(
+                morphism_g.clone(),
+                morphism_f,
+            )))
             .collect(),
         (None, Some(morphism_g)) => equalities
             .iter()
             .filter_map(|&(f, g)| {
                 if f == morphism_g {
-                    let mut binds = Bindings::new();
-                    binds.bind_morphism(morphism_f.clone(), g);
-                    Some(binds)
+                    Some(Bindings::single_morphism(morphism_f.clone(), g))
                 } else if g == morphism_g {
-                    let mut binds = Bindings::new();
-                    binds.bind_morphism(morphism_f.clone(), f);
-                    Some(binds)
+                    Some(Bindings::single_morphism(morphism_f.clone(), f))
                 } else {
                     None
                 }
             })
+            .chain(std::iter::once(Bindings::single_morphism(
+                morphism_f.clone(),
+                morphism_g,
+            )))
             .collect(),
         (None, None) => equalities
             .iter()

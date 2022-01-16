@@ -54,23 +54,32 @@ fn apply_impl(
                 )
         }
         RuleConstruction::Exists(constraints) => {
-            match find_candidates(constraints, &bindings, graph, graph_equalities)
-                .map(|mut candidates| candidates.next())
-                .unwrap_or(Some(Bindings::new()))
-            {
-                Some(mut binds) => {
-                    binds.extend(bindings);
-                    (
-                        apply_impl(statement, binds, graph, graph_equalities).0,
-                        true,
+            let candidates = find_candidates(constraints, &bindings, graph, graph_equalities)
+                .map(|candidates| candidates.collect::<Vec<_>>())
+                .unwrap_or_else(|| vec![Bindings::new()]);
+
+            if candidates.is_empty() {
+                let (mut actions, new_binds) =
+                    apply_constraints(graph, graph_equalities, constraints, &bindings);
+                actions.extend(apply_impl(statement, new_binds, graph, graph_equalities).0);
+                (actions, true)
+            } else {
+                candidates
+                    .into_iter()
+                    .map(|mut binds| {
+                        binds.extend(bindings.clone());
+                        (
+                            apply_impl(statement, binds, graph, graph_equalities).0,
+                            true,
+                        )
+                    })
+                    .fold(
+                        (Vec::new(), false),
+                        |(mut acc_actions, acc_apply), (action, apply)| {
+                            acc_actions.extend(action);
+                            (acc_actions, acc_apply || apply)
+                        },
                     )
-                }
-                None => {
-                    let (mut actions, new_binds) =
-                        apply_constraints(graph, graph_equalities, constraints, &bindings);
-                    actions.extend(apply_impl(statement, new_binds, graph, graph_equalities).0);
-                    (actions, true)
-                }
             }
         }
     }

@@ -11,6 +11,12 @@ impl Bindings {
         Self::default()
     }
 
+    pub fn single_morphism(label: Label, id: EdgeId) -> Self {
+        let mut binds = Self::default();
+        binds.bind_morphism(label, id);
+        binds
+    }
+
     pub fn extend(&mut self, bindings: Self) {
         self.objects.extend(bindings.objects.into_iter());
         self.morphisms.extend(bindings.morphisms.into_iter());

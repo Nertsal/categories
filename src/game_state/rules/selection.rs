@@ -135,7 +135,9 @@ fn infer_construction(
                     return vec![];
                 }
             },
-            Constraint::MorphismEq(_, _) => (),
+            Constraint::MorphismEq(_, _) => {
+                // TODO: select equalities either from the list, or by clicking on morphisms
+            }
         }
     }
 
