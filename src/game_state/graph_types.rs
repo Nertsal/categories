@@ -28,3 +28,9 @@ impl graphs::GraphEdge for Arrow<VertexId, EdgeId> {
         [&self.from, &self.to]
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GraphObject {
+    Vertex { id: VertexId },
+    Edge { id: EdgeId },
+}

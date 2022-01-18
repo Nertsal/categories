@@ -1,7 +1,7 @@
 use force_graph::{ForceBody, ForceEdge, ForceParameters, ForceVertex};
 use geng::{Camera2d, PixelPerfectCamera};
 
-use graphs::{EdgeId, GraphObject, VertexId};
+use graphs::{EdgeId, VertexId};
 
 use super::*;
 

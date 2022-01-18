@@ -1,27 +1,5 @@
 use super::*;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum GraphObject {
-    Vertex { id: VertexId },
-    Edge { id: EdgeId },
-}
-
-impl GraphObject {
-    pub fn vertex(&self) -> Option<&VertexId> {
-        match self {
-            Self::Vertex { id } => Some(id),
-            _ => None,
-        }
-    }
-
-    pub fn edge(&self) -> Option<&EdgeId> {
-        match self {
-            Self::Edge { id } => Some(id),
-            _ => None,
-        }
-    }
-}
-
 pub struct Graph<V: GraphVertex, E: GraphEdge> {
     pub vertices: Vertices<V>,
     pub edges: Edges<E>,
