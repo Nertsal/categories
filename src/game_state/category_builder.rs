@@ -24,22 +24,21 @@ impl CategoryBuilder {
         label: impl Into<Label>,
         tag: Option<ObjectTag<Label>>,
         color: Color<f32>,
-        anchor: bool,
+        is_anchor: bool,
     ) -> Self {
         let label = label.into();
-        let new_object = self.category.new_object(Object {
-            is_anchor: anchor,
-            position: util::random_shift(),
-            radius: POINT_RADIUS,
-            tag: tag.map(|tag| {
+        let new_object = self.category.new_object(Object::new(
+            label.clone(),
+            tag.map(|tag| {
                 tag.map(|label| match label {
                     Label::Name(label) => Some(self.objects[&label]),
                     Label::Unknown => None,
                 })
             }),
-            label: label.clone(),
+            util::random_shift(),
+            is_anchor,
             color,
-        });
+        ));
 
         match label {
             Label::Name(label) => {

@@ -21,14 +21,13 @@ pub fn action_do(
             let objects = objects
                 .into_iter()
                 .map(|(label, tag)| {
-                    let id = category.new_object(Point {
-                        is_anchor: false,
-                        position: util::random_shift(),
-                        radius: POINT_RADIUS,
-                        color: Color::WHITE,
+                    let id = category.new_object(Point::new(
                         label,
                         tag,
-                    });
+                        util::random_shift(),
+                        false,
+                        Color::WHITE,
+                    ));
                     id
                 })
                 .collect();

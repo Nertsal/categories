@@ -42,6 +42,10 @@ impl<T> Objects<T> {
         self.objects.iter()
     }
 
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ObjectId, &mut T)> {
+        self.objects.iter_mut()
+    }
+
     pub fn get(&self, id: &ObjectId) -> Option<&T> {
         self.objects.get(id)
     }

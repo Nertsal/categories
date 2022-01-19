@@ -15,14 +15,13 @@ impl Rule {
             color: Color<f32>,
         ) -> ObjectId {
             let mut new_object = |label: &Label, tag, color| {
-                category.new_object(Object {
-                    is_anchor: false,
-                    label: label.clone(),
-                    position: util::random_shift(),
-                    radius: POINT_RADIUS,
+                category.new_object(Object::new(
+                    label.clone(),
                     tag,
+                    util::random_shift(),
+                    false,
                     color,
-                })
+                ))
             };
             match label {
                 Label::Name(name) => *objects
@@ -115,7 +114,7 @@ impl Rule {
 
                                 let new_morphism = category
                                     .new_morphism(Morphism {
-                                        connection: todo!(),
+                                        connection,
                                         inner: Arrow::new(label.clone(), tag, color, pos_a, pos_b),
                                     })
                                     .unwrap();

@@ -79,6 +79,10 @@ impl<T> Morphisms<T> {
         self.morphisms.iter()
     }
 
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&MorphismId, &mut Morphism<T>)> {
+        self.morphisms.iter_mut()
+    }
+
     pub fn remove(&mut self, id: &MorphismId) -> Option<Morphism<T>> {
         self.morphisms.remove(id)
     }

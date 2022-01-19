@@ -1,12 +1,14 @@
-use super::*;
+use geng::prelude::{ApproxEq, Vec2};
+
+use crate::{ForceParameters, PhysicsBody};
 
 /// Updates the positions and velocities of vertices and edges
 pub fn apply_forces<K: Clone, T: PhysicsBody>(
     parameters: &ForceParameters,
     delta_time: f32,
-    bodies: &mut impl Collection<K, T>,
-    attracts: &impl Collection<K, Vec<K>>,
-    repels: &impl Collection<K, Vec<K>>,
+    bodies: &mut impl crate::Collection<Key = K, Item = T>,
+    attracts: &impl crate::Collection<Key = K, Item = Vec<K>>,
+    repels: &impl crate::Collection<Key = K, Item = Vec<K>>,
 ) {
     // Calculate forces
     let mut forces = Vec::with_capacity(bodies.len().unwrap_or(0));
