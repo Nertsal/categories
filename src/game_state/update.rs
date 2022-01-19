@@ -5,14 +5,19 @@ impl GameState {
         // Update focus
         self.focus(self.geng.window().cursor_position());
 
-        // Update graphs
-        self.main_graph.graph.update(delta_time);
-        self.goal_graph.graph.update(delta_time);
-        for rule in &mut self.rules {
-            rule.update_graph(delta_time);
+        // Apply forces to objects/morphisms
+        for category in vec![&mut self.fact_category, &mut self.goal_category]
+            .into_iter()
+            .chain(self.rules.iter_mut().map(|rule| rule.get_category_mut()))
+        {
+            update_category(category);
         }
 
         // Mouse update
         self.drag_update();
     }
+}
+
+fn update_category(category: &mut RenderableCategory) {
+    todo!()
 }

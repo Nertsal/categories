@@ -4,25 +4,24 @@ pub fn constraint_object(
     label: &Label,
     tag: &Option<ObjectTag>,
     bindings: &Bindings,
-    graph: &Graph,
+    category: &Category,
 ) -> Vec<Bindings> {
     match bindings.get_object(label) {
-        Some(vertex_id) => {
+        Some(object_id) => {
             let mut binds = Bindings::new();
-            let vertex = graph.graph.vertices.get(&vertex_id).unwrap();
-            if object_match(tag, vertex, bindings, &mut binds) {
+            let object = category.objects.get(&object_id).unwrap();
+            if object_match(tag, object, bindings, &mut binds) {
                 vec![binds]
             } else {
                 vec![]
             }
         }
-        None => graph
-            .graph
-            .vertices
+        None => category
+            .objects
             .iter()
-            .filter_map(|(&id, vertex)| {
+            .filter_map(|(&id, object)| {
                 let mut binds = Bindings::new();
-                if object_match(tag, vertex, bindings, &mut binds) {
+                if object_match(tag, object, bindings, &mut binds) {
                     binds.bind_object(label.clone(), id);
                     Some(binds)
                 } else {
@@ -35,11 +34,11 @@ pub fn constraint_object(
 
 fn object_match(
     constraint_tag: &Option<ObjectTag>,
-    vertex: &Vertex,
+    object: &Object,
     bindings: &Bindings,
     binds: &mut Bindings,
 ) -> bool {
-    match (constraint_tag, &vertex.vertex.tag) {
+    match (constraint_tag, &object.tag) {
         (None, _) => true,
         (_, None) => false,
         (

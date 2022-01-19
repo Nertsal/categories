@@ -4,13 +4,13 @@ impl GameState {
     /// Checks whether the goal has been reached
     pub fn check_goal(&mut self) {
         let bindings = self.graph_link.bindings();
-        let constraints = graph_to_constraints(&self.goal_graph.graph);
+        let constraints = category_to_constraints(&self.goal_category.inner);
 
         if find_candidates(
             &constraints,
             bindings,
-            &self.main_graph.graph,
-            &self.main_graph.equalities,
+            &self.fact_category.inner,
+            &self.fact_category.equalities,
         )
         .map(|mut candidates| candidates.next().is_some())
         .unwrap_or(false)
@@ -21,55 +21,61 @@ impl GameState {
     }
 }
 
-fn graph_to_constraints(graph: &Graph) -> Constraints {
-    let get_object_label = |id: VertexId| {
-        graph
-            .graph
-            .vertices
+fn category_to_constraints(category: &Category) -> Constraints {
+    let get_object_label = |id: ObjectId| {
+        category
+            .objects
             .get(&id)
-            .map(|vertex| &vertex.vertex.label)
+            .map(|object| &object.label)
             .unwrap()
             .clone()
     };
 
-    let get_morphism_label = |id: EdgeId| {
-        graph
-            .graph
-            .edges
+    let get_morphism_label = |id: MorphismId| {
+        category
+            .morphisms
             .get(&id)
-            .map(|edge| &edge.edge.label)
+            .map(|morphism| &morphism.inner.label)
             .unwrap()
             .clone()
     };
 
-    graph
-        .graph
-        .vertices
+    category
+        .objects
         .iter()
-        .map(|(_, vertex)| {
+        .map(|(_, object)| {
             Constraint::RuleObject(
-                vertex.vertex.label.clone(),
-                RuleObject::Vertex {
-                    tag: vertex.vertex.tag.as_ref().map(|tag| {
+                object.label.clone(),
+                RuleObject::Object {
+                    tag: object.tag.as_ref().map(|tag| {
                         tag.map_borrowed(|object| object.map(|object| get_object_label(object)))
                     }),
                 },
             )
         })
-        .chain(graph.graph.edges.iter().map(|(_, edge)| {
+        .chain(category.morphisms.iter().map(|(_, morphism)| {
+            let connection = match morphism.connection {
+                MorphismConnection::Regular { from, to } => MorphismConnection::Regular {
+                    from: get_object_label(from),
+                    to: get_object_label(to),
+                },
+                MorphismConnection::Isomorphism(a, b) => {
+                    MorphismConnection::Isomorphism(get_object_label(a), get_object_label(b))
+                }
+            };
+
             Constraint::RuleObject(
-                edge.edge.label.clone(),
-                RuleObject::Edge {
-                    constraint: ArrowConstraint::new(
-                        get_object_label(edge.edge.from),
-                        get_object_label(edge.edge.to),
-                        edge.edge.tag.as_ref().map(|tag| {
+                morphism.inner.label.clone(),
+                RuleObject::Morphism {
+                    constraint: ArrowConstraint {
+                        connection,
+                        tag: morphism.inner.tag.as_ref().map(|tag| {
                             tag.map_borrowed(
                                 |object| object.map(|object| get_object_label(object)),
                                 |edge| edge.map(|edge| get_morphism_label(edge)),
                             )
                         }),
-                    ),
+                    },
                 },
             )
         }))

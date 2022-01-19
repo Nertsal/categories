@@ -3,17 +3,17 @@ use super::*;
 #[derive(Debug)]
 pub struct RuleSelection {
     rule_index: usize,
-    rule_input: Vec<GraphObject>,
+    rule_input: Vec<CategoryThing>,
     current_selection: usize,
-    selection: Vec<GraphObject>,
-    inferred_options: Option<Vec<GraphObject>>,
+    selection: Vec<CategoryThing>,
+    inferred_options: Option<Vec<CategoryThing>>,
     inverse: bool,
 }
 
 impl RuleSelection {
     pub fn new(
-        graph: &Graph,
-        graph_equalities: &GraphEqualities,
+        category: &Category,
+        equalities: &Equalities,
         rule_index: usize,
         rules: &Rules,
         inverse: bool,
@@ -32,7 +32,7 @@ impl RuleSelection {
             rule_index,
             inverse,
         };
-        selection.infer_current(graph, graph_equalities, rules);
+        selection.infer_current(category, equalities, rules);
         selection
     }
 
@@ -44,7 +44,7 @@ impl RuleSelection {
         self.rule_index
     }
 
-    pub fn current(&self) -> Option<&GraphObject> {
+    pub fn current(&self) -> Option<&CategoryThing> {
         self.rule_input.get(self.current_selection)
     }
 
@@ -52,32 +52,32 @@ impl RuleSelection {
     /// from the rule graph to select.
     pub fn select(
         &mut self,
-        graph: &Graph,
-        graph_equalities: &GraphEqualities,
-        selection: GraphObject,
+        category: &Category,
+        equalities: &Equalities,
+        selection: CategoryThing,
         rules: &Rules,
-    ) -> Option<&GraphObject> {
+    ) -> Option<&CategoryThing> {
         if self.current_selection >= self.rule_input.len() {
             return None;
         }
 
         self.selection.push(selection);
         self.current_selection += 1;
-        self.infer_current(graph, graph_equalities, rules);
+        self.infer_current(category, equalities, rules);
 
         self.current()
     }
 
-    pub fn selection(&self) -> &Vec<GraphObject> {
+    pub fn selection(&self) -> &Vec<CategoryThing> {
         &self.selection
     }
 
-    pub fn inferred_options(&self) -> &Option<Vec<GraphObject>> {
+    pub fn inferred_options(&self) -> &Option<Vec<CategoryThing>> {
         &self.inferred_options
     }
 
     /// Infer possible selections for the current rule selection
-    fn infer_current(&mut self, graph: &Graph, graph_equalities: &GraphEqualities, rules: &Rules) {
+    fn infer_current(&mut self, category: &Category, equalities: &Equalities, rules: &Rules) {
         let constraints = rules.get(self.rule()).map(|rule| {
             let statement = match self.inverse {
                 false => rule.statement().iter(),
@@ -99,8 +99,8 @@ impl RuleSelection {
                 infer_construction(
                     construction,
                     &constraints,
-                    graph,
-                    graph_equalities,
+                    category,
+                    equalities,
                     &self.selection,
                 )
             })
@@ -111,10 +111,10 @@ impl RuleSelection {
 fn infer_construction(
     input_constraints: &Constraints,
     all_constraints: &Constraints,
-    graph: &Graph,
-    graph_equalities: &GraphEqualities,
-    selection: &Vec<GraphObject>,
-) -> Vec<GraphObject> {
+    category: &Category,
+    equalities: &Equalities,
+    selection: &Vec<CategoryThing>,
+) -> Vec<CategoryThing> {
     let mut input_constraints = input_constraints.iter();
 
     let mut bindings = Bindings::new();
@@ -122,18 +122,35 @@ fn infer_construction(
         let constraint = input_constraints.next().unwrap();
         match constraint {
             Constraint::RuleObject(label, object) => match (selected, object) {
-                (GraphObject::Vertex { id }, RuleObject::Vertex { .. }) => {
+                (CategoryThing::Object { id }, RuleObject::Object { .. }) => {
                     bindings.bind_object(label.clone(), *id);
                 }
-                (GraphObject::Edge { id }, RuleObject::Edge { constraint }) => {
+                (CategoryThing::Morphism { id }, RuleObject::Morphism { constraint }) => {
                     bindings.bind_morphism(label.clone(), *id);
-                    let edge = graph.graph.edges.get(id).unwrap();
-                    bindings.bind_object(constraint.from.clone(), edge.edge.from);
-                    bindings.bind_object(constraint.to.clone(), edge.edge.to);
+                    let morphism = category.morphisms.get(id).unwrap();
+
+                    match (morphism.connection, &constraint.connection) {
+                        (
+                            MorphismConnection::Regular { from, to },
+                            MorphismConnection::Regular {
+                                from: constraint_from,
+                                to: constraint_to,
+                            },
+                        ) => {
+                            bindings.bind_object(constraint_from.clone(), from);
+                            bindings.bind_object(constraint_to.clone(), to);
+                        }
+                        (
+                            MorphismConnection::Isomorphism(a, b),
+                            MorphismConnection::Isomorphism(constraint_a, constraint_b),
+                        ) => {
+                            bindings.bind_object(constraint_a.clone(), a);
+                            bindings.bind_object(constraint_b.clone(), b);
+                        }
+                        _ => return vec![],
+                    }
                 }
-                _ => {
-                    return vec![];
-                }
+                _ => return vec![],
             },
             Constraint::MorphismEq(_, _) => {
                 // TODO: select equalities either from the list, or by clicking on morphisms
@@ -152,17 +169,17 @@ fn infer_construction(
         }
     };
 
-    find_candidates(all_constraints, &bindings, graph, graph_equalities)
+    find_candidates(all_constraints, &bindings, category, equalities)
         .map(|candidates| {
             candidates
                 .into_iter()
                 .map(|binds| match next_object {
-                    RuleObject::Vertex { .. } => GraphObject::Vertex {
+                    RuleObject::Object { .. } => CategoryThing::Object {
                         id: binds.get_object(next_label).expect(
                             "An object was expected to be inferred, does it not have a name?",
                         ),
                     },
-                    RuleObject::Edge { .. } => GraphObject::Edge {
+                    RuleObject::Morphism { .. } => CategoryThing::Morphism {
                         id: binds.get_morphism(next_label).expect(
                             "A morphism was expected to be inferred, does it not have a name?",
                         ),

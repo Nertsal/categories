@@ -34,7 +34,7 @@ impl ConstraintsBuilder {
     pub fn object(mut self, label: &str, tag: Option<ObjectTag<Option<&str>>>) -> Self {
         self.0.push(Constraint::RuleObject(
             Label::Name(label.to_owned()),
-            RuleObject::vertex(tag.map(|tag| tag.map(|label| label.map(|label| label.into())))),
+            RuleObject::object(tag.map(|tag| tag.map(|label| label.map(|label| label.into())))),
         ));
         self
     }
@@ -48,9 +48,33 @@ impl ConstraintsBuilder {
     ) -> Self {
         self.0.push(Constraint::RuleObject(
             Label::Name(label.to_owned()),
-            RuleObject::edge(
-                from.into(),
-                to.into(),
+            RuleObject::morphism(
+                MorphismConnection::Regular {
+                    from: from.into(),
+                    to: to.into(),
+                },
+                tag.map(|tag| {
+                    tag.map(
+                        |label| label.map(|label| label.into()),
+                        |label| label.map(|label| label.into()),
+                    )
+                }),
+            ),
+        ));
+        self
+    }
+
+    pub fn isomorphism(
+        mut self,
+        label: &str,
+        object_a: impl Into<Label>,
+        object_b: impl Into<Label>,
+        tag: Option<MorphismTag<Option<&str>, Option<&str>>>,
+    ) -> Self {
+        self.0.push(Constraint::RuleObject(
+            Label::Name(label.to_owned()),
+            RuleObject::morphism(
+                MorphismConnection::Isomorphism(object_a.into(), object_b.into()),
                 tag.map(|tag| {
                     tag.map(
                         |label| label.map(|label| label.into()),

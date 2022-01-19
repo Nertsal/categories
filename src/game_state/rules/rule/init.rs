@@ -2,28 +2,26 @@ use super::*;
 
 impl Rule {
     pub(super) fn new(geng: &Geng, assets: &Rc<Assets>, statement: RuleStatement) -> Self {
-        let mut graph = Graph::new(default());
+        let mut category = Category::new();
 
         let mut objects = HashMap::new();
         let mut morphisms = HashMap::new();
 
         fn get_object_or_new(
-            graph: &mut Graph,
-            objects: &mut HashMap<String, VertexId>,
+            category: &mut Category,
+            objects: &mut HashMap<String, ObjectId>,
             label: &Label,
-            tag: Option<ObjectTag<Option<VertexId>>>,
+            tag: Option<ObjectTag<Option<ObjectId>>>,
             color: Color<f32>,
-        ) -> VertexId {
+        ) -> ObjectId {
             let mut new_object = |label: &Label, tag, color| {
-                graph.graph.new_vertex(ForceVertex {
+                category.new_object(Object {
                     is_anchor: false,
-                    body: ForceBody::new(util::random_shift(), POINT_MASS),
-                    vertex: Point {
-                        label: label.clone(),
-                        radius: POINT_RADIUS,
-                        tag,
-                        color,
-                    },
+                    label: label.clone(),
+                    position: util::random_shift(),
+                    radius: POINT_RADIUS,
+                    tag,
+                    color,
                 })
             };
             match label {
@@ -34,46 +32,71 @@ impl Rule {
             }
         }
 
-        let mut equalities = GraphEqualities::new();
+        let mut equalities = Equalities::new();
 
-        let mut add_constraints = |constraints: &Constraints, color| -> Vec<GraphObject> {
+        let mut add_constraints = |constraints: &Constraints, color| -> Vec<CategoryThing> {
             constraints
                 .iter()
                 .filter_map(|constraint| match constraint {
                     Constraint::RuleObject(label, object) => match object {
-                        RuleObject::Vertex { tag } => {
+                        RuleObject::Object { tag } => {
                             let tag = tag.as_ref().map(|tag| {
                                 tag.map_borrowed(|label| match label {
                                     Some(Label::Name(label)) => objects.get(label).copied(),
                                     _ => None,
                                 })
                             });
-                            Some(GraphObject::Vertex {
-                                id: get_object_or_new(&mut graph, &mut objects, label, tag, color),
+                            Some(CategoryThing::Object {
+                                id: get_object_or_new(&mut category, &mut objects, label, tag, color),
                             })
                         }
-                        RuleObject::Edge {
-                            constraint: ArrowConstraint { from, to, tag },
+                        RuleObject::Morphism {
+                            constraint: ArrowConstraint { connection, tag },
                         } => {
                             let create = match label {
                                 Label::Name(label) => !morphisms.contains_key(label),
                                 Label::Unknown => true,
                             };
                             if create {
-                                let from = get_object_or_new(
-                                    &mut graph,
-                                    &mut objects,
-                                    from,
-                                    None,
-                                    RULE_INFER_COLOR,
-                                );
-                                let to = get_object_or_new(
-                                    &mut graph,
-                                    &mut objects,
-                                    to,
-                                    None,
-                                    RULE_INFER_COLOR,
-                                );
+                                let (connection, object_a, object_b) = match connection {
+                                    MorphismConnection::Regular { from, to } => {
+                                        let from = get_object_or_new(
+                                            &mut category,
+                                            &mut objects,
+                                            from,
+                                            None,
+                                            RULE_INFER_COLOR,
+                                        );
+                                        let to = get_object_or_new(
+                                            &mut category,
+                                            &mut objects,
+                                            to,
+                                            None,
+                                            RULE_INFER_COLOR,
+                                        );
+                                        (MorphismConnection::Regular {from, to}, from, to)
+                                    },
+                                    MorphismConnection::Isomorphism(a, b) => {
+                                        let a = get_object_or_new(
+                                            &mut category,
+                                            &mut objects,
+                                            a,
+                                            None,
+                                            RULE_INFER_COLOR,
+                                        );
+                                        let b = get_object_or_new(
+                                            &mut category,
+                                            &mut objects,
+                                            b,
+                                            None,
+                                            RULE_INFER_COLOR,
+                                        );
+                                        (MorphismConnection::Isomorphism(a, b), a, b)
+                                    },
+                                };
+
+                                let pos_a = category.objects.get(&object_a).expect("Should have been created if it did not exist").position;
+                                let pos_b = category.objects.get(&object_b).expect("Should have been created if it did not exist").position;
 
                                 let tag = tag.as_ref().map(|tag| {
                                     tag.map_borrowed(
@@ -90,21 +113,11 @@ impl Rule {
                                     )
                                 });
 
-                                let new_morphism = graph
-                                    .graph
-                                    .new_edge(ForceEdge::new(
-                                        util::random_shift(),
-                                        util::random_shift(),
-                                        ARROW_BODIES,
-                                        ARROW_MASS,
-                                        Arrow {
-                                            label: label.clone(),
-                                            from,
-                                            to,
-                                            tag,
-                                            color,
-                                        },
-                                    ))
+                                let new_morphism = category
+                                    .new_morphism(Morphism {
+                                        connection: todo!(),
+                                        inner: Arrow::new(label.clone(), tag, color, pos_a, pos_b),
+                                    })
                                     .unwrap();
 
                                 match label {
@@ -113,7 +126,7 @@ impl Rule {
                                     }
                                     Label::Unknown => (),
                                 }
-                                Some(GraphObject::Edge { id: new_morphism })
+                                Some(CategoryThing::Morphism { id: new_morphism })
                             } else {
                                 None
                             }
@@ -175,7 +188,7 @@ impl Rule {
 
         Self {
             inverse_statement: invert_statement(&statement).into_iter().last().unwrap(),
-            graph: RenderableGraph::new(geng, assets, graph, equalities, vec2(1, 1)),
+            graph: RenderableCategory::new(geng, assets, category, equalities, vec2(1, 1)),
             statement,
             graph_input,
             inverse_graph_input,
@@ -199,7 +212,7 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
             .filter_map(|construction| match construction {
                 RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
                     constraints.iter().find(|constraint| match constraint {
-                        Constraint::RuleObject(Label::Name(name), RuleObject::Vertex { .. }) => {
+                        Constraint::RuleObject(Label::Name(name), RuleObject::Object { .. }) => {
                             *name == *label
                         }
                         _ => false,
@@ -221,7 +234,7 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
             .filter_map(|construction| match construction {
                 RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
                     constraints.iter().find(|constraint| match constraint {
-                        Constraint::RuleObject(Label::Name(name), RuleObject::Vertex { .. }) => {
+                        Constraint::RuleObject(Label::Name(name), RuleObject::Object { .. }) => {
                             *name == *label
                         }
                         _ => false,
@@ -248,7 +261,7 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
                     for constraint in constraints.iter().chain(forall.iter()) {
                         match constraint {
                             Constraint::RuleObject(label, object) => match object {
-                                RuleObject::Vertex { tag } => {
+                                RuleObject::Object { tag } => {
                                     add_object_constraint(Some(label), &mut prelude_forall);
 
                                     if let Some(tag) = tag {
@@ -266,7 +279,7 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
                                         }
                                     }
                                 }
-                                RuleObject::Edge { constraint } => {
+                                RuleObject::Morphism { constraint } => {
                                     if let Some(tag) = &constraint.tag {
                                         match tag {
                                             MorphismTag::Identity(a) => {
@@ -336,10 +349,10 @@ fn invert_constraints(constraints: &Constraints, keep_tags: bool) -> Constraints
         .iter()
         .map(|constraint| match constraint {
             Constraint::RuleObject(label, object) => match object {
-                RuleObject::Vertex { .. } => constraint.clone(),
-                RuleObject::Edge { constraint } => Constraint::RuleObject(
+                RuleObject::Object { .. } => constraint.clone(),
+                RuleObject::Morphism { constraint } => Constraint::RuleObject(
                     label.clone(),
-                    RuleObject::Edge {
+                    RuleObject::Morphism {
                         constraint: ArrowConstraint {
                             tag: if keep_tags {
                                 constraint.tag.clone()

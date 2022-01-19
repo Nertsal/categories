@@ -2,8 +2,8 @@ use super::*;
 
 /// Applies the rule constraints to the graph.
 pub fn apply_constraints(
-    graph: &mut Graph,
-    graph_equalities: &mut GraphEqualities,
+    category: &mut Category,
+    equalities: &mut Equalities,
     constraints: &Constraints,
     bindings: &Bindings,
 ) -> (Vec<GraphAction>, Bindings) {
@@ -16,10 +16,10 @@ pub fn apply_constraints(
     for constraint in constraints {
         match constraint {
             Constraint::RuleObject(label, rule_object) => match rule_object {
-                RuleObject::Vertex { tag } => {
+                RuleObject::Object { tag } => {
                     constrained_vertices.push((label, tag));
                 }
-                RuleObject::Edge { constraint } => {
+                RuleObject::Morphism { constraint } => {
                     constrained_edges.push((label, constraint));
                 }
             },
@@ -53,7 +53,7 @@ pub fn apply_constraints(
                     tag.map_borrowed(|object| {
                         object
                             .as_ref()
-                            .map(|object| &graph.graph.vertices.get(object).unwrap().vertex.label)
+                            .map(|object| &category.objects.get(object).unwrap().label)
                     })
                     .infer_name()
                 })
@@ -71,8 +71,8 @@ pub fn apply_constraints(
     // Create new vertices
     if new_vertices.len() > 0 {
         create_vertices(
-            graph,
-            graph_equalities,
+            category,
+            equalities,
             &mut bindings,
             &mut action_history,
             new_vertices,
@@ -82,21 +82,24 @@ pub fn apply_constraints(
 
     // Constraint edges
     for (label, constraint) in constrained_edges {
+        let connection = match &constraint.connection {
+            MorphismConnection::Regular { from, to } => MorphismConnection::Regular {
+                from: get_object_or_new(
+                    from,
+                    category,
+                    equalities,
+                    &mut bindings,
+                    &mut action_history,
+                ),
+                to: get_object_or_new(to, category, equalities, &mut bindings, &mut action_history),
+            },
+            MorphismConnection::Isomorphism(a, b) => MorphismConnection::Isomorphism(
+                get_object_or_new(a, category, equalities, &mut bindings, &mut action_history),
+                get_object_or_new(b, category, equalities, &mut bindings, &mut action_history),
+            ),
+        };
         let constraint = ArrowConstraint {
-            from: get_object_or_new(
-                &constraint.from,
-                graph,
-                graph_equalities,
-                &mut bindings,
-                &mut action_history,
-            ),
-            to: get_object_or_new(
-                &constraint.to,
-                graph,
-                graph_equalities,
-                &mut bindings,
-                &mut action_history,
-            ),
+            connection,
             tag: constraint.tag.as_ref().map(|tag| {
                 tag.map_borrowed(
                     |label| label.as_ref().and_then(|label| bindings.get_object(label)),
@@ -119,11 +122,11 @@ pub fn apply_constraints(
                     tag.map_borrowed(
                         |id| {
                             id.as_ref()
-                                .map(|id| &graph.graph.vertices.get(id).unwrap().vertex.label)
+                                .map(|id| &category.objects.get(id).unwrap().label)
                         },
                         |id| {
                             id.as_ref()
-                                .map(|id| &graph.graph.edges.get(id).unwrap().edge.label)
+                                .map(|id| &category.morphisms.get(id).unwrap().inner.label)
                         },
                     )
                     .infer_name()
@@ -139,12 +142,11 @@ pub fn apply_constraints(
 
     // Create new edges
     if new_edges.len() > 0 {
-        let actions =
-            GameState::graph_action_do(graph, graph_equalities, GraphAction::NewEdges(new_edges));
+        let actions = action::action_do(category, equalities, GraphAction::NewMorphisms(new_edges));
         assert_eq!(actions.len(), 1);
         // Bind new edges
         match &actions[0] {
-            GraphAction::RemoveEdges(edges) => {
+            GraphAction::RemoveMorphisms(edges) => {
                 assert_eq!(edges.len(), new_edges_names.len());
                 for (label, id) in new_edges_names.into_iter().zip(edges.iter().copied()) {
                     bindings.bind_morphism(label, id);
@@ -165,9 +167,9 @@ pub fn apply_constraints(
         })
         .collect();
 
-    let actions = GameState::graph_action_do(
-        graph,
-        graph_equalities,
+    let actions = action::action_do(
+        category,
+        equalities,
         GraphAction::NewEqualities(constrained_equalities),
     );
     assert_eq!(actions.len(), 1);
@@ -178,22 +180,18 @@ pub fn apply_constraints(
 }
 
 fn create_vertices(
-    graph: &mut Graph,
-    graph_equalities: &mut GraphEqualities,
+    category: &mut Category,
+    equalities: &mut Equalities,
     bindings: &mut Bindings,
     action_history: &mut Vec<GraphAction>,
-    new_vertices: Vec<(Label, Option<ObjectTag<Option<VertexId>>>)>,
+    new_vertices: Vec<(Label, Option<ObjectTag<Option<ObjectId>>>)>,
     new_vertices_names: Vec<Label>,
-) -> Vec<VertexId> {
-    let actions = GameState::graph_action_do(
-        graph,
-        graph_equalities,
-        GraphAction::NewVertices(new_vertices),
-    );
+) -> Vec<ObjectId> {
+    let actions = action::action_do(category, equalities, GraphAction::NewObjects(new_vertices));
     assert_eq!(actions.len(), 1);
     // Bind new vertices
     let new_vertices = match &actions[0] {
-        GraphAction::RemoveVertices(vertices) => {
+        GraphAction::RemoveObjects(vertices) => {
             assert_eq!(vertices.len(), new_vertices_names.len());
             for (label, id) in new_vertices_names.into_iter().zip(vertices.iter().copied()) {
                 bindings.bind_object(label, id);
@@ -208,15 +206,15 @@ fn create_vertices(
 
 fn get_object_or_new(
     label: &Label,
-    graph: &mut Graph,
-    graph_equalities: &mut GraphEqualities,
+    category: &mut Category,
+    equalities: &mut Equalities,
     bindings: &mut Bindings,
     action_history: &mut Vec<GraphAction>,
-) -> VertexId {
+) -> ObjectId {
     bindings.get_object(label).unwrap_or_else(|| {
         create_vertices(
-            graph,
-            graph_equalities,
+            category,
+            equalities,
             bindings,
             action_history,
             vec![(Label::Unknown, None)],
