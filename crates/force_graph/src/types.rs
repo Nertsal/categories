@@ -6,8 +6,11 @@ use super::*;
 /// Partially borrowed from https://docs.rs/force_graph
 #[derive(Debug)]
 pub struct ForceParameters {
-    pub force_spring: f32,
-    pub force_charge: f32,
+    pub force_attract_vertex: f32,
+    pub force_attract_edge: f32,
+    pub force_repel_vertex: f32,
+    pub force_repel_edge: f32,
+    pub force_repel_edge_vertex: f32,
     pub force_max: f32,
     pub vertex_speed: f32,
     pub damping_factor: f32,
@@ -17,8 +20,11 @@ pub struct ForceParameters {
 impl Default for ForceParameters {
     fn default() -> Self {
         Self {
-            force_spring: 10.0,
-            force_charge: 100.0,
+            force_attract_vertex: 10.0,
+            force_attract_edge: 10.0,
+            force_repel_vertex: 500.0,
+            force_repel_edge: 100.0,
+            force_repel_edge_vertex: 20.0,
             force_max: 100.0,
             vertex_speed: 5.0,
             damping_factor: 0.95,
@@ -28,6 +34,8 @@ impl Default for ForceParameters {
 }
 
 pub trait PhysicsBody {
+    /// Vertices are affected only by other vertices, while edges are affected by everything.
+    fn is_vertex(&self) -> bool;
     fn get_mass(&self) -> f32;
     fn get_position(&self) -> Vec2<f32>;
     fn set_position(&mut self, position: Vec2<f32>);

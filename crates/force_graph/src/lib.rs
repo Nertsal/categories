@@ -1,4 +1,4 @@
-use geng::prelude::{ApproxEq, Vec2};
+use geng::prelude::Vec2;
 
 mod types;
 mod update;

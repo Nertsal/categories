@@ -28,12 +28,16 @@ enum BodyId {
 }
 
 struct PhysicsBody<'a> {
+    is_vertex: bool,
     mass: f32,
     position: &'a mut Vec2<f32>,
     velocity: &'a mut Vec2<f32>,
 }
 
 impl<'a> force_graph::PhysicsBody for PhysicsBody<'a> {
+    fn is_vertex(&self) -> bool {
+        self.is_vertex
+    }
     fn get_mass(&self) -> f32 {
         self.mass
     }
@@ -57,6 +61,7 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
         bodies.insert(
             BodyId::Object { id },
             PhysicsBody {
+                is_vertex: true,
                 mass: POINT_MASS,
                 position: &mut object.position,
                 velocity: &mut object.velocity,
@@ -75,6 +80,7 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
                     (
                         BodyId::MorphismPart { id, part: index },
                         PhysicsBody {
+                            is_vertex: false,
                             mass: ARROW_MASS,
                             position,
                             velocity,
@@ -86,7 +92,7 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
     bodies
 }
 
-fn attractions(category: &Category) -> Connections {
+fn connections(category: &Category) -> Connections {
     let mut connections = Connections::new();
 
     for (&id, _) in category.objects.iter() {
@@ -146,58 +152,8 @@ fn attractions(category: &Category) -> Connections {
     connections
 }
 
-fn repels(category: &Category) -> Connections {
-    let mut connections = Connections::new();
-
-    let neighbours = category
-        .objects
-        .iter()
-        .map(|(&id, _)| BodyId::Object { id })
-        .collect::<Vec<_>>();
-    for (&id, _) in category.objects.iter() {
-        connections.insert(BodyId::Object { id }, neighbours.clone());
-    }
-
-    let neighbours = category
-        .morphisms
-        .iter()
-        .flat_map(|(&id, morphism)| {
-            (0..morphism
-                .inner
-                .positions
-                .len()
-                .min(morphism.inner.velocities.len()))
-                .map(move |part| BodyId::MorphismPart { id, part })
-        })
-        .collect::<Vec<_>>();
-
-    for (&id, morphism) in category.morphisms.iter() {
-        let mut neighbours = neighbours.clone();
-        let ends = morphism.connection.end_points();
-        neighbours.extend(
-            category
-                .objects
-                .iter()
-                .filter(|(id, _)| !ends.contains(id))
-                .map(|(&id, _)| BodyId::Object { id }),
-        );
-
-        for part in 0..morphism
-            .inner
-            .positions
-            .len()
-            .min(morphism.inner.velocities.len())
-        {
-            connections.insert(BodyId::MorphismPart { id, part }, neighbours.clone());
-        }
-    }
-
-    connections
-}
-
 fn update_category(category: &mut RenderableCategory, delta_time: f32) {
-    let attracts = attractions(&category.inner);
-    let repels = repels(&category.inner);
+    let connections = connections(&category.inner);
     let mut bodies = bodies_collection(&mut category.inner);
-    force_graph::apply_forces(&default(), delta_time, &mut bodies, &attracts, &repels)
+    force_graph::apply_forces(&default(), delta_time, &mut bodies, &connections)
 }
