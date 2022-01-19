@@ -55,7 +55,9 @@ impl<O, M> Arrow<O, M> {
     ) -> Self {
         Self {
             positions: (0..ARROW_BODIES)
-                .map(|i| pos_a + (pos_b - pos_a) / ARROW_BODIES as f32 * i as f32)
+                .map(|i| {
+                    pos_a + (pos_b - pos_a) / ARROW_BODIES as f32 * i as f32 + util::random_shift()
+                })
                 .collect(),
             velocities: (0..ARROW_BODIES).map(|_| Vec2::ZERO).collect(),
             label,

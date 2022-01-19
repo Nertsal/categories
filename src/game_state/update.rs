@@ -88,6 +88,7 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
 
 fn attractions(category: &Category) -> Connections {
     let mut connections = Connections::new();
+
     for (&id, _) in category.objects.iter() {
         let neighbours = category
             .neighbours(id)
@@ -95,12 +96,102 @@ fn attractions(category: &Category) -> Connections {
             .collect();
         connections.insert(BodyId::Object { id }, neighbours);
     }
+
+    for (&id, morphism) in category.morphisms.iter() {
+        let parts = morphism
+            .inner
+            .positions
+            .len()
+            .min(morphism.inner.velocities.len());
+
+        let (from, to) = match morphism.connection {
+            MorphismConnection::Regular { from, to } => (from, to),
+            MorphismConnection::Isomorphism(a, b) => (a, b),
+        };
+
+        if parts > 0 {
+            let mut neighbours = vec![BodyId::Object { id: from }];
+            if parts > 1 {
+                neighbours.push(BodyId::MorphismPart { id, part: 1 });
+            } else {
+                neighbours.push(BodyId::Object { id: to });
+            }
+            connections.insert(BodyId::MorphismPart { id, part: 0 }, neighbours);
+        }
+        for i in 1..parts - 1 {
+            let neighbours = vec![
+                BodyId::MorphismPart { id, part: i - 1 },
+                BodyId::MorphismPart { id, part: i + 1 },
+            ];
+            connections.insert(BodyId::MorphismPart { id, part: i }, neighbours);
+        }
+        if parts > 1 {
+            let neighbours = vec![
+                BodyId::MorphismPart {
+                    id,
+                    part: parts - 2,
+                },
+                BodyId::Object { id: to },
+            ];
+            connections.insert(
+                BodyId::MorphismPart {
+                    id,
+                    part: parts - 1,
+                },
+                neighbours,
+            );
+        }
+    }
+
     connections
 }
 
 fn repels(category: &Category) -> Connections {
     let mut connections = Connections::new();
-    
+
+    let neighbours = category
+        .objects
+        .iter()
+        .map(|(&id, _)| BodyId::Object { id })
+        .collect::<Vec<_>>();
+    for (&id, _) in category.objects.iter() {
+        connections.insert(BodyId::Object { id }, neighbours.clone());
+    }
+
+    let neighbours = category
+        .morphisms
+        .iter()
+        .flat_map(|(&id, morphism)| {
+            (0..morphism
+                .inner
+                .positions
+                .len()
+                .min(morphism.inner.velocities.len()))
+                .map(move |part| BodyId::MorphismPart { id, part })
+        })
+        .collect::<Vec<_>>();
+
+    for (&id, morphism) in category.morphisms.iter() {
+        let mut neighbours = neighbours.clone();
+        let ends = morphism.connection.end_points();
+        neighbours.extend(
+            category
+                .objects
+                .iter()
+                .filter(|(id, _)| !ends.contains(id))
+                .map(|(&id, _)| BodyId::Object { id }),
+        );
+
+        for part in 0..morphism
+            .inner
+            .positions
+            .len()
+            .min(morphism.inner.velocities.len())
+        {
+            connections.insert(BodyId::MorphismPart { id, part }, neighbours.clone());
+        }
+    }
+
     connections
 }
 
