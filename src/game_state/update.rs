@@ -95,7 +95,11 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
 fn connections(category: &Category) -> Connections {
     let mut connections = Connections::new();
 
-    for (&id, _) in category.objects.iter() {
+    for (&id, _) in category
+        .objects
+        .iter()
+        .filter(|(_, object)| !object.is_anchor)
+    {
         let neighbours = category
             .neighbours(id)
             .map(|id| BodyId::Object { id })

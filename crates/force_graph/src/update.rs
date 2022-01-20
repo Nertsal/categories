@@ -24,27 +24,31 @@ pub fn apply_forces<K: Clone + PartialEq, T: PhysicsBody>(
             })
             .unwrap_or(Vec2::ZERO);
 
-        let repel_force = bodies
-            .iter()
-            .filter(|(_, other)| !body.is_vertex() || other.is_vertex())
-            .map(|(_, other)| repel_force(body, other, parameters))
-            .fold(Vec2::ZERO, |a, b| a + b);
+        let repel_force = connected
+            .map(|_| {
+                bodies
+                    .iter()
+                    .filter(|(_, other)| !body.is_vertex() || other.is_vertex())
+                    .map(|(_, other)| repel_force(body, other, parameters))
+                    .fold(Vec2::ZERO, |a, b| a + b)
+            })
+            .unwrap_or(Vec2::ZERO);
 
         let force = (attract_force + repel_force).clamp_len(..=parameters.force_max);
         forces.push((id, force));
     }
 
     // Apply forces & move
-    // Vertices
     for (id, force) in forces {
         let body = bodies.get_mut(&id).unwrap();
 
         let velocity = body.get_velocity() + force / body.get_mass() * delta_time;
         let velocity = velocity * parameters.damping_factor;
+        let position = body.get_position() + velocity * delta_time * parameters.vertex_speed;
+
         body.set_velocity(velocity);
-        body.set_position(body.get_position() + velocity * delta_time * parameters.vertex_speed);
+        body.set_position(position);
     }
-    //Edges
 }
 
 fn attract_force(

@@ -13,14 +13,14 @@ impl GameState {
                         {
                             let category = *category;
                             let id = *id;
-                            todo!()
-                            // let vertex = self
-                            //     .get_category_mut(&graph)
-                            //     .unwrap()
-                            //     .vertices
-                            //     .get_mut(&id)
-                            //     .unwrap();
-                            // vertex.is_anchor = !vertex.is_anchor;
+                            let object = self
+                                .get_category_mut(&category)
+                                .unwrap()
+                                .inner
+                                .objects
+                                .get_mut(&id)
+                                .unwrap();
+                            object.is_anchor = !object.is_anchor;
                         }
                     }
                 }
