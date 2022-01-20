@@ -154,14 +154,14 @@ fn draw_morphism(
     let from = match category.objects.get(&from) {
         Some(from) => from,
         None => {
-            info!("An object {from:?} is connected but does not exist");
+            warn!("An object {from:?} is connected but does not exist");
             return;
         }
     };
     let to = match category.objects.get(&to) {
         Some(to) => to,
         None => {
-            info!("An object {to:?} is connected but does not exist");
+            warn!("An object {to:?} is connected but does not exist");
             return;
         }
     };

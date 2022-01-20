@@ -39,13 +39,13 @@ pub fn action_do(
                 .map(|(label, constraint)| {
                     let (pos_a, pos_b) = match &constraint.connection {
                         MorphismConnection::Regular { from, to } => {
-                            let from = category.objects.get(from).expect(todo!());
-                            let to = category.objects.get(to).expect(todo!());
+                            let from = category.objects.get(from).expect("TODO");
+                            let to = category.objects.get(to).expect("TODO");
                             (from.position, to.position)
                         }
                         MorphismConnection::Isomorphism(a, b) => {
-                            let a = category.objects.get(a).expect(todo!());
-                            let b = category.objects.get(b).expect(todo!());
+                            let a = category.objects.get(a).expect("TODO");
+                            let b = category.objects.get(b).expect("TODO");
                             (a.position, b.position)
                         }
                     };

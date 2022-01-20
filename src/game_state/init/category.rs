@@ -37,7 +37,7 @@ pub fn goal_category() -> Category {
             Color::WHITE,
             false,
         )
-        .morphism(
+        .isomorphism(
             Label::Unknown,
             "Ax(BxC)",
             "(AxB)xC",
