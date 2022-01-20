@@ -97,7 +97,7 @@ pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Rules {
                     .equality("g.f", "id_a")
                     .equality("f.g", "id_b"),
             )
-            .exists(ConstraintsBuilder::new().morphism(
+            .exists(ConstraintsBuilder::new().isomorphism(
                 "",
                 "A",
                 "B",
