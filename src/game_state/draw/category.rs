@@ -10,15 +10,16 @@ pub fn morphism_color<O, M>(tag: &Option<MorphismTag<O, M>>) -> Color<f32> {
     }
 }
 
-pub fn draw_graph(
+pub fn draw_category(
     geng: &Geng,
     assets: &Rc<Assets>,
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    graph: &Graph,
+    category: &Category,
+    equalities: &Equalities,
     background_color: Color<f32>,
-    selection: Option<&Vec<GraphObject>>,
+    selection: Option<&Vec<CategoryThing>>,
 ) {
     // Selection
     let mut selected_vertices = HashSet::new();
@@ -26,59 +27,80 @@ pub fn draw_graph(
     if let Some(selection) = selection {
         for selection in selection {
             match selection {
-                GraphObject::Vertex { id } => {
+                CategoryThing::Object { id } => {
                     selected_vertices.insert(id);
                 }
-                GraphObject::Edge { id } => {
+                CategoryThing::Morphism { id } => {
                     selected_edges.insert(id);
                 }
             }
         }
     }
 
-    // Edges
-    for (id, edge) in graph.graph.edges.iter() {
-        draw_edge(
+    // Morphisms
+    for (id, morphism) in category.morphisms.iter() {
+        draw_morphism(
             geng,
             font,
             &assets,
             framebuffer,
             camera,
             background_color,
-            graph,
-            edge,
+            category,
+            morphism,
             selected_edges.contains(id),
         );
     }
 
-    // Vertices
-    for (id, vertex) in graph.graph.vertices.iter() {
-        draw_vertex(
+    // Objects
+    for (id, object) in category.objects.iter() {
+        draw_object(
             geng,
             font,
             framebuffer,
             camera,
-            vertex,
+            object,
             background_color,
             selected_vertices.contains(id),
         );
     }
+
+    let framebuffer_size = framebuffer.size().map(|x| x as f32);
+    let height = constants::EQUALITY_FONT_SIZE_FRAC * framebuffer_size.x;
+    let offset = vec2(height / 2.0, height / 2.0);
+
+    // Equalities
+    for (i, equality) in equalities.iter().enumerate() {
+        let pos = framebuffer_size - offset - vec2(0.0, i as f32 * height * 1.5);
+
+        let get = |edge| match &category.morphisms.get(edge).unwrap().inner.label {
+            Label::Name(name) => name.to_owned(),
+            Label::Unknown => format!("[{}]", edge.raw()),
+        };
+
+        let text = format!("{} = {}", get(&equality.0), get(&equality.1));
+        draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)
+            .fit_into(AABB::ZERO.extend_positive(vec2(framebuffer_size.x, height)))
+            .align_bounding_box(vec2(1.0, 1.0))
+            .translate(pos)
+            .draw_2d(geng, framebuffer, &geng::PixelPerfectCamera);
+    }
 }
 
-fn draw_vertex(
+fn draw_object(
     geng: &Geng,
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    vertex: &Vertex,
+    object: &Object,
     background_color: Color<f32>,
     is_selected: bool,
 ) {
     // Selection
     if is_selected {
         draw_2d::Ellipse::circle(
-            vertex.body.position,
-            vertex.vertex.radius + SELECTED_RADIUS,
+            object.position,
+            object.radius + SELECTED_RADIUS,
             SELECTED_COLOR,
         )
         .draw_2d(geng, framebuffer, camera);
@@ -86,63 +108,76 @@ fn draw_vertex(
 
     // Outline
     draw_2d::Ellipse::circle_with_cut(
-        vertex.body.position,
-        vertex.vertex.radius - POINT_OUTLINE_WIDTH,
-        vertex.vertex.radius,
-        vertex.vertex.color,
+        object.position,
+        object.radius - POINT_OUTLINE_WIDTH,
+        object.radius,
+        object.color,
     )
     .draw_2d(geng, framebuffer, camera);
 
     // Background
     draw_2d::Ellipse::circle(
-        vertex.body.position,
-        vertex.vertex.radius - POINT_OUTLINE_WIDTH,
+        object.position,
+        object.radius - POINT_OUTLINE_WIDTH,
         background_color,
     )
     .draw_2d(geng, framebuffer, camera);
 
     // Label
-    if let Label::Name(label) = &vertex.vertex.label {
-        draw_2d::Text::unit(font.clone(), label.to_owned(), vertex.vertex.color)
+    if let Label::Name(label) = &object.label {
+        draw_2d::Text::unit(font.clone(), label.to_owned(), object.color)
             .fit_into(Ellipse::circle(
-                vertex.body.position,
-                (vertex.vertex.radius - POINT_OUTLINE_WIDTH) * 0.8,
+                object.position,
+                (object.radius - POINT_OUTLINE_WIDTH) * 0.8,
             ))
             .draw_2d(geng, framebuffer, camera);
     }
 }
 
-fn draw_edge(
+fn draw_morphism(
     geng: &Geng,
     font: &Rc<geng::Font>,
     assets: &Rc<Assets>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     background_color: Color<f32>,
-    graph: &Graph,
-    edge: &Edge,
+    category: &Category,
+    morphism: &Morphism,
     is_selected: bool,
 ) {
     // Find endpoints
-    let (from, to) = graph
-        .graph
-        .vertices
-        .get(&edge.edge.from)
-        .and_then(|from| graph.graph.vertices.get(&edge.edge.to).map(|to| (from, to)))
-        .expect(&format!(
-            "Edge connects a non-existent vertex, edge = {:?}",
-            edge
-        ));
+    let (from, to, isomorphism) = match morphism.connection {
+        MorphismConnection::Regular { from, to } => (from, to, false),
+        MorphismConnection::Isomorphism(a, b) => (a, b, true),
+    };
 
-    let start = from.body.position;
-    let end = to.body.position;
+    let from = match category.objects.get(&from) {
+        Some(from) => from,
+        None => {
+            warn!("An object {from:?} is connected but does not exist");
+            return;
+        }
+    };
+    let to = match category.objects.get(&to) {
+        Some(to) => to,
+        None => {
+            warn!("An object {to:?} is connected but does not exist");
+            return;
+        }
+    };
+
+    let start = from.position;
+    let end = to.position;
 
     // Line body
-    let chain = if edge.bodies.len() > 1 {
+    let chain = if morphism.inner.positions.len() == 1 {
+        Trajectory::parabola([start, morphism.inner.positions[0], end], -1.0..=1.0)
+            .chain(CURVE_RESOLUTION)
+    } else if morphism.inner.positions.len() > 1 {
         CardinalSpline::new(
             {
                 let mut bodies = vec![start];
-                bodies.extend(edge.bodies.iter().map(|body| body.position));
+                bodies.extend(morphism.inner.positions.iter().copied());
                 bodies.push(end);
                 bodies
             },
@@ -150,29 +185,20 @@ fn draw_edge(
         )
         .chain(CURVE_RESOLUTION)
     } else {
-        Trajectory::parabola([start, edge.bodies[0].position, end], -1.0..=1.0)
-            .chain(CURVE_RESOLUTION)
+        info!("A morphism has 0 internal positions");
+        return;
     };
     let chain_len = chain.length();
 
     let scale = ARROW_HEAD_LENGTH.min(chain_len * ARROW_LENGTH_MAX_FRAC) / ARROW_HEAD_LENGTH;
     let head_length = ARROW_HEAD_LENGTH * scale;
 
-    let isomorphism = edge
-        .edge
-        .tag
-        .iter()
-        .any(|tag| matches!(tag, MorphismTag::Isomorphism(_, _)));
-
     let (min, max) = if isomorphism {
-        (
-            from.vertex.radius / chain_len,
-            1.0 - to.vertex.radius / chain_len,
-        )
+        (from.radius / chain_len, 1.0 - to.radius / chain_len)
     } else {
         (
-            from.vertex.radius / chain_len,
-            1.0 - (to.vertex.radius + head_length) / chain_len,
+            from.radius / chain_len,
+            1.0 - (to.radius + head_length) / chain_len,
         )
     };
     let chain = chain.take_range_ratio(min..=max);
@@ -199,8 +225,8 @@ fn draw_edge(
 
     let head_direction = end - *chain.vertices.last().unwrap();
 
-    if edge
-        .edge
+    if morphism
+        .inner
         .tag
         .iter()
         .any(|tag| matches!(tag, MorphismTag::Unique))
@@ -211,10 +237,10 @@ fn draw_edge(
             camera,
             &chain,
             ARROW_WIDTH,
-            edge.edge.color,
+            morphism.inner.color,
         );
     } else {
-        draw_2d::Chain::new(chain, ARROW_WIDTH, edge.edge.color, 1).draw_2d(
+        draw_2d::Chain::new(chain, ARROW_WIDTH, morphism.inner.color, 1).draw_2d(
             geng,
             framebuffer,
             camera,
@@ -224,48 +250,52 @@ fn draw_edge(
     // Line head
     let direction_norm = head_direction.normalize_or_zero();
     let normal = direction_norm.rotate_90();
-    let head_offset = direction_norm * (head_length + to.vertex.radius);
+    let head_offset = direction_norm * (head_length + to.radius);
     let head = end - head_offset;
     let head_width = normal * ARROW_HEAD_WIDTH * scale;
 
     if !isomorphism {
         draw_2d::Polygon::new(
             vec![
-                end - direction_norm * to.vertex.radius,
+                end - direction_norm * to.radius,
                 head + head_width,
                 head - head_width,
             ],
-            edge.edge.color,
+            morphism.inner.color,
         )
         .draw_2d(geng, framebuffer, camera)
     }
 
-    if let Some(center) = edge.bodies.get(edge.bodies.len() / 2) {
+    if let Some(&center) = morphism
+        .inner
+        .positions
+        .get(morphism.inner.positions.len() / 2)
+    {
         // Label
-        if let Label::Name(label) = &edge.edge.label {
+        if let Label::Name(label) = &morphism.inner.label {
             draw_2d::Text::unit(font.clone(), label.to_owned(), Color::GRAY)
-                .fit_into(AABB::point(center.position).extend_uniform(ARROW_LABEL_FONT_SIZE))
+                .fit_into(AABB::point(center).extend_uniform(ARROW_LABEL_FONT_SIZE))
                 .draw_2d(geng, framebuffer, camera);
         }
 
         // Isomorphism
         if isomorphism {
-            draw_2d::Ellipse::circle(center.position, ARROW_ICON_RADIUS, edge.edge.color).draw_2d(
+            draw_2d::Ellipse::circle(center, ARROW_ICON_RADIUS, morphism.inner.color).draw_2d(
                 geng,
                 framebuffer,
                 camera,
             );
             draw_2d::Ellipse::circle(
-                center.position,
+                center,
                 ARROW_ICON_RADIUS - ARROW_ICON_OUTLINE_WIDTH,
                 background_color,
             )
             .draw_2d(geng, framebuffer, camera);
 
             draw_2d::TexturedQuad::colored(
-                AABB::point(center.position).extend_uniform(ARROW_ICON_RADIUS),
+                AABB::point(center).extend_uniform(ARROW_ICON_RADIUS),
                 &assets.isomorphism,
-                edge.edge.color,
+                morphism.inner.color,
             )
             .draw_2d(geng, framebuffer, camera);
         }

@@ -1,7 +1,7 @@
-use geng::prelude::*;
-use graphs::{Graph, GraphEdge, GraphVertex};
+use geng::prelude::Vec2;
 
-mod graph_types;
+mod types;
 mod update;
 
-pub use graph_types::*;
+pub use types::*;
+pub use update::*;

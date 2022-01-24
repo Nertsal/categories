@@ -1,20 +1,26 @@
 use super::*;
 
-pub struct RenderableGraph {
+pub struct RenderableCategory {
     geng: Geng,
     assets: Rc<Assets>,
-    pub graph: Graph,
+    pub inner: Category,
+    pub equalities: Equalities,
     pub camera: Camera2d,
     pub texture: ugli::Texture,
     pub texture_size: Vec2<usize>,
 }
 
-impl RenderableGraph {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, graph: Graph, texture_size: Vec2<usize>) -> Self {
+impl RenderableCategory {
+    pub fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        category: Category,
+        equalities: Equalities,
+        texture_size: Vec2<usize>,
+    ) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
-            graph,
             camera: Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
@@ -22,6 +28,8 @@ impl RenderableGraph {
             },
             texture: ugli::Texture::new_with(geng.ugli(), texture_size, |_| Color::BLACK),
             texture_size,
+            inner: category,
+            equalities,
         }
     }
 
@@ -33,7 +41,7 @@ impl RenderableGraph {
     pub fn update_texture(
         &mut self,
         background_color: Color<f32>,
-        selection: Option<&Vec<GraphObject>>,
+        selection: Option<&Vec<CategoryThing>>,
     ) {
         let mut temp_framebuffer = ugli::Framebuffer::new_color(
             self.geng.ugli(),
@@ -41,13 +49,14 @@ impl RenderableGraph {
         );
         ugli::clear(&mut temp_framebuffer, Some(background_color), None);
 
-        draw::graph::draw_graph(
+        draw::category::draw_category(
             &self.geng,
             &self.assets,
             self.geng.default_font(),
             &mut temp_framebuffer,
             &self.camera,
-            &self.graph,
+            &self.inner,
+            &self.equalities,
             background_color,
             selection,
         );

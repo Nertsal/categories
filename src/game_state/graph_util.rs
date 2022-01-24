@@ -1,58 +1,64 @@
 use super::*;
 
 impl GameState {
-    pub fn get_renderable_graph(&self, focused_graph: &FocusedGraph) -> Option<&RenderableGraph> {
-        match focused_graph {
-            FocusedGraph::Rule { index } => self.rules.get(*index).map(|rule| rule.graph()),
-            FocusedGraph::Main => Some(&self.main_graph),
-            FocusedGraph::Goal => Some(&self.goal_graph),
+    pub fn get_renderable_graph(
+        &self,
+        focused_category: &FocusedCategory,
+    ) -> Option<&RenderableCategory> {
+        match focused_category {
+            FocusedCategory::Rule { index } => self.rules.get(*index).map(|rule| rule.graph()),
+            FocusedCategory::Fact => Some(&self.fact_category),
+            FocusedCategory::Goal => Some(&self.goal_category),
         }
     }
 
     pub fn get_renderable_graph_mut(
         &mut self,
-        focused_graph: &FocusedGraph,
-    ) -> Option<&mut RenderableGraph> {
-        match focused_graph {
-            FocusedGraph::Rule { index } => self.rules.get_mut(*index).map(|rule| rule.graph_mut()),
-            FocusedGraph::Main => Some(&mut self.main_graph),
-            FocusedGraph::Goal => Some(&mut self.goal_graph),
+        focused_category: &FocusedCategory,
+    ) -> Option<&mut RenderableCategory> {
+        match focused_category {
+            FocusedCategory::Rule { index } => self
+                .rules
+                .get_mut(*index)
+                .map(|rule| rule.get_category_mut()),
+            FocusedCategory::Fact => Some(&mut self.fact_category),
+            FocusedCategory::Goal => Some(&mut self.goal_category),
         }
     }
 
-    /// Returns the graph, a local position in it, and an aabb representing it
-    pub fn world_to_graph(
+    /// Returns the category, a local position in it, and an aabb representing it
+    pub fn world_to_category(
         &mut self,
-        graph: &FocusedGraph,
+        category: &FocusedCategory,
         world_pos: Vec2<f32>,
-    ) -> Option<(&mut Graph, Vec2<f32>, AABB<f32>)> {
-        self.world_to_graph_pos(graph, world_pos)
+    ) -> Option<(&mut RenderableCategory, Vec2<f32>, AABB<f32>)> {
+        self.world_to_category_pos(category, world_pos)
             .and_then(|(_, graph_pos, aabb)| {
-                self.get_graph_mut(graph)
+                self.get_category_mut(category)
                     .map(|graph| (graph, graph_pos, aabb))
             })
     }
 
-    /// Returns a local screen position, a local world position inside the graph, and its aabb;
+    /// Returns a local screen position, a local world position inside the category, and its aabb;
     /// or returns None if there is no such graph.
-    pub fn world_to_graph_pos(
+    pub fn world_to_category_pos(
         &self,
-        graph: &FocusedGraph,
+        category: &FocusedCategory,
         world_pos: Vec2<f32>,
     ) -> Option<(Vec2<f32>, Vec2<f32>, AABB<f32>)> {
-        self.state.get_graph_layout(graph).map(|aabb| {
-            let (framebuffer_size, camera) = match graph {
-                FocusedGraph::Rule { index } => {
-                    let graph = self.rules[*index].graph(); // The rule is guaranteed to exist, for there exists a layout
-                    (graph.texture_size.map(|x| x as f32), &graph.camera)
+        self.state.get_graph_layout(category).map(|aabb| {
+            let (framebuffer_size, camera) = match category {
+                FocusedCategory::Rule { index } => {
+                    let category = self.rules[*index].graph(); // The rule is guaranteed to exist, for there exists a layout
+                    (category.texture_size.map(|x| x as f32), &category.camera)
                 }
-                FocusedGraph::Main => (
-                    self.goal_graph.texture_size.map(|x| x as f32),
-                    &self.main_graph.camera,
+                FocusedCategory::Fact => (
+                    self.goal_category.texture_size.map(|x| x as f32),
+                    &self.fact_category.camera,
                 ),
-                FocusedGraph::Goal => (
-                    self.goal_graph.texture_size.map(|x| x as f32),
-                    &self.goal_graph.camera,
+                FocusedCategory::Goal => (
+                    self.goal_category.texture_size.map(|x| x as f32),
+                    &self.goal_category.camera,
                 ),
             };
             let screen_pos = (world_pos - aabb.bottom_left()) / vec2(aabb.width(), aabb.height())
@@ -65,29 +71,38 @@ impl GameState {
         })
     }
 
-    pub fn get_graph_mut(&mut self, graph: &FocusedGraph) -> Option<&mut Graph> {
-        match graph {
-            FocusedGraph::Rule { index } => self
+    pub fn get_category_mut(
+        &mut self,
+        category: &FocusedCategory,
+    ) -> Option<&mut RenderableCategory> {
+        match category {
+            FocusedCategory::Rule { index } => self
                 .rules
                 .get_mut(*index)
-                .map(|rule| &mut rule.graph_mut().graph),
-            FocusedGraph::Main => Some(&mut self.main_graph.graph),
-            FocusedGraph::Goal => Some(&mut self.goal_graph.graph),
+                .map(|rule| rule.get_category_mut()),
+            FocusedCategory::Fact => Some(&mut self.fact_category),
+            FocusedCategory::Goal => Some(&mut self.goal_category),
         }
     }
 
-    /// Returns the graph's camera and framebuffer size
-    pub fn get_graph_camera_mut(
+    /// Returns the category's camera and framebuffer size
+    pub fn get_category_camera_mut(
         &mut self,
-        graph: &FocusedGraph,
+        category: &FocusedCategory,
     ) -> Option<(&mut Camera2d, Vec2<usize>)> {
-        match graph {
-            FocusedGraph::Rule { index } => self.rules.get_mut(*index).map(|rule| {
-                let graph = rule.graph_mut();
-                (&mut graph.camera, graph.texture_size)
+        match category {
+            FocusedCategory::Rule { index } => self.rules.get_mut(*index).map(|rule| {
+                let category = rule.get_category_mut();
+                (&mut category.camera, category.texture_size)
             }),
-            FocusedGraph::Main => Some((&mut self.main_graph.camera, self.main_graph.texture_size)),
-            FocusedGraph::Goal => Some((&mut self.goal_graph.camera, self.goal_graph.texture_size)),
+            FocusedCategory::Fact => Some((
+                &mut self.fact_category.camera,
+                self.fact_category.texture_size,
+            )),
+            FocusedCategory::Goal => Some((
+                &mut self.goal_category.camera,
+                self.goal_category.texture_size,
+            )),
         }
     }
 }

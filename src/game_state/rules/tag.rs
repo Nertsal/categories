@@ -8,9 +8,7 @@ pub enum ObjectTag<O = Option<Label>> {
 impl ObjectTag<Option<&Label>> {
     pub fn infer_name(&self) -> Option<String> {
         match self {
-            ObjectTag::Product(Some(Label::Name(a)), Some(Label::Name(b))) => {
-                tag_name(a, b, "x")
-            }
+            ObjectTag::Product(Some(Label::Name(a)), Some(Label::Name(b))) => tag_name(a, b, "x"),
             _ => None,
         }
     }

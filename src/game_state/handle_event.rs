@@ -8,19 +8,19 @@ impl GameState {
                     // Anchor vertex
                     if let Some(dragging) = &self.dragging {
                         if let DragAction::Move {
-                            target: DragTarget::Vertex { graph, id },
+                            target: DragTarget::Vertex { category, id },
                         } = &dragging.action
                         {
-                            let graph = *graph;
+                            let category = *category;
                             let id = *id;
-                            let vertex = self
-                                .get_graph_mut(&graph)
+                            let object = self
+                                .get_category_mut(&category)
                                 .unwrap()
-                                .graph
-                                .vertices
+                                .inner
+                                .objects
                                 .get_mut(&id)
                                 .unwrap();
-                            vertex.is_anchor = !vertex.is_anchor;
+                            object.is_anchor = !object.is_anchor;
                         }
                     }
                 }
@@ -128,7 +128,7 @@ impl GameState {
             geng::Event::TouchEnd => {
                 // TODO: Detect short and long taps
                 self.dragging = None;
-                self.focused_graph = FocusedGraph::Main;
+                self.focused_category = FocusedCategory::Fact;
             }
             _ => (),
         }
@@ -150,13 +150,13 @@ impl GameState {
                     || mouse == geng::MouseButton::Right =>
             {
                 // Drag camera
-                let focused_graph = self.focused_graph;
-                self.world_to_graph_pos(&focused_graph, world_pos)
+                let focused_category = self.focused_category;
+                self.world_to_category_pos(&focused_category, world_pos)
                     .and_then(|(screen_pos, _, _)| {
-                        self.get_graph_camera_mut(&focused_graph)
+                        self.get_category_camera_mut(&focused_category)
                             .map(|(camera, _)| DragAction::Move {
-                                target: DragTarget::GraphCamera {
-                                    graph: focused_graph,
+                                target: DragTarget::Camera {
+                                    category: focused_category,
                                     initial_mouse_pos: screen_pos,
                                     initial_camera_pos: camera.center,
                                 },
@@ -165,30 +165,31 @@ impl GameState {
             }
             geng::MouseButton::Left => {
                 // Drag vertex
-                let focused_graph = self.focused_graph;
-                self.world_to_graph(&focused_graph, world_pos)
-                    .map(|(graph, graph_pos, _)| {
-                        Self::vertices_under_point(graph, graph_pos)
+                let focused_category = self.focused_category;
+                self.world_to_category(&focused_category, world_pos).map(
+                    |(category, local_pos, _)| {
+                        selection::objects_under_point(&category.inner, local_pos)
                             .next()
                             .map(|(&id, _)| DragAction::Move {
                                 target: DragTarget::Vertex {
                                     id,
-                                    graph: focused_graph,
+                                    category: focused_category,
                                 },
                             })
                             .or_else(|| {
                                 // Drag edge
-                                Self::edges_under_point(graph, graph_pos)
+                                selection::morphisms_under_point(&category.inner, local_pos)
                                     .next()
                                     .map(|(&id, _)| DragAction::Move {
                                         target: DragTarget::Edge {
                                             id,
-                                            graph: focused_graph,
+                                            category: focused_category,
                                         },
                                     })
                             })
                             .unwrap_or_else(|| DragAction::Selection {})
-                    })
+                    },
+                )
             }
             _ => None,
         };
@@ -219,40 +220,43 @@ impl GameState {
                         dragging.current_mouse_position.map(|x| x as f32),
                     );
                     let updated = match target {
-                        &mut DragTarget::GraphCamera {
-                            graph,
+                        &mut DragTarget::Camera {
+                            category,
                             initial_camera_pos,
                             initial_mouse_pos,
                         } => self
-                            .world_to_graph(&graph, world_pos)
-                            .map(|(_, graph_pos, graph_aabb)| (graph_pos, graph_aabb))
-                            .and_then(|(graph_pos, graph_aabb)| {
-                                self.get_graph_camera_mut(&graph).map(
+                            .world_to_category(&category, world_pos)
+                            .map(|(_, local, local_aabb)| (local, local_aabb))
+                            .and_then(|(local_pos, local_aabb)| {
+                                self.get_category_camera_mut(&category).map(
                                     |(camera, framebuffer_size)| {
                                         let initial = camera.screen_to_world(
                                             framebuffer_size.map(|x| x as f32),
                                             initial_mouse_pos,
                                         );
-                                        let delta = initial - graph_pos.clamp_aabb(graph_aabb);
+                                        let delta = initial - local_pos.clamp_aabb(local_aabb);
                                         camera.center = initial_camera_pos + delta;
                                     },
                                 )
                             })
                             .is_some(),
-                        &mut DragTarget::Vertex { graph, id } => self
-                            .world_to_graph(&graph, world_pos)
-                            .and_then(|(graph, graph_pos, graph_aabb)| {
-                                graph.graph.vertices.get_mut(&id).map(|vertex| {
-                                    vertex.body.position = graph_pos.clamp_aabb(graph_aabb);
+                        &mut DragTarget::Vertex { category, id } => self
+                            .world_to_category(&category, world_pos)
+                            .and_then(|(category, local_pos, local_aabb)| {
+                                category.inner.objects.get_mut(&id).map(|object| {
+                                    object.position = local_pos.clamp_aabb(local_aabb);
                                 })
                             })
                             .is_some(),
-                        &mut DragTarget::Edge { graph, id } => self
-                            .world_to_graph(&graph, world_pos)
-                            .and_then(|(graph, graph_pos, graph_aabb)| {
-                                graph.graph.edges.get_mut(&id).map(|edge| {
-                                    edge.get_center_mut().unwrap().position =
-                                        graph_pos.clamp_aabb(graph_aabb)
+                        &mut DragTarget::Edge { category, id } => self
+                            .world_to_category(&category, world_pos)
+                            .and_then(|(category, local_pos, local_aabb)| {
+                                category.inner.morphisms.get_mut(&id).map(|morphism| {
+                                    let positions = &mut morphism.inner.positions;
+                                    let center = positions.len() / 2;
+                                    if let Some(pos) = positions.get_mut(center) {
+                                        *pos = local_pos.clamp_aabb(local_aabb);
+                                    }
                                 })
                             })
                             .is_some(),
@@ -277,15 +281,17 @@ impl GameState {
                     let dragged_delta = mouse_position - dragging.mouse_start_position;
                     if dragged_delta.len().approx_eq(&0.0) {
                         // Select rule
-                        if let &FocusedGraph::Rule { index } = &self.focused_graph {
+                        if let &FocusedCategory::Rule { index } = &self.focused_category {
                             let main_selection = RuleSelection::new(
-                                &self.main_graph.graph,
+                                &self.fact_category.inner,
+                                &self.fact_category.equalities,
                                 index,
                                 &self.rules,
                                 false,
                             );
                             let goal_selection = RuleSelection::new(
-                                &self.goal_graph.graph,
+                                &self.goal_category.inner,
+                                &self.goal_category.equalities,
                                 index,
                                 &self.rules,
                                 true,
@@ -295,7 +301,7 @@ impl GameState {
                                     self.main_selection = Some(main_selection);
                                 }
                                 None => {
-                                    self.apply_rule(FocusedGraph::Main, main_selection);
+                                    self.apply_rule(FocusedCategory::Fact, main_selection);
                                 }
                             }
                             match goal_selection.current() {
@@ -303,7 +309,7 @@ impl GameState {
                                     self.goal_selection = Some(goal_selection);
                                 }
                                 None => {
-                                    self.apply_rule(FocusedGraph::Goal, goal_selection);
+                                    self.apply_rule(FocusedCategory::Goal, goal_selection);
                                 }
                             }
                         }
@@ -314,27 +320,33 @@ impl GameState {
                     if delta.len().approx_eq(&0.0) {
                         // Select vertex or edge
                         let selected = match target {
-                            &DragTarget::Vertex { graph, id } => {
-                                Some((graph, GraphObject::Vertex { id }))
-                            }
-                            &DragTarget::Edge { graph, id } => {
-                                Some((graph, GraphObject::Edge { id }))
-                            }
+                            &DragTarget::Vertex {
+                                category: graph,
+                                id,
+                            } => Some((graph, CategoryThing::Object { id })),
+                            &DragTarget::Edge {
+                                category: graph,
+                                id,
+                            } => Some((graph, CategoryThing::Morphism { id })),
                             _ => None,
                         };
 
                         if let Some((focused_graph, selected)) = selected {
                             let selection = match focused_graph {
-                                FocusedGraph::Rule { .. } => None,
-                                FocusedGraph::Main => {
-                                    Some((&self.main_graph.graph, &mut self.main_selection))
-                                }
-                                FocusedGraph::Goal => {
-                                    Some((&self.goal_graph.graph, &mut self.goal_selection))
-                                }
+                                FocusedCategory::Rule { .. } => None,
+                                FocusedCategory::Fact => Some((
+                                    &self.fact_category.inner,
+                                    &self.fact_category.equalities,
+                                    &mut self.main_selection,
+                                )),
+                                FocusedCategory::Goal => Some((
+                                    &self.goal_category.inner,
+                                    &self.goal_category.equalities,
+                                    &mut self.goal_selection,
+                                )),
                             };
 
-                            if let Some((graph, selection)) = selection {
+                            if let Some((graph, equalities, selection)) = selection {
                                 match selection
                                     .as_ref()
                                     .and_then(|selection| selection.inferred_options().as_ref())
@@ -344,7 +356,7 @@ impl GameState {
                                             && selection
                                                 .as_mut()
                                                 .unwrap()
-                                                .select(graph, selected, &self.rules)
+                                                .select(graph, equalities, selected, &self.rules)
                                                 .is_none()
                                         {
                                             let selection = selection.take().unwrap();

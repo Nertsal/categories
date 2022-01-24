@@ -1,54 +1,52 @@
 use super::*;
 
-impl GameState {
-    pub fn vertices_under_point(
-        graph: &Graph,
-        position: Vec2<f32>,
-    ) -> impl Iterator<Item = (&VertexId, &Vertex)> {
-        graph.graph.vertices.iter().filter(move |(_, vertex)| {
-            (vertex.body.position - position).len() <= vertex.vertex.radius
-        })
-    }
+pub fn objects_under_point(
+    category: &Category,
+    position: Vec2<f32>,
+) -> impl Iterator<Item = (&ObjectId, &Object)> {
+    category
+        .objects
+        .iter()
+        .filter(move |(_, object)| (object.position - position).len() <= object.radius)
+}
 
-    pub fn edges_under_point(
-        graph: &Graph,
-        position: Vec2<f32>,
-    ) -> impl Iterator<Item = (&EdgeId, &Edge)> {
-        Self::edges_points(graph)
-            .filter(move |(_, _, points)| {
-                points
-                    .iter()
-                    .zip(points.iter().skip(1))
-                    .any(|(&start, &end)| {
-                        distance_point_segment(position, start, end)
-                            <= ARROW_WIDTH + SELECTION_RADIUS
+pub fn morphisms_under_point(
+    category: &Category,
+    position: Vec2<f32>,
+) -> impl Iterator<Item = (&MorphismId, &Morphism)> {
+    morphisms_points(category)
+        .filter(move |(_, _, points)| {
+            points
+                .iter()
+                .zip(points.iter().skip(1))
+                .any(|(&start, &end)| {
+                    distance_point_segment(position, start, end) <= ARROW_WIDTH + SELECTION_RADIUS
+                })
+        })
+        .map(|(id, edge, _)| (id, edge))
+}
+
+fn morphisms_points(
+    category: &Category,
+) -> impl Iterator<Item = (&MorphismId, &Morphism, Vec<Vec2<f32>>)> {
+    category.morphisms.iter().filter_map(|(id, morphism)| {
+        let [object_a, object_b] = morphism
+            .connection
+            .end_points()
+            .map(|id| category.objects.get(id));
+
+        object_a
+            .and_then(|object_a| {
+                object_b
+                    .map(|object_b| (object_a.position, object_b.position))
+                    .map(|(pos_a, pos_b)| {
+                        let mut points = Vec::with_capacity(morphism.inner.positions.len() + 2);
+                        points.push(pos_a);
+                        points.extend(morphism.inner.positions.iter().copied());
+                        points.push(pos_b);
+                        points
                     })
             })
-            .map(|(id, edge, _)| (id, edge))
-    }
-
-    fn edges_points(graph: &Graph) -> impl Iterator<Item = (&EdgeId, &Edge, Vec<Vec2<f32>>)> {
-        graph.graph.edges.iter().filter_map(|(id, edge)| {
-            graph
-                .graph
-                .vertices
-                .get(&edge.edge.from)
-                .map(|vertex| vertex.body.position)
-                .and_then(|arrow_start| {
-                    graph
-                        .graph
-                        .vertices
-                        .get(&edge.edge.to)
-                        .map(|vertex| (arrow_start, vertex.body.position))
-                })
-                .map(|(arrow_start, arrow_end)| {
-                    let mut points = Vec::with_capacity(edge.bodies.len() + 2);
-                    points.push(arrow_start);
-                    points.extend(edge.bodies.iter().map(|body| body.position));
-                    points.push(arrow_end);
-                    points
-                })
-                .map(|points| (id, edge, points))
-        })
-    }
+            .map(|points| (id, morphism, points))
+    })
 }

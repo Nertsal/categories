@@ -5,7 +5,7 @@ pub struct State {
     pub rule_aspect_ratio: f32,
     pub rules_width: f32,
     pub rules_scroll: f32,
-    pub graphs_layout: Vec<(FocusedGraph, AABB<f32>)>,
+    pub graphs_layout: Vec<(FocusedCategory, AABB<f32>)>,
 }
 
 impl Default for State {
@@ -36,7 +36,7 @@ impl State {
         &self,
         rules: usize,
         rules_scroll: f32,
-    ) -> impl Iterator<Item = (FocusedGraph, AABB<f32>)> {
+    ) -> impl Iterator<Item = (FocusedCategory, AABB<f32>)> {
         let camera_view = util::ui_view(self.framebuffer_size);
         let rule_height = self.rules_width / self.rule_aspect_ratio;
         let rule_aabb_base = AABB::point(camera_view.top_left() + vec2(0.0, rules_scroll))
@@ -46,14 +46,14 @@ impl State {
         (0..rules)
             .map(move |rule_index| {
                 (
-                    FocusedGraph::Rule { index: rule_index },
+                    FocusedCategory::Rule { index: rule_index },
                     rule_aabb_base.translate(vec2(0.0, -rule_height * rule_index as f32)),
                 )
             })
             .chain(
                 vec![
-                    (FocusedGraph::Main, self.layout_main_graph()),
-                    (FocusedGraph::Goal, self.layout_goal_graph()),
+                    (FocusedCategory::Fact, self.layout_main_graph()),
+                    (FocusedCategory::Goal, self.layout_goal_graph()),
                 ]
                 .into_iter(),
             )
@@ -61,17 +61,17 @@ impl State {
 
     /// Returns tha graph layout or None if a rule's graph has not been layed out yet
     /// (in that case, ensure that you call [layout_graphs] with an appropriate **rules** parameter).
-    pub fn get_graph_layout(&self, graph: &FocusedGraph) -> Option<AABB<f32>> {
+    pub fn get_graph_layout(&self, graph: &FocusedCategory) -> Option<AABB<f32>> {
         let graphs = self.graphs_layout.len();
         let index = match graph {
-            FocusedGraph::Rule { index } => {
+            FocusedCategory::Rule { index } => {
                 if *index >= graphs - 2 {
                     return None;
                 }
                 *index
             }
-            FocusedGraph::Main => graphs - 2,
-            FocusedGraph::Goal => graphs - 1,
+            FocusedCategory::Fact => graphs - 2,
+            FocusedCategory::Goal => graphs - 1,
         };
         assert_eq!(*graph, self.graphs_layout[index].0);
         Some(self.graphs_layout[index].1)

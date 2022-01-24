@@ -1,15 +1,15 @@
 use super::*;
 
-pub fn main_graph() -> Graph {
-    GraphBuilder::new()
+pub fn fact_category() -> Category {
+    CategoryBuilder::new()
         .object("A", None, Color::WHITE, false)
         .object("B", None, Color::WHITE, false)
         .object("C", None, Color::WHITE, false)
         .build()
 }
 
-pub fn goal_graph() -> Graph {
-    GraphBuilder::new()
+pub fn goal_category() -> Category {
+    CategoryBuilder::new()
         .object("A", None, Color::WHITE, false)
         .object("B", None, Color::WHITE, false)
         .object("C", None, Color::WHITE, false)
@@ -37,11 +37,11 @@ pub fn goal_graph() -> Graph {
             Color::WHITE,
             false,
         )
-        .morphism(
-            Label::Any,
+        .isomorphism(
+            Label::Unknown,
             "Ax(BxC)",
             "(AxB)xC",
-            Some(MorphismTag::Isomorphism(Label::Any, Label::Any)),
+            Some(MorphismTag::Isomorphism(Label::Unknown, Label::Unknown)),
         )
         .build()
 }

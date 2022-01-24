@@ -1,7 +1,5 @@
-use force_graph::{ForceBody, ForceEdge, ForceParameters, ForceVertex};
+use category::{MorphismConnection, MorphismId, ObjectId};
 use geng::{Camera2d, PixelPerfectCamera};
-
-use graphs::{EdgeId, GraphObject, VertexId};
 
 use super::*;
 
@@ -10,7 +8,8 @@ mod constants;
 mod drag;
 mod draw;
 mod focus;
-mod graph_builder;
+mod goal;
+mod category_builder;
 mod graph_link;
 mod graph_types;
 mod graph_util;
@@ -22,13 +21,12 @@ mod rules;
 mod selection;
 mod state;
 mod update;
-mod goal;
 
-use action::*;
+use action::GraphAction;
 use constants::*;
 use drag::*;
 use focus::*;
-use graph_builder::*;
+use category_builder::*;
 use graph_link::*;
 use graph_types::*;
 use label::*;
@@ -41,10 +39,10 @@ pub struct GameState {
     ui_camera: PixelPerfectCamera,
     state: State,
     rules: Rules,
-    main_graph: RenderableGraph,
-    goal_graph: RenderableGraph,
+    fact_category: RenderableCategory,
+    goal_category: RenderableCategory,
     graph_link: GraphLink,
-    focused_graph: FocusedGraph,
+    focused_category: FocusedCategory,
     dragging: Option<Dragging>,
     main_selection: Option<RuleSelection>,
     goal_selection: Option<RuleSelection>,
@@ -54,20 +52,32 @@ pub struct GameState {
 impl GameState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         let state = State::default();
-        let main_graph = RenderableGraph::new(geng, assets, init::graph::main_graph(), vec2(1, 1));
-        let goal_graph = RenderableGraph::new(geng, assets, init::graph::goal_graph(), vec2(1, 1));
+        let fact_category = RenderableCategory::new(
+            geng,
+            assets,
+            init::category::fact_category(),
+            Equalities::new(),
+            vec2(1, 1),
+        );
+        let goal_category = RenderableCategory::new(
+            geng,
+            assets,
+            init::category::goal_category(),
+            Equalities::new(),
+            vec2(1, 1),
+        );
         Self {
             geng: geng.clone(),
             dragging: None,
             main_selection: None,
             goal_selection: None,
-            focused_graph: FocusedGraph::Main,
+            focused_category: FocusedCategory::Fact,
             action_history: vec![],
             ui_camera: PixelPerfectCamera,
             rules: init::rules::default_rules(geng, assets),
-            graph_link: GraphLink::new(&main_graph.graph, &goal_graph.graph),
-            main_graph,
-            goal_graph,
+            graph_link: GraphLink::new(&fact_category.inner, &goal_category.inner),
+            fact_category,
+            goal_category,
             state,
         }
     }

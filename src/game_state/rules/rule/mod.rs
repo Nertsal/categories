@@ -8,11 +8,17 @@ pub use find::*;
 
 impl GameState {
     /// Attempts to apply a rule.
-    pub fn apply_rule(&mut self, graph: FocusedGraph, selection: RuleSelection) {
-        let graph = match graph {
-            FocusedGraph::Rule { .. } => return,
-            FocusedGraph::Main => &mut self.main_graph.graph,
-            FocusedGraph::Goal => &mut self.goal_graph.graph,
+    pub fn apply_rule(&mut self, graph: FocusedCategory, selection: RuleSelection) {
+        let (category, equalities) = match graph {
+            FocusedCategory::Rule { .. } => return,
+            FocusedCategory::Fact => (
+                &mut self.fact_category.inner,
+                &mut self.fact_category.equalities,
+            ),
+            FocusedCategory::Goal => (
+                &mut self.goal_category.inner,
+                &mut self.goal_category.equalities,
+            ),
         };
 
         let rule = &self.rules[selection.rule()];
@@ -21,20 +27,21 @@ impl GameState {
             true => rule.inverse_statement(),
         };
 
-        let (actions, applied) = Rule::apply(statement, graph, selection.selection());
+        let (actions, applied) =
+            apply::rule_apply(statement, category, equalities, selection.selection());
         self.action_history.extend(actions);
 
         if applied && selection.inverse() {
             // TODO: smarter removal
-            for edge in selection
+            for morphism in selection
                 .selection()
                 .iter()
                 .filter_map(|object| match object {
-                    GraphObject::Vertex { .. } => None,
-                    GraphObject::Edge { id } => Some(id),
+                    CategoryThing::Object { .. } => None,
+                    CategoryThing::Morphism { id } => Some(id),
                 })
             {
-                graph.graph.edges.remove(edge);
+                category.morphisms.remove(morphism);
             }
         }
 
@@ -72,24 +79,20 @@ impl RuleBuilder {
 
 pub struct Rule {
     statement: RuleStatement,
-    graph_input: Vec<GraphObject>,
-    graph: RenderableGraph,
+    graph_input: Vec<CategoryThing>,
+    graph: RenderableCategory,
 
     inverse_statement: RuleStatement,
-    inverse_graph_input: Vec<GraphObject>,
+    inverse_graph_input: Vec<CategoryThing>,
 }
 
 impl Rule {
-    pub fn graph(&self) -> &RenderableGraph {
+    pub fn graph(&self) -> &RenderableCategory {
         &self.graph
     }
 
-    pub fn graph_mut(&mut self) -> &mut RenderableGraph {
+    pub fn get_category_mut(&mut self) -> &mut RenderableCategory {
         &mut self.graph
-    }
-
-    pub fn update_graph(&mut self, delta_time: f32) {
-        self.graph.graph.update(delta_time);
     }
 
     pub fn statement(&self) -> &RuleStatement {
@@ -100,11 +103,11 @@ impl Rule {
         &self.inverse_statement
     }
 
-    pub fn graph_input(&self) -> &Vec<GraphObject> {
+    pub fn graph_input(&self) -> &Vec<CategoryThing> {
         &self.graph_input
     }
 
-    pub fn inverse_graph_input(&self) -> &Vec<GraphObject> {
+    pub fn inverse_graph_input(&self) -> &Vec<CategoryThing> {
         &self.inverse_graph_input
     }
 }

@@ -20,17 +20,17 @@ pub enum DragAction {
 }
 
 pub enum DragTarget {
-    GraphCamera {
-        graph: FocusedGraph,
+    Camera {
+        category: FocusedCategory,
         initial_mouse_pos: Vec2<f32>,
         initial_camera_pos: Vec2<f32>,
     },
     Vertex {
-        graph: FocusedGraph,
-        id: VertexId,
+        category: FocusedCategory,
+        id: ObjectId,
     },
     Edge {
-        graph: FocusedGraph,
-        id: EdgeId,
+        category: FocusedCategory,
+        id: MorphismId,
     },
 }
