@@ -1,7 +1,9 @@
 
-        export function setup_audio(audio, handler) {
-            audio.oncanplaythrough = function() { handler(true); };
-            audio.onerror = function() { handler(false); };
-            audio.load();
+        export function setup_string(request, handler) {
+            request.onreadystatechange = function () {
+                if (request.readyState == 4) {
+                    handler(request.status == 200);
+                }
+            };
         }
         
