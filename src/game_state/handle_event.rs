@@ -69,6 +69,7 @@ impl GameState {
                     self.dragging = Some(Dragging {
                         mouse_start_position: touch0.position,
                         current_mouse_position: touch0.position,
+                        started_drag: false,
                         world_start_position: world_pos,
                         action: DragAction::TwoTouchMove {
                             initial_camera_fov: camera.fov,
@@ -197,6 +198,7 @@ impl GameState {
         self.dragging = action.map(|action| Dragging {
             mouse_start_position: mouse_position,
             world_start_position: world_pos,
+            started_drag: false,
             current_mouse_position: mouse_position,
             action,
         });
@@ -206,6 +208,7 @@ impl GameState {
         // Focus
         self.focus(mouse_position);
         if let Some(dragging) = &mut self.dragging {
+            dragging.started_drag = true;
             dragging.current_mouse_position = mouse_position;
         }
     }
@@ -214,7 +217,7 @@ impl GameState {
         // Drag
         if let Some(dragging) = &mut self.dragging {
             match &mut dragging.action {
-                DragAction::Move { target } => {
+                DragAction::Move { target } if dragging.started_drag => {
                     let world_pos = self.ui_camera.screen_to_world(
                         self.state.framebuffer_size,
                         dragging.current_mouse_position.map(|x| x as f32),

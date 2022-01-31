@@ -3,6 +3,7 @@ use super::*;
 pub struct Dragging {
     pub mouse_start_position: Vec2<f64>,
     pub world_start_position: Vec2<f32>,
+    pub started_drag: bool,
     pub action: DragAction,
     pub current_mouse_position: Vec2<f64>,
 }
