@@ -265,6 +265,7 @@ fn invert_statement(statement: &RuleStatement) -> Vec<RuleStatement> {
 
                                     if let Some(tag) = tag {
                                         match tag {
+                                            ObjectTag::Initial | ObjectTag::Terminal => (),
                                             ObjectTag::Product(a, b) => {
                                                 add_object_constraint(
                                                     a.as_ref(),

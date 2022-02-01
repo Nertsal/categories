@@ -2,6 +2,8 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ObjectTag<O = Option<Label>> {
+    Initial,
+    Terminal,
     Product(O, O),
 }
 
@@ -25,12 +27,16 @@ fn tag_name(label_a: &str, label_b: &str, operation: &str) -> Option<String> {
 impl<O> ObjectTag<O> {
     pub fn map<V, Fv: Fn(O) -> V>(self, fv: Fv) -> ObjectTag<V> {
         match self {
+            Self::Initial => ObjectTag::Initial,
+            Self::Terminal => ObjectTag::Terminal,
             Self::Product(a, b) => ObjectTag::Product(fv(a), fv(b)),
         }
     }
 
     pub fn map_borrowed<V, Fv: Fn(&O) -> V>(&self, fv: Fv) -> ObjectTag<V> {
         match self {
+            Self::Initial => ObjectTag::Initial,
+            Self::Terminal => ObjectTag::Terminal,
             Self::Product(a, b) => ObjectTag::Product(fv(a), fv(b)),
         }
     }

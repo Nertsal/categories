@@ -41,6 +41,8 @@ fn object_match(
     match (constraint_tag, &object.tag) {
         (None, _) => true,
         (_, None) => false,
+        (Some(ObjectTag::Initial), Some(ObjectTag::Initial)) => true,
+        (Some(ObjectTag::Terminal), Some(ObjectTag::Terminal)) => true,
         (
             Some(ObjectTag::Product(constraint0, constraint1)),
             &Some(ObjectTag::Product(object0, object1)),
@@ -93,6 +95,7 @@ fn object_match(
                 }
             }
         }
+        _ => false,
     }
 }
 
