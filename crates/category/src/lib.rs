@@ -1,7 +1,13 @@
-mod morphism;
+mod bindings;
 mod category;
+mod equalities;
+mod morphism;
 mod object;
+mod rule;
 
-pub use morphism::*;
+pub use bindings::*;
 pub use category::*;
+pub use equalities::*;
+pub use morphism::*;
 pub use object::*;
+pub use rule::*;

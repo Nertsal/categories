@@ -3,6 +3,7 @@ use super::*;
 pub struct Category<O = (), M = ()> {
     pub objects: Objects<O>,
     pub morphisms: Morphisms<M>,
+    pub equalities: Equalities,
 }
 
 impl<O, M> Category<O, M> {
@@ -10,10 +11,11 @@ impl<O, M> Category<O, M> {
         Self {
             objects: Objects::new(),
             morphisms: Morphisms::new(),
+            equalities: Equalities::new(),
         }
     }
 
-    pub fn new_object(&mut self, object: O) -> ObjectId {
+    pub fn new_object(&mut self, object: Object<O>) -> ObjectId {
         self.objects.new_object(object)
     }
 
@@ -27,7 +29,11 @@ impl<O, M> Category<O, M> {
         Some(self.morphisms.new_morphism(morphism))
     }
 
-    pub fn insert_object(&mut self, object: O, object_id: ObjectId) -> Result<Option<O>, ()> {
+    pub fn insert_object(
+        &mut self,
+        object: Object<O>,
+        object_id: ObjectId,
+    ) -> Result<Option<Object<O>>, ()> {
         self.objects.insert(object, object_id)
     }
 
@@ -43,7 +49,7 @@ impl<O, M> Category<O, M> {
     pub fn remove_object(
         &mut self,
         object_id: ObjectId,
-    ) -> Option<(O, Vec<(MorphismId, Morphism<M>)>)> {
+    ) -> Option<(Object<O>, Vec<(MorphismId, Morphism<M>)>)> {
         self.objects.remove(&object_id).map(|object| {
             let removes: Vec<_> = self
                 .morphisms

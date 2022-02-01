@@ -8,6 +8,13 @@ pub struct Morphism<T> {
     pub inner: T,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MorphismTag<O = ObjectId, M = MorphismId> {
+    Identity(O),
+    Unique,
+    Isomorphism(M, M),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MorphismConnection<T = ObjectId> {
     Regular { from: T, to: T },

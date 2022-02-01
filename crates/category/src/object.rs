@@ -1,7 +1,20 @@
 use std::collections::HashMap;
 
+#[derive(Debug)]
+pub struct Object<T> {
+    pub tags: Vec<ObjectTag>,
+    pub inner: T,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObjectTag<O = ObjectId> {
+    Initial,
+    Terminal,
+    Product(O, O),
+}
+
 pub struct Objects<T> {
-    objects: HashMap<ObjectId, T>,
+    objects: HashMap<ObjectId, Object<T>>,
     next_id: ObjectId,
 }
 
@@ -16,7 +29,7 @@ impl<T> Objects<T> {
         }
     }
 
-    pub(crate) fn new_object(&mut self, object: T) -> ObjectId {
+    pub(crate) fn new_object(&mut self, object: Object<T>) -> ObjectId {
         let id = self.next_id;
         self.next_id.0 += 1;
         assert!(
@@ -26,7 +39,11 @@ impl<T> Objects<T> {
         id
     }
 
-    pub(crate) fn insert(&mut self, object: T, object_id: ObjectId) -> Result<Option<T>, ()> {
+    pub(crate) fn insert(
+        &mut self,
+        object: Object<T>,
+        object_id: ObjectId,
+    ) -> Result<Option<Object<T>>, ()> {
         if object_id.0 >= self.next_id.0 {
             return Err(());
         }
@@ -38,23 +55,23 @@ impl<T> Objects<T> {
         self.objects.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&ObjectId, &T)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&ObjectId, &Object<T>)> {
         self.objects.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ObjectId, &mut T)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ObjectId, &mut Object<T>)> {
         self.objects.iter_mut()
     }
 
-    pub fn get(&self, id: &ObjectId) -> Option<&T> {
+    pub fn get(&self, id: &ObjectId) -> Option<&Object<T>> {
         self.objects.get(id)
     }
 
-    pub fn get_mut(&mut self, id: &ObjectId) -> Option<&mut T> {
+    pub fn get_mut(&mut self, id: &ObjectId) -> Option<&mut Object<T>> {
         self.objects.get_mut(id)
     }
 
-    pub(crate) fn remove(&mut self, id: &ObjectId) -> Option<T> {
+    pub(crate) fn remove(&mut self, id: &ObjectId) -> Option<Object<T>> {
         self.objects.remove(id)
     }
 
