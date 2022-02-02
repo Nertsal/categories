@@ -30,5 +30,50 @@ fn object_matches<T, L: Label>(
     object: &Object<T>,
     bindings: &Bindings<L>,
 ) -> Option<Bindings<L>> {
-    todo!()
+    let mut new_bindings = Bindings::new();
+
+    for tag_check in tags.iter().map(|constraint| {
+        object
+            .tags
+            .iter()
+            .find_map(|tag| tag_matches(constraint, tag, bindings))
+    }) {
+        let binds = match tag_check {
+            Some(binds) => binds,
+            None => return None,
+        };
+        new_bindings.extend(binds);
+    }
+
+    Some(new_bindings)
+}
+
+fn tag_matches<L: Label>(
+    constraint: &ObjectTag<L>,
+    tag: &ObjectTag,
+    bindings: &Bindings<L>,
+) -> Option<Bindings<L>> {
+    match (constraint, tag) {
+        (ObjectTag::Initial, ObjectTag::Initial) => Some(Bindings::new()),
+        (ObjectTag::Initial, _) => None,
+        (ObjectTag::Terminal, ObjectTag::Terminal) => Some(Bindings::new()),
+        (ObjectTag::Terminal, _) => None,
+        (
+            ObjectTag::Product(constraint_a, constraint_b),
+            &ObjectTag::Product(object_a, object_b),
+        ) => constraint_unordered(
+            vec![constraint_a, constraint_b]
+                .into_iter()
+                .map(|label| (label.clone(), bindings.get_object(label))),
+            vec![object_a, object_b],
+        )
+        .map(|binds| {
+            let mut bindings = Bindings::new();
+            for (label, id) in binds {
+                bindings.bind_object(label, id);
+            }
+            bindings
+        }),
+        (ObjectTag::Product(_, _), _) => None,
+    }
 }
