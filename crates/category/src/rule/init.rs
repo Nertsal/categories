@@ -5,6 +5,7 @@ pub enum RuleConstructionError {}
 
 impl<L: Label> Rule<L> {
     pub fn new(statement: RuleStatement<L>) -> Result<Self, RuleConstructionError> {
-        todo!()
+        // TODO: check that the statement is valid
+        Ok(Self { statement })
     }
 }
