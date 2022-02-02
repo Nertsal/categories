@@ -30,4 +30,31 @@ impl Equalities {
     pub fn new_commute(&mut self, f: MorphismId, g: MorphismId, h: MorphismId) {
         self.commutes.insert(Commute { f, g, h });
     }
+
+    pub fn check_equality(&self, f: MorphismId, g: MorphismId) -> bool {
+        self.equalities.contains(&(f, g)) || self.equalities.contains(&(g, f))
+    }
+
+    pub fn check_commutativity(&self, f: MorphismId, g: MorphismId, h: MorphismId) -> bool {
+        self.commutes.contains(&Commute { f, g, h })
+    }
+
+    pub fn all_equalities<'a>(&'a self) -> impl Iterator<Item = (MorphismId, MorphismId)> + 'a {
+        self.equalities.iter().copied()
+    }
+
+    pub fn get_equalities<'a>(
+        &'a self,
+        morphism: MorphismId,
+    ) -> impl Iterator<Item = MorphismId> + 'a {
+        self.equalities.iter().filter_map(move |&(f, g)| {
+            if f == morphism {
+                Some(g)
+            } else if g == morphism {
+                Some(f)
+            } else {
+                None
+            }
+        })
+    }
 }
