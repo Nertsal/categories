@@ -67,13 +67,7 @@ fn tag_matches<L: Label>(
                 .map(|label| (label.clone(), bindings.get_object(label))),
             vec![object_a, object_b],
         )
-        .map(|binds| {
-            let mut bindings = Bindings::new();
-            for (label, id) in binds {
-                bindings.bind_object(label, id);
-            }
-            bindings
-        }),
+        .map(|binds| Bindings::from_objects(binds)),
         (ObjectTag::Product(_, _), _) => None,
     }
 }

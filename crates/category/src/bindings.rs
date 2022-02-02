@@ -16,6 +16,26 @@ impl<L: Label> Bindings<L> {
         }
     }
 
+    pub fn from_objects(iter: impl IntoIterator<Item = (L, ObjectId)>) -> Self {
+        Self {
+            objects: iter.into_iter().collect(),
+            morphisms: Default::default(),
+        }
+    }
+
+    pub fn from_morphisms(iter: impl IntoIterator<Item = (L, MorphismId)>) -> Self {
+        Self {
+            objects: Default::default(),
+            morphisms: iter.into_iter().collect(),
+        }
+    }
+
+    pub fn single_object(label: L, id: ObjectId) -> Self {
+        let mut binds = Self::new();
+        binds.bind_object(label, id);
+        binds
+    }
+
     pub fn single_morphism(label: L, id: MorphismId) -> Self {
         let mut binds = Self::new();
         binds.bind_morphism(label, id);

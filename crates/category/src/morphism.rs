@@ -5,6 +5,7 @@ use super::*;
 #[derive(Debug)]
 pub struct Morphism<T> {
     pub connection: MorphismConnection,
+    pub tags: Vec<MorphismTag>,
     pub inner: T,
 }
 

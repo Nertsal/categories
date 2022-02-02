@@ -31,7 +31,7 @@ pub enum Constraint<L: Label> {
     Morphism {
         label: L,
         connection: MorphismConnection<L>,
-        tags: Vec<MorphismTag<L>>,
+        tags: Vec<MorphismTag<L, L>>,
     },
     /// Require two morphisms to be equal to each other
     Equality(L, L),
