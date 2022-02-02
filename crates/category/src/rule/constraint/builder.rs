@@ -17,10 +17,10 @@ impl<L: Label> ConstraintsBuilder<L> {
         self.0
     }
 
-    pub fn object(
+    pub fn object<T: Into<L>>(
         mut self,
-        label: impl Into<L>,
-        tags: impl IntoIterator<Item = ObjectTag<impl Into<L>>>,
+        label: T,
+        tags: impl IntoIterator<Item = ObjectTag<T>>,
     ) -> Self {
         self.0.push(Constraint::Object {
             label: label.into(),
@@ -32,12 +32,12 @@ impl<L: Label> ConstraintsBuilder<L> {
         self
     }
 
-    pub fn morphism(
+    pub fn morphism<T: Into<L>>(
         mut self,
-        label: impl Into<L>,
-        from: impl Into<L>,
-        to: impl Into<L>,
-        tags: impl IntoIterator<Item = MorphismTag<impl Into<L>, impl Into<L>>>,
+        label: T,
+        from: T,
+        to: T,
+        tags: impl IntoIterator<Item = MorphismTag<T, T>>,
     ) -> Self {
         self.0.push(Constraint::Morphism {
             label: label.into(),
@@ -53,12 +53,12 @@ impl<L: Label> ConstraintsBuilder<L> {
         self
     }
 
-    pub fn isomorphism(
+    pub fn isomorphism<T: Into<L>>(
         mut self,
-        label: impl Into<L>,
-        object_a: impl Into<L>,
-        object_b: impl Into<L>,
-        tags: impl IntoIterator<Item = MorphismTag<impl Into<L>, impl Into<L>>>,
+        label: T,
+        object_a: T,
+        object_b: T,
+        tags: impl IntoIterator<Item = MorphismTag<T, T>>,
     ) -> Self {
         self.0.push(Constraint::Morphism {
             label: label.into(),
@@ -74,6 +74,20 @@ impl<L: Label> ConstraintsBuilder<L> {
     pub fn equality(mut self, label_f: impl Into<L>, label_g: impl Into<L>) -> Self {
         self.0
             .push(Constraint::Equality(label_f.into(), label_g.into()));
+        self
+    }
+
+    pub fn commutes(
+        mut self,
+        label_f: impl Into<L>,
+        label_g: impl Into<L>,
+        label_h: impl Into<L>,
+    ) -> Self {
+        self.0.push(Constraint::Commute {
+            f: label_f.into(),
+            g: label_g.into(),
+            h: label_h.into(),
+        });
         self
     }
 }

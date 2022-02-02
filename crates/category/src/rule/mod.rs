@@ -1,11 +1,15 @@
 mod apply;
+mod builder;
 pub mod constraint;
-mod find;
+pub mod find;
 mod init;
+pub mod axioms;
 
 use super::*;
 
+pub use builder::*;
 use constraint::*;
+pub use init::*;
 
 pub struct Rule<L: Label> {
     statement: RuleStatement<L>,
@@ -19,10 +23,6 @@ pub enum RuleConstruction<L: Label> {
 }
 
 pub type Constraints<L> = Vec<Constraint<L>>;
-
-pub trait Label: std::hash::Hash + Eq + Clone {}
-
-impl<T: std::hash::Hash + Eq + Clone> Label for T {}
 
 pub enum Constraint<L: Label> {
     /// Require an object to exist

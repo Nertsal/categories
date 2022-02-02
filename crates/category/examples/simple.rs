@@ -17,6 +17,10 @@ fn main() {
     });
 
     print_category_state(&category);
+
+    category.apply_rule(&axioms::rule_identity::<String>().unwrap());
+
+    print_category_state(&category);
 }
 
 fn print_category_state(category: &Category) {

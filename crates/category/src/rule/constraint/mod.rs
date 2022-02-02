@@ -1,14 +1,15 @@
 use super::*;
 
+mod builder;
 mod commute;
 mod equality;
 mod morphism;
 mod object;
 mod util;
-mod builder;
 
-pub use commute::*;
-pub use equality::*;
-pub use morphism::*;
-pub use object::*;
+pub use builder::*;
+pub(crate) use commute::*;
+pub(crate) use equality::*;
+pub(crate) use morphism::*;
+pub(crate) use object::*;
 use util::*;

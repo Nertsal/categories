@@ -13,6 +13,7 @@ pub struct Morphism<T> {
 pub enum MorphismTag<O = ObjectId, M = MorphismId> {
     Identity(O),
     Unique,
+    Composition { first: M, second: M },
     Isomorphism(M, M),
 }
 

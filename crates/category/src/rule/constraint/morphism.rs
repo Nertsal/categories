@@ -105,6 +105,20 @@ fn tag_matches<L: Label>(
         }
         (MorphismTag::Identity(_), _) => None,
         (
+            MorphismTag::Composition {
+                first: constraint_first,
+                second: constraint_second,
+            },
+            &MorphismTag::Composition { first, second },
+        ) => constraint_ordered(
+            vec![constraint_first, constraint_second]
+                .into_iter()
+                .map(|label| (label.clone(), bindings.get_morphism(label))),
+            vec![first, second],
+        )
+        .map(|binds| Bindings::from_morphisms(binds)),
+        (MorphismTag::Composition { .. }, _) => None,
+        (
             MorphismTag::Isomorphism(constraint_f, constraint_g),
             &MorphismTag::Isomorphism(morphism_f, morphism_g),
         ) => constraint_ordered(
