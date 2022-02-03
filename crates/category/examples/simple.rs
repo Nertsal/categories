@@ -1,15 +1,11 @@
 use category::*;
 
 fn main() {
-    let mut category = Category::new();
-    let a = category.new_object(Object { tags: vec![] });
-    let b = category.new_object(Object { tags: vec![] });
-    let f = category
-        .new_morphism(Morphism {
-            connection: MorphismConnection::Regular { from: a, to: b },
-            tags: vec![],
-        })
-        .unwrap();
+    let category = CategoryBuilder::new()
+        .object("A", vec![]) // Object A
+        .object("B", vec![]) // Object B
+        .morphism("f", "A", "B", vec![]) // Morphism f A->B
+        .build();
 
     print_category_state(&category);
 

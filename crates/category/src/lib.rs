@@ -1,5 +1,6 @@
 mod action;
 mod bindings;
+mod builder;
 mod category;
 mod equalities;
 mod label;
@@ -10,6 +11,7 @@ mod tag;
 
 pub use action::*;
 pub use bindings::*;
+pub use builder::*;
 use category::*;
 pub use equalities::*;
 use label::*;

@@ -17,6 +17,7 @@ pub struct Rule<L: Label> {
 
 pub type RuleStatement<L> = Vec<RuleConstruction<L>>;
 
+#[derive(Debug, Clone)]
 pub enum RuleConstruction<L: Label> {
     Forall(Constraints<L>),
     Exists(Constraints<L>),
@@ -24,6 +25,7 @@ pub enum RuleConstruction<L: Label> {
 
 pub type Constraints<L> = Vec<Constraint<L>>;
 
+#[derive(Debug, Clone)]
 pub enum Constraint<L: Label> {
     /// Require an object to exist
     Object { label: L, tags: Vec<ObjectTag<L>> },
