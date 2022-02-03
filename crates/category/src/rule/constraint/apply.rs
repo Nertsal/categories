@@ -1,11 +1,11 @@
 use super::*;
 
 /// Applies the rule constraints to the graph.
-pub fn apply_constraints<O, M, L: Label>(
-    category: &mut Category<O, M>,
+pub fn apply_constraints<L: Label>(
+    category: &mut Category,
     constraints: &Constraints<L>,
     bindings: &Bindings<L>,
-) -> (Vec<Action<O, M>>, Bindings<L>) {
+) -> (Vec<Action>, Bindings<L>) {
     let mut bindings = bindings.clone();
 
     let mut constrained_vertices = Vec::new();
@@ -49,10 +49,7 @@ pub fn apply_constraints<O, M, L: Label>(
         if let Some(_) = bindings.get_object(label) {
             // TODO: possibly need to add a tag
         } else {
-            new_vertices.push(Object {
-                tags,
-                inner: todo!(),
-            });
+            new_vertices.push(Object { tags });
             new_vertices_names.push(label.clone());
         }
     }
@@ -95,11 +92,7 @@ pub fn apply_constraints<O, M, L: Label>(
         if let Some(_) = bindings.get_morphism(label) {
             // TODO: possibly add a tag
         } else {
-            new_edges.push(Morphism {
-                connection,
-                tags,
-                inner: todo!(),
-            });
+            new_edges.push(Morphism { connection, tags });
             new_edges_names.push(label.clone());
         }
     }
@@ -139,11 +132,11 @@ pub fn apply_constraints<O, M, L: Label>(
     (action_history, bindings)
 }
 
-fn create_vertices<O, M, L: Label>(
-    category: &mut Category<O, M>,
+fn create_vertices<L: Label>(
+    category: &mut Category,
     bindings: &mut Bindings<L>,
-    action_history: &mut Vec<Action<O, M>>,
-    new_vertices: Vec<Object<O>>,
+    action_history: &mut Vec<Action>,
+    new_vertices: Vec<Object>,
     new_vertices_names: Vec<L>,
 ) -> Vec<ObjectId> {
     let actions = action::action_do(category, Action::NewObjects(new_vertices));
@@ -163,21 +156,18 @@ fn create_vertices<O, M, L: Label>(
     new_vertices
 }
 
-fn get_object_or_new<O, M, L: Label>(
+fn get_object_or_new<L: Label>(
     label: &L,
-    category: &mut Category<O, M>,
+    category: &mut Category,
     bindings: &mut Bindings<L>,
-    action_history: &mut Vec<Action<O, M>>,
+    action_history: &mut Vec<Action>,
 ) -> ObjectId {
     bindings.get_object(label).unwrap_or_else(|| {
         create_vertices(
             category,
             bindings,
             action_history,
-            vec![Object {
-                tags: vec![],
-                inner: todo!(),
-            }],
+            vec![Object { tags: vec![] }],
             vec![label.clone()],
         )[0]
     })

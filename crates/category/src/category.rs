@@ -1,12 +1,12 @@
 use super::*;
 
-pub struct Category<O, M> {
-    pub objects: Objects<O>,
-    pub morphisms: Morphisms<M>,
+pub struct Category {
+    pub objects: Objects,
+    pub morphisms: Morphisms,
     pub equalities: Equalities,
 }
 
-impl<O, M> Category<O, M> {
+impl Category {
     pub fn new() -> Self {
         Self {
             objects: Objects::new(),
@@ -15,13 +15,13 @@ impl<O, M> Category<O, M> {
         }
     }
 
-    pub fn new_object(&mut self, object: Object<O>) -> ObjectId {
+    pub fn new_object(&mut self, object: Object) -> ObjectId {
         self.objects.new_object(object)
     }
 
     /// Adds a new morphism to the graph.
     /// Returns None if the graph does not contain any of the vertices.
-    pub fn new_morphism(&mut self, morphism: Morphism<M>) -> Option<MorphismId> {
+    pub fn new_morphism(&mut self, morphism: Morphism) -> Option<MorphismId> {
         let end_points = morphism.connection.end_points();
         if !self.objects.contains(end_points[0]) || !self.objects.contains(end_points[1]) {
             return None;
@@ -31,17 +31,17 @@ impl<O, M> Category<O, M> {
 
     pub fn insert_object(
         &mut self,
-        object: Object<O>,
+        object: Object,
         object_id: ObjectId,
-    ) -> Result<Option<Object<O>>, ()> {
+    ) -> Result<Option<Object>, ()> {
         self.objects.insert(object, object_id)
     }
 
     pub fn insert_morphism(
         &mut self,
-        morphism: Morphism<M>,
+        morphism: Morphism,
         morphism_id: MorphismId,
-    ) -> Result<Option<Morphism<M>>, ()> {
+    ) -> Result<Option<Morphism>, ()> {
         self.morphisms.insert(morphism, morphism_id)
     }
 
@@ -49,7 +49,7 @@ impl<O, M> Category<O, M> {
     pub fn remove_object(
         &mut self,
         object_id: ObjectId,
-    ) -> Option<(Object<O>, Vec<(MorphismId, Morphism<M>)>)> {
+    ) -> Option<(Object, Vec<(MorphismId, Morphism)>)> {
         self.objects.remove(&object_id).map(|object| {
             let removes: Vec<_> = self
                 .morphisms
@@ -66,7 +66,7 @@ impl<O, M> Category<O, M> {
     }
 
     /// Removes the morphism from the graph.
-    pub fn remove_morphism(&mut self, morphism_id: MorphismId) -> Option<Morphism<M>> {
+    pub fn remove_morphism(&mut self, morphism_id: MorphismId) -> Option<Morphism> {
         self.morphisms.remove(&morphism_id)
     }
 

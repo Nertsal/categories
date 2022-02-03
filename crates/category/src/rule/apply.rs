@@ -1,11 +1,11 @@
 use super::*;
 
-impl<O, M> Category<O, M> {
+impl Category {
     pub fn apply_rule<L: Label>(
         &mut self,
         rule: &Rule<L>,
         bindings: Bindings<L>,
-    ) -> (Vec<Action<O, M>>, bool) {
+    ) -> (Vec<Action>, bool) {
         self.apply_impl(rule.get_statement(), bindings)
     }
 
@@ -13,7 +13,7 @@ impl<O, M> Category<O, M> {
         &mut self,
         statement: &[RuleConstruction<L>],
         bindings: Bindings<L>,
-    ) -> (Vec<Action<O, M>>, bool) {
+    ) -> (Vec<Action>, bool) {
         let construction = match statement.first() {
             Some(construction) => construction,
             None => return (Vec::new(), false),

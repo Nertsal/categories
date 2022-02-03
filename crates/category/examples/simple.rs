@@ -2,18 +2,11 @@ use category::*;
 
 fn main() {
     let mut category = Category::new();
-    let a = category.new_object(Object {
-        tags: vec![],
-        inner: (),
-    });
-    let b = category.new_object(Object {
-        tags: vec![],
-        inner: (),
-    });
+    let a = category.new_object(Object { tags: vec![] });
+    let b = category.new_object(Object { tags: vec![] });
     category.new_morphism(Morphism {
         connection: MorphismConnection::Regular { from: a, to: b },
         tags: vec![],
-        inner: (),
     });
 
     print_category_state(&category);
@@ -23,7 +16,7 @@ fn main() {
     print_category_state(&category);
 }
 
-fn print_category_state(category: &Category<(), ()>) {
+fn print_category_state(category: &Category) {
     println!("Objects: ");
     for (id, object) in category.objects.iter() {
         println!(" {id:?} - {:?}", object);

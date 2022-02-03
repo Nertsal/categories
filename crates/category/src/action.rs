@@ -1,9 +1,9 @@
 use super::*;
 
 #[derive(Debug, Clone)]
-pub enum Action<O, M> {
-    NewObjects(Vec<Object<O>>),
-    NewMorphisms(Vec<Morphism<M>>),
+pub enum Action {
+    NewObjects(Vec<Object>),
+    NewMorphisms(Vec<Morphism>),
     RemoveObjects(Vec<ObjectId>),
     RemoveMorphisms(Vec<MorphismId>),
     NewEqualities(Vec<(MorphismId, MorphismId)>),
@@ -11,10 +11,7 @@ pub enum Action<O, M> {
 }
 
 /// Perform the action and returns the inverse action that can be used to undo the action.
-pub fn action_do<O, M>(
-    category: &mut Category<O, M>,
-    action_do: Action<O, M>,
-) -> Vec<Action<O, M>> {
+pub fn action_do(category: &mut Category, action_do: Action) -> Vec<Action> {
     match action_do {
         Action::NewObjects(objects) => {
             let objects = objects

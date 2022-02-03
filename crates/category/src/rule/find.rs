@@ -1,10 +1,10 @@
 use super::*;
 
 /// Returns `None` if there are no constraints.
-pub fn find_candidates<'a, O, M, L: Label>(
+pub fn find_candidates<'a, L: Label>(
     constraints: &'a [Constraint<L>],
     bindings: &'a Bindings<L>,
-    category: &'a Category<O, M>,
+    category: &'a Category,
 ) -> Option<Box<dyn Iterator<Item = Bindings<L>> + 'a>> {
     let constraint = match constraints.first() {
         Some(constraint) => constraint,
@@ -46,11 +46,11 @@ pub fn find_candidates<'a, O, M, L: Label>(
     Some(binds)
 }
 
-fn process<'a, O, M, L: Label>(
+fn process<'a, L: Label>(
     new_binds: impl Iterator<Item = Bindings<L>> + 'a,
     constraints: &'a [Constraint<L>],
     bindings: &'a Bindings<L>,
-    category: &'a Category<O, M>,
+    category: &'a Category,
 ) -> impl Iterator<Item = Bindings<L>> + 'a {
     new_binds.flat_map(|binds| {
         let mut old_binds = binds.clone();

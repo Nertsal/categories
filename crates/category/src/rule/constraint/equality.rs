@@ -1,10 +1,10 @@
 use super::*;
 
-pub fn constraint_equality<'a, O, M, L: Label>(
+pub fn constraint_equality<'a, L: Label>(
     morphism_f: &'a L,
     morphism_g: &'a L,
     bindings: &'a Bindings<L>,
-    category: &'a Category<O, M>,
+    category: &'a Category,
 ) -> Box<dyn Iterator<Item = Bindings<L>> + 'a> {
     match (
         bindings.get_morphism(morphism_f),
