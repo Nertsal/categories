@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Morphism<T> {
     pub connection: MorphismConnection,
     pub tags: Vec<MorphismTag>,

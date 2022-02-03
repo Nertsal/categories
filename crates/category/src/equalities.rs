@@ -39,6 +39,14 @@ impl Equalities {
         self.commutes.contains(&Commute { f, g, h })
     }
 
+    pub fn remove_equality(&mut self, f: MorphismId, g: MorphismId) -> bool {
+        self.equalities.remove(&(f, g)) || self.equalities.remove(&(g, f))
+    }
+
+    pub fn remove_commute(&mut self, f: MorphismId, g: MorphismId, h: MorphismId) -> bool {
+        self.commutes.remove(&Commute { f, g, h })
+    }
+
     pub fn all_equalities<'a>(&'a self) -> impl Iterator<Item = (MorphismId, MorphismId)> + 'a {
         self.equalities.iter().copied()
     }

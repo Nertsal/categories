@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object<T> {
     pub tags: Vec<ObjectTag>,
     pub inner: T,

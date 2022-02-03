@@ -1,6 +1,6 @@
 use super::*;
 
-pub struct Category<O = (), M = ()> {
+pub struct Category<O, M> {
     pub objects: Objects<O>,
     pub morphisms: Morphisms<M>,
     pub equalities: Equalities,

@@ -1,9 +1,9 @@
 mod apply;
+pub mod axioms;
 mod builder;
 pub mod constraint;
 pub mod find;
 mod init;
-pub mod axioms;
 
 use super::*;
 
@@ -37,4 +37,22 @@ pub enum Constraint<L: Label> {
     Equality(L, L),
     /// Require a triangle to commute, meaning that: g . f = h
     Commute { f: L, g: L, h: L },
+}
+
+impl<L: Label> Rule<L> {
+    pub fn get_statement(&self) -> &RuleStatement<L> {
+        &self.statement
+    }
+
+    pub fn get_input(&self) -> &Constraints<L> {
+        match self
+            .statement
+            .first()
+            .expect("A rule is expected to be checked for validity during creation")
+        {
+            RuleConstruction::Forall(constraints) | RuleConstruction::Exists(constraints) => {
+                constraints
+            }
+        }
+    }
 }
