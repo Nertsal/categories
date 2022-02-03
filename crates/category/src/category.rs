@@ -1,5 +1,11 @@
 use super::*;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CategoryThing {
+    Object { id: ObjectId },
+    Morphism { id: MorphismId },
+}
+
 pub struct Category {
     pub objects: Objects,
     pub morphisms: Morphisms,
