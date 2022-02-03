@@ -6,9 +6,9 @@ impl GameState {
         self.focus(self.geng.window().cursor_position());
 
         // Apply forces to objects/morphisms
-        for category in vec![&mut self.fact_category, &mut self.goal_category]
+        for category in vec![&mut self.fact_category.inner, &mut self.goal_category.inner]
             .into_iter()
-            .chain(self.rules.iter_mut().map(|rule| rule.get_category_mut()))
+            .chain(self.rules.iter_mut().map(|rule| &mut rule.category.inner))
         {
             update_category(category, delta_time);
         }
@@ -55,7 +55,7 @@ impl<'a> force_graph::PhysicsBody for PhysicsBody<'a> {
     }
 }
 
-fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
+fn bodies_collection<'a>(category: &'a mut CategoryWrapper) -> BodiesCollection<'a> {
     let mut bodies = BodiesCollection::new();
     for (&id, object) in category.objects.iter_mut() {
         bodies.insert(
@@ -71,10 +71,9 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
     for (&id, morphism) in category.morphisms.iter_mut() {
         bodies.extend(
             morphism
-                .inner
                 .positions
                 .iter_mut()
-                .zip(morphism.inner.velocities.iter_mut())
+                .zip(morphism.velocities.iter_mut())
                 .enumerate()
                 .map(|(index, (position, velocity))| {
                     (
@@ -92,7 +91,7 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
     bodies
 }
 
-fn connections(category: &Category) -> Connections {
+fn connections(category: &CategoryWrapper) -> Connections {
     let mut connections = Connections::new();
 
     for (&id, _) in category
@@ -101,6 +100,7 @@ fn connections(category: &Category) -> Connections {
         .filter(|(_, object)| !object.is_anchor)
     {
         let neighbours = category
+            .inner
             .neighbours(id)
             .map(|id| BodyId::Object { id })
             .collect();
@@ -108,13 +108,10 @@ fn connections(category: &Category) -> Connections {
     }
 
     for (&id, morphism) in category.morphisms.iter() {
-        let parts = morphism
-            .inner
-            .positions
-            .len()
-            .min(morphism.inner.velocities.len());
+        let parts = morphism.positions.len().min(morphism.velocities.len());
 
-        let (from, to) = match morphism.connection {
+        // TODO: better error handling?
+        let (from, to) = match category.inner.morphisms.get(&id).unwrap().connection {
             MorphismConnection::Regular { from, to } => (from, to),
             MorphismConnection::Isomorphism(a, b) => (a, b),
         };
@@ -156,8 +153,8 @@ fn connections(category: &Category) -> Connections {
     connections
 }
 
-fn update_category(category: &mut RenderableCategory, delta_time: f32) {
-    let connections = connections(&category.inner);
-    let mut bodies = bodies_collection(&mut category.inner);
+fn update_category(category: &mut CategoryWrapper, delta_time: f32) {
+    let connections = connections(&category);
+    let mut bodies = bodies_collection(category);
     force_graph::apply_forces(&default(), delta_time, &mut bodies, &connections)
 }

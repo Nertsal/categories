@@ -1,47 +1,30 @@
+use ::category::CategoryBuilder;
+
 use super::*;
 
-pub fn fact_category() -> Category {
-    CategoryBuilder::new()
-        .object("A", None, Color::WHITE, false)
-        .object("B", None, Color::WHITE, false)
-        .object("C", None, Color::WHITE, false)
+pub fn fact_category() -> ::category::types::Category {
+    CategoryBuilder::<Label>::new()
+        .object("A", vec![])
+        .object("B", vec![])
+        .object("C", vec![])
         .build()
 }
 
-pub fn goal_category() -> Category {
-    CategoryBuilder::new()
-        .object("A", None, Color::WHITE, false)
-        .object("B", None, Color::WHITE, false)
-        .object("C", None, Color::WHITE, false)
-        .object(
-            "AxB",
-            Some(ObjectTag::Product("A".into(), "B".into())),
-            Color::WHITE,
-            false,
-        )
-        .object(
-            "BxC",
-            Some(ObjectTag::Product("B".into(), "C".into())),
-            Color::WHITE,
-            false,
-        )
+pub fn goal_category() -> ::category::types::Category {
+    CategoryBuilder::<Label>::new()
+        .object("A", vec![])
+        .object("B", vec![])
+        .object("C", vec![])
+        .object("AxB", vec![ObjectTag::Product("A".into(), "B".into())])
+        .object("BxC", vec![ObjectTag::Product("B".into(), "C".into())])
         .object(
             "(AxB)xC",
-            Some(ObjectTag::Product("AxB".into(), "C".into())),
-            Color::WHITE,
-            false,
+            vec![ObjectTag::Product("AxB".into(), "C".into())],
         )
         .object(
             "Ax(BxC)",
-            Some(ObjectTag::Product("A".into(), "BxC".into())),
-            Color::WHITE,
-            false,
+            vec![ObjectTag::Product("A".into(), "BxC".into())],
         )
-        .isomorphism(
-            Label::Unknown,
-            "Ax(BxC)",
-            "(AxB)xC",
-            Some(MorphismTag::Isomorphism(Label::Unknown, Label::Unknown)),
-        )
+        .isomorphism("", "Ax(BxC)", "(AxB)xC", vec![])
         .build()
 }

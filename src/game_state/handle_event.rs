@@ -16,7 +16,6 @@ impl GameState {
                             let object = self
                                 .get_category_mut(&category)
                                 .unwrap()
-                                .inner
                                 .objects
                                 .get_mut(&id)
                                 .unwrap();
@@ -30,7 +29,8 @@ impl GameState {
                     self.goal_selection = None;
                 }
                 geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
-                    self.action_undo();
+                    todo!()
+                    // self.action_undo();
                 }
                 _ => (),
             },
@@ -169,7 +169,7 @@ impl GameState {
                 let focused_category = self.focused_category;
                 self.world_to_category(&focused_category, world_pos).map(
                     |(category, local_pos, _)| {
-                        selection::objects_under_point(&category.inner, local_pos)
+                        selection::objects_under_point(category, local_pos)
                             .next()
                             .map(|(&id, _)| DragAction::Move {
                                 target: DragTarget::Vertex {
@@ -179,7 +179,7 @@ impl GameState {
                             })
                             .or_else(|| {
                                 // Drag edge
-                                selection::morphisms_under_point(&category.inner, local_pos)
+                                selection::morphisms_under_point(&category, local_pos)
                                     .next()
                                     .map(|(&id, _)| DragAction::Move {
                                         target: DragTarget::Edge {
@@ -246,7 +246,7 @@ impl GameState {
                         &mut DragTarget::Vertex { category, id } => self
                             .world_to_category(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
-                                category.inner.objects.get_mut(&id).map(|object| {
+                                category.objects.get_mut(&id).map(|object| {
                                     object.position = local_pos.clamp_aabb(local_aabb);
                                 })
                             })
@@ -254,8 +254,8 @@ impl GameState {
                         &mut DragTarget::Edge { category, id } => self
                             .world_to_category(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
-                                category.inner.morphisms.get_mut(&id).map(|morphism| {
-                                    let positions = &mut morphism.inner.positions;
+                                category.morphisms.get_mut(&id).map(|morphism| {
+                                    let positions = &mut morphism.positions;
                                     let center = positions.len() / 2;
                                     if let Some(pos) = positions.get_mut(center) {
                                         *pos = local_pos.clamp_aabb(local_aabb);
@@ -286,15 +286,13 @@ impl GameState {
                         // Select rule
                         if let &FocusedCategory::Rule { index } = &self.focused_category {
                             let main_selection = RuleSelection::new(
-                                &self.fact_category.inner,
-                                &self.fact_category.equalities,
+                                &self.fact_category.inner.inner,
                                 index,
                                 &self.rules,
                                 false,
                             );
                             let goal_selection = RuleSelection::new(
-                                &self.goal_category.inner,
-                                &self.goal_category.equalities,
+                                &self.goal_category.inner.inner,
                                 index,
                                 &self.rules,
                                 true,
@@ -304,7 +302,8 @@ impl GameState {
                                     self.main_selection = Some(main_selection);
                                 }
                                 None => {
-                                    self.apply_rule(FocusedCategory::Fact, main_selection);
+                                    todo!()
+                                    // self.apply_rule(FocusedCategory::Fact, main_selection);
                                 }
                             }
                             match goal_selection.current() {
@@ -312,7 +311,8 @@ impl GameState {
                                     self.goal_selection = Some(goal_selection);
                                 }
                                 None => {
-                                    self.apply_rule(FocusedCategory::Goal, goal_selection);
+                                    todo!()
+                                    // self.apply_rule(FocusedCategory::Goal, goal_selection);
                                 }
                             }
                         }
@@ -334,22 +334,18 @@ impl GameState {
                             _ => None,
                         };
 
-                        if let Some((focused_graph, selected)) = selected {
-                            let selection = match focused_graph {
+                        if let Some((focused_category, selected)) = selected {
+                            let selection = match focused_category {
                                 FocusedCategory::Rule { .. } => None,
-                                FocusedCategory::Fact => Some((
-                                    &self.fact_category.inner,
-                                    &self.fact_category.equalities,
-                                    &mut self.main_selection,
-                                )),
-                                FocusedCategory::Goal => Some((
-                                    &self.goal_category.inner,
-                                    &self.goal_category.equalities,
-                                    &mut self.goal_selection,
-                                )),
+                                FocusedCategory::Fact => {
+                                    Some((&self.fact_category.inner, &mut self.main_selection))
+                                }
+                                FocusedCategory::Goal => {
+                                    Some((&self.goal_category.inner, &mut self.goal_selection))
+                                }
                             };
 
-                            if let Some((graph, equalities, selection)) = selection {
+                            if let Some((category, selection)) = selection {
                                 match selection
                                     .as_ref()
                                     .and_then(|selection| selection.inferred_options().as_ref())
@@ -359,11 +355,12 @@ impl GameState {
                                             && selection
                                                 .as_mut()
                                                 .unwrap()
-                                                .select(graph, equalities, selected, &self.rules)
+                                                .select(&category.inner, selected, &self.rules)
                                                 .is_none()
                                         {
                                             let selection = selection.take().unwrap();
-                                            self.apply_rule(focused_graph, selection);
+                                            todo!()
+                                            // self.apply_rule(focused_category, selection);
                                         }
                                     }
                                     None => {

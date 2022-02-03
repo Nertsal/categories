@@ -1,23 +1,22 @@
 use super::*;
 
+pub struct RenderableRule {
+    pub inner: Rule,
+    pub category: RenderableCategory,
+}
+
 pub struct RenderableCategory {
     geng: Geng,
     assets: Rc<Assets>,
-    pub inner: Category,
-    pub equalities: Equalities,
+    pub inner: CategoryWrapper,
     pub camera: Camera2d,
     pub texture: ugli::Texture,
     pub texture_size: Vec2<usize>,
 }
 
 impl RenderableCategory {
-    pub fn new(
-        geng: &Geng,
-        assets: &Rc<Assets>,
-        category: Category,
-        equalities: Equalities,
-        texture_size: Vec2<usize>,
-    ) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>, category: Category) -> Self {
+        let texture_size = vec2(1, 1);
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
@@ -27,10 +26,13 @@ impl RenderableCategory {
                 fov: 50.0,
             },
             texture: ugli::Texture::new_with(geng.ugli(), texture_size, |_| Color::BLACK),
+            inner: CategoryWrapper::new(category),
             texture_size,
-            inner: category,
-            equalities,
         }
+    }
+
+    pub fn from_rule(geng: &Geng, assets: &Rc<Assets>, rule: &Rule) -> Self {
+        Self::new(geng, assets, todo!())
     }
 
     pub fn resize_texture(&mut self, new_size: Vec2<usize>) {
@@ -56,7 +58,6 @@ impl RenderableCategory {
             &mut temp_framebuffer,
             &self.camera,
             &self.inner,
-            &self.equalities,
             background_color,
             selection,
         );

@@ -6,7 +6,7 @@ impl GameState {
         focused_category: &FocusedCategory,
     ) -> Option<&RenderableCategory> {
         match focused_category {
-            FocusedCategory::Rule { index } => self.rules.get(*index).map(|rule| rule.graph()),
+            FocusedCategory::Rule { index } => self.rules.get(*index).map(|rule| &rule.category),
             FocusedCategory::Fact => Some(&self.fact_category),
             FocusedCategory::Goal => Some(&self.goal_category),
         }
@@ -17,10 +17,9 @@ impl GameState {
         focused_category: &FocusedCategory,
     ) -> Option<&mut RenderableCategory> {
         match focused_category {
-            FocusedCategory::Rule { index } => self
-                .rules
-                .get_mut(*index)
-                .map(|rule| rule.get_category_mut()),
+            FocusedCategory::Rule { index } => {
+                self.rules.get_mut(*index).map(|rule| &mut rule.category)
+            }
             FocusedCategory::Fact => Some(&mut self.fact_category),
             FocusedCategory::Goal => Some(&mut self.goal_category),
         }
@@ -31,7 +30,7 @@ impl GameState {
         &mut self,
         category: &FocusedCategory,
         world_pos: Vec2<f32>,
-    ) -> Option<(&mut RenderableCategory, Vec2<f32>, AABB<f32>)> {
+    ) -> Option<(&mut CategoryWrapper, Vec2<f32>, AABB<f32>)> {
         self.world_to_category_pos(category, world_pos)
             .and_then(|(_, graph_pos, aabb)| {
                 self.get_category_mut(category)
@@ -49,7 +48,7 @@ impl GameState {
         self.state.get_graph_layout(category).map(|aabb| {
             let (framebuffer_size, camera) = match category {
                 FocusedCategory::Rule { index } => {
-                    let category = self.rules[*index].graph(); // The rule is guaranteed to exist, for there exists a layout
+                    let category = &self.rules[*index].category; // The rule is guaranteed to exist, for there exists a layout
                     (category.texture_size.map(|x| x as f32), &category.camera)
                 }
                 FocusedCategory::Fact => (
@@ -71,17 +70,14 @@ impl GameState {
         })
     }
 
-    pub fn get_category_mut(
-        &mut self,
-        category: &FocusedCategory,
-    ) -> Option<&mut RenderableCategory> {
+    pub fn get_category_mut(&mut self, category: &FocusedCategory) -> Option<&mut CategoryWrapper> {
         match category {
             FocusedCategory::Rule { index } => self
                 .rules
                 .get_mut(*index)
-                .map(|rule| rule.get_category_mut()),
-            FocusedCategory::Fact => Some(&mut self.fact_category),
-            FocusedCategory::Goal => Some(&mut self.goal_category),
+                .map(|rule| &mut rule.category.inner),
+            FocusedCategory::Fact => Some(&mut self.fact_category.inner),
+            FocusedCategory::Goal => Some(&mut self.goal_category.inner),
         }
     }
 
@@ -92,7 +88,7 @@ impl GameState {
     ) -> Option<(&mut Camera2d, Vec2<usize>)> {
         match category {
             FocusedCategory::Rule { index } => self.rules.get_mut(*index).map(|rule| {
-                let category = rule.get_category_mut();
+                let category = &mut rule.category;
                 (&mut category.camera, category.texture_size)
             }),
             FocusedCategory::Fact => Some((

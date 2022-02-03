@@ -16,8 +16,7 @@ pub fn draw_category(
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    category: &Category,
-    equalities: &Equalities,
+    category: &CategoryWrapper,
     background_color: Color<f32>,
     selection: Option<&Vec<CategoryThing>>,
 ) {
@@ -38,7 +37,9 @@ pub fn draw_category(
     }
 
     // Morphisms
-    for (id, morphism) in category.morphisms.iter() {
+    for (id, arrow) in category.morphisms.iter() {
+        // TODO: better error handling?
+        let morphism = category.inner.morphisms.get(id).unwrap();
         draw_morphism(
             geng,
             font,
@@ -47,6 +48,7 @@ pub fn draw_category(
             camera,
             background_color,
             category,
+            arrow,
             morphism,
             selected_edges.contains(id),
         );
@@ -70,12 +72,16 @@ pub fn draw_category(
     let offset = vec2(height / 2.0, height / 2.0);
 
     // Equalities
-    for (i, equality) in equalities.iter().enumerate() {
+    for (i, equality) in category.inner.equalities.all_equalities().enumerate() {
         let pos = framebuffer_size - offset - vec2(0.0, i as f32 * height * 1.5);
 
-        let get = |edge| match &category.morphisms.get(edge).unwrap().inner.label {
-            Label::Name(name) => name.to_owned(),
-            Label::Unknown => format!("[{}]", edge.raw()),
+        let get = |edge| {
+            let label = &category.morphisms.get(edge).unwrap().label;
+            if label.is_empty() {
+                format!("[{}]", edge.raw())
+            } else {
+                label.to_owned()
+            }
         };
 
         let text = format!("{} = {}", get(&equality.0), get(&equality.1));
@@ -92,7 +98,7 @@ fn draw_object(
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    object: &Object,
+    object: &Point,
     background_color: Color<f32>,
     is_selected: bool,
 ) {
@@ -124,14 +130,12 @@ fn draw_object(
     .draw_2d(geng, framebuffer, camera);
 
     // Label
-    if let Label::Name(label) = &object.label {
-        draw_2d::Text::unit(font.clone(), label.to_owned(), object.color)
-            .fit_into(Ellipse::circle(
-                object.position,
-                (object.radius - POINT_OUTLINE_WIDTH) * 0.8,
-            ))
-            .draw_2d(geng, framebuffer, camera);
-    }
+    draw_2d::Text::unit(font.clone(), object.label.to_owned(), object.color)
+        .fit_into(Ellipse::circle(
+            object.position,
+            (object.radius - POINT_OUTLINE_WIDTH) * 0.8,
+        ))
+        .draw_2d(geng, framebuffer, camera);
 }
 
 fn draw_morphism(
@@ -141,7 +145,8 @@ fn draw_morphism(
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     background_color: Color<f32>,
-    category: &Category,
+    category: &CategoryWrapper,
+    arrow: &Arrow,
     morphism: &Morphism,
     is_selected: bool,
 ) {
@@ -170,14 +175,13 @@ fn draw_morphism(
     let end = to.position;
 
     // Line body
-    let chain = if morphism.inner.positions.len() == 1 {
-        Trajectory::parabola([start, morphism.inner.positions[0], end], -1.0..=1.0)
-            .chain(CURVE_RESOLUTION)
-    } else if morphism.inner.positions.len() > 1 {
+    let chain = if arrow.positions.len() == 1 {
+        Trajectory::parabola([start, arrow.positions[0], end], -1.0..=1.0).chain(CURVE_RESOLUTION)
+    } else if arrow.positions.len() > 1 {
         CardinalSpline::new(
             {
                 let mut bodies = vec![start];
-                bodies.extend(morphism.inner.positions.iter().copied());
+                bodies.extend(arrow.positions.iter().copied());
                 bodies.push(end);
                 bodies
             },
@@ -226,25 +230,13 @@ fn draw_morphism(
     let head_direction = end - *chain.vertices.last().unwrap();
 
     if morphism
-        .inner
-        .tag
+        .tags
         .iter()
         .any(|tag| matches!(tag, MorphismTag::Unique))
     {
-        draw_dashed_chain(
-            geng,
-            framebuffer,
-            camera,
-            &chain,
-            ARROW_WIDTH,
-            morphism.inner.color,
-        );
+        draw_dashed_chain(geng, framebuffer, camera, &chain, ARROW_WIDTH, arrow.color);
     } else {
-        draw_2d::Chain::new(chain, ARROW_WIDTH, morphism.inner.color, 1).draw_2d(
-            geng,
-            framebuffer,
-            camera,
-        );
+        draw_2d::Chain::new(chain, ARROW_WIDTH, arrow.color, 1).draw_2d(geng, framebuffer, camera);
     }
 
     // Line head
@@ -261,26 +253,20 @@ fn draw_morphism(
                 head + head_width,
                 head - head_width,
             ],
-            morphism.inner.color,
+            arrow.color,
         )
         .draw_2d(geng, framebuffer, camera)
     }
 
-    if let Some(&center) = morphism
-        .inner
-        .positions
-        .get(morphism.inner.positions.len() / 2)
-    {
+    if let Some(&center) = arrow.positions.get(arrow.positions.len() / 2) {
         // Label
-        if let Label::Name(label) = &morphism.inner.label {
-            draw_2d::Text::unit(font.clone(), label.to_owned(), Color::GRAY)
-                .fit_into(AABB::point(center).extend_uniform(ARROW_LABEL_FONT_SIZE))
-                .draw_2d(geng, framebuffer, camera);
-        }
+        draw_2d::Text::unit(font.clone(), arrow.label.to_owned(), Color::GRAY)
+            .fit_into(AABB::point(center).extend_uniform(ARROW_LABEL_FONT_SIZE))
+            .draw_2d(geng, framebuffer, camera);
 
         // Isomorphism
         if isomorphism {
-            draw_2d::Ellipse::circle(center, ARROW_ICON_RADIUS, morphism.inner.color).draw_2d(
+            draw_2d::Ellipse::circle(center, ARROW_ICON_RADIUS, arrow.color).draw_2d(
                 geng,
                 framebuffer,
                 camera,
@@ -295,7 +281,7 @@ fn draw_morphism(
             draw_2d::TexturedQuad::colored(
                 AABB::point(center).extend_uniform(ARROW_ICON_RADIUS),
                 &assets.isomorphism,
-                morphism.inner.color,
+                arrow.color,
             )
             .draw_2d(geng, framebuffer, camera);
         }

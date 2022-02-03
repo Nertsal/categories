@@ -1,9 +1,9 @@
 use super::*;
 
 pub fn objects_under_point(
-    category: &Category,
+    category: &CategoryWrapper,
     position: Vec2<f32>,
-) -> impl Iterator<Item = (&ObjectId, &Object)> {
+) -> impl Iterator<Item = (&ObjectId, &Point)> {
     category
         .objects
         .iter()
@@ -11,9 +11,9 @@ pub fn objects_under_point(
 }
 
 pub fn morphisms_under_point(
-    category: &Category,
+    category: &CategoryWrapper,
     position: Vec2<f32>,
-) -> impl Iterator<Item = (&MorphismId, &Morphism)> {
+) -> impl Iterator<Item = (&MorphismId, &Arrow)> {
     morphisms_points(category)
         .filter(move |(_, _, points)| {
             points
@@ -27,10 +27,14 @@ pub fn morphisms_under_point(
 }
 
 fn morphisms_points(
-    category: &Category,
-) -> impl Iterator<Item = (&MorphismId, &Morphism, Vec<Vec2<f32>>)> {
+    category: &CategoryWrapper,
+) -> impl Iterator<Item = (&MorphismId, &Arrow, Vec<Vec2<f32>>)> {
     category.morphisms.iter().filter_map(|(id, morphism)| {
-        let [object_a, object_b] = morphism
+        let [object_a, object_b] = category
+            .inner
+            .morphisms
+            .get(id)
+            .unwrap() // TODO: better error handling?
             .connection
             .end_points()
             .map(|id| category.objects.get(id));
@@ -40,9 +44,9 @@ fn morphisms_points(
                 object_b
                     .map(|object_b| (object_a.position, object_b.position))
                     .map(|(pos_a, pos_b)| {
-                        let mut points = Vec::with_capacity(morphism.inner.positions.len() + 2);
+                        let mut points = Vec::with_capacity(morphism.positions.len() + 2);
                         points.push(pos_a);
-                        points.extend(morphism.inner.positions.iter().copied());
+                        points.extend(morphism.positions.iter().copied());
                         points.push(pos_b);
                         points
                     })
