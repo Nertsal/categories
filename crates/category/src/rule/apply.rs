@@ -11,8 +11,8 @@ impl<O, M> Category<O, M> {
         self.apply_impl(
             rule.get_statement(),
             bindings,
-            object_constructor,
-            morphism_constructor,
+            &object_constructor,
+            &morphism_constructor,
         )
     }
 
@@ -20,8 +20,8 @@ impl<O, M> Category<O, M> {
         &mut self,
         statement: &[RuleConstruction<L>],
         bindings: Bindings<L>,
-        object_constructor: impl Fn(&L, &Vec<ObjectTag<L>>) -> O,
-        morphism_constructor: impl Fn(&L, &Vec<MorphismTag<L, L>>) -> M,
+        object_constructor: &impl Fn(&L, &Vec<ObjectTag<L>>) -> O,
+        morphism_constructor: &impl Fn(&L, &Vec<MorphismTag<L, L>>) -> M,
     ) -> (Vec<Action<O, M>>, bool) {
         let construction = match statement.first() {
             Some(construction) => construction,
@@ -37,7 +37,7 @@ impl<O, M> Category<O, M> {
                 .into_iter()
                 .map(|mut binds| {
                     binds.extend(bindings.clone());
-                    self.apply_impl(statement, binds, &object_constructor, &morphism_constructor)
+                    self.apply_impl(statement, binds, object_constructor, morphism_constructor)
                 })
                 .fold(
                     (Vec::new(), false),
@@ -56,15 +56,15 @@ impl<O, M> Category<O, M> {
                     let (mut actions, new_binds) = self.apply_constraints(
                         constraints,
                         &bindings,
-                        &object_constructor,
-                        &morphism_constructor,
+                        object_constructor,
+                        morphism_constructor,
                     );
                     actions.extend(
                         self.apply_impl(
                             statement,
                             new_binds,
-                            &object_constructor,
-                            &morphism_constructor,
+                            object_constructor,
+                            morphism_constructor,
                         )
                         .0,
                     );
@@ -78,8 +78,8 @@ impl<O, M> Category<O, M> {
                                 self.apply_impl(
                                     statement,
                                     binds,
-                                    &object_constructor,
-                                    &morphism_constructor,
+                                    object_constructor,
+                                    morphism_constructor,
                                 )
                                 .0,
                                 true,
