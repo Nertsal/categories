@@ -51,6 +51,14 @@ impl Equalities {
         self.equalities.iter().copied()
     }
 
+    pub fn all_commutes<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = (MorphismId, MorphismId, MorphismId)> + 'a {
+        self.commutes
+            .iter()
+            .map(|commute| (commute.f, commute.g, commute.h))
+    }
+
     pub fn get_equalities<'a>(
         &'a self,
         morphism: MorphismId,
