@@ -1,10 +1,10 @@
 use super::*;
 
-pub fn constraint_object<'a, L: Label>(
+pub fn constraint_object<'a, O, M, L: Label>(
     label: &'a L,
     tags: &'a [ObjectTag<L>],
     bindings: &'a Bindings<L>,
-    category: &'a Category,
+    category: &'a Category<O, M>,
 ) -> Box<dyn Iterator<Item = Bindings<L>> + 'a> {
     match bindings.get_object(label) {
         Some(object) => {
@@ -25,9 +25,9 @@ pub fn constraint_object<'a, L: Label>(
     }
 }
 
-fn object_matches<L: Label>(
+fn object_matches<O, L: Label>(
     tags: &[ObjectTag<L>],
-    object: &Object,
+    object: &Object<O>,
     bindings: &Bindings<L>,
 ) -> Option<Bindings<L>> {
     let mut new_bindings = Bindings::new();

@@ -1,24 +1,5 @@
 use super::*;
 
-pub type Equalities = HashSet<(MorphismId, MorphismId)>;
-
-pub struct CategoryWrapper {
-    pub inner: category::types::Category,
-    pub objects: HashMap<ObjectId, Point>,
-    pub morphisms: HashMap<MorphismId, Arrow>,
-}
-
-impl CategoryWrapper {
-    pub fn new(category: category::types::Category) -> Self {
-        let (objects, morphisms) = category_to_things(&category);
-        Self {
-            inner: category,
-            objects,
-            morphisms,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Point {
     pub label: Label,
@@ -63,10 +44,4 @@ impl Arrow {
             color,
         }
     }
-}
-
-fn category_to_things(
-    category: &category::types::Category,
-) -> (HashMap<ObjectId, Point>, HashMap<MorphismId, Arrow>) {
-    todo!()
 }

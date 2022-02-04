@@ -8,7 +8,7 @@ pub struct RenderableRule {
 pub struct RenderableCategory {
     geng: Geng,
     assets: Rc<Assets>,
-    pub inner: CategoryWrapper,
+    pub inner: Category,
     pub camera: Camera2d,
     pub texture: ugli::Texture,
     pub texture_size: Vec2<usize>,
@@ -26,7 +26,7 @@ impl RenderableCategory {
                 fov: 50.0,
             },
             texture: ugli::Texture::new_with(geng.ugli(), texture_size, |_| Color::BLACK),
-            inner: CategoryWrapper::new(category),
+            inner: category,
             texture_size,
         }
     }

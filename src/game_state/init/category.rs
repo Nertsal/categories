@@ -2,29 +2,59 @@ use ::category::CategoryBuilder;
 
 use super::*;
 
-pub fn fact_category() -> ::category::types::Category {
-    CategoryBuilder::<Label>::new()
-        .object("A", vec![])
-        .object("B", vec![])
-        .object("C", vec![])
+fn point(label: impl Into<Label>) -> Point {
+    Point {
+        label: label.into(),
+        is_anchor: false,
+        position: util::random_shift(),
+        velocity: Vec2::ZERO,
+        radius: POINT_RADIUS,
+        color: Color::WHITE,
+    }
+}
+
+fn arrow(label: impl Into<Label>) -> Arrow {
+    Arrow {
+        label: label.into(),
+        positions: (0..ARROW_BODIES).map(|_| util::random_shift()).collect(),
+        velocities: (0..ARROW_BODIES).map(|_| Vec2::ZERO).collect(),
+        color: Color::WHITE,
+    }
+}
+
+pub fn fact_category() -> Category {
+    CategoryBuilder::<_, _, Label>::new()
+        .object("A", vec![], point("A"))
+        .object("B", vec![], point("B"))
+        .object("C", vec![], point("C"))
         .build()
 }
 
-pub fn goal_category() -> ::category::types::Category {
-    CategoryBuilder::<Label>::new()
-        .object("A", vec![])
-        .object("B", vec![])
-        .object("C", vec![])
-        .object("AxB", vec![ObjectTag::Product("A".into(), "B".into())])
-        .object("BxC", vec![ObjectTag::Product("B".into(), "C".into())])
+pub fn goal_category() -> Category {
+    CategoryBuilder::<_, _, Label>::new()
+        .object("A", vec![], point("A"))
+        .object("B", vec![], point("B"))
+        .object("C", vec![], point("C"))
+        .object(
+            "AxB",
+            vec![ObjectTag::Product("A".into(), "B".into())],
+            point("AxB"),
+        )
+        .object(
+            "BxC",
+            vec![ObjectTag::Product("B".into(), "C".into())],
+            point("BxC"),
+        )
         .object(
             "(AxB)xC",
             vec![ObjectTag::Product("AxB".into(), "C".into())],
+            point("(AxB)xC"),
         )
         .object(
             "Ax(BxC)",
             vec![ObjectTag::Product("A".into(), "BxC".into())],
+            point("Ax(BxC)"),
         )
-        .isomorphism("", "Ax(BxC)", "(AxB)xC", vec![])
+        .isomorphism("", "Ax(BxC)", "(AxB)xC", vec![], arrow(""))
         .build()
 }

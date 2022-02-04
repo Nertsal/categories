@@ -27,6 +27,10 @@ use renderable::*;
 use selection::RuleSelection;
 use state::*;
 
+type Category = category::types::Category<Point, Arrow>;
+type Morphism = category::types::Morphism<Arrow>;
+type Object = category::types::Object<Point>;
+type CategoryAction = category::Action<Point, Arrow>;
 type Label = String;
 type Rule = category::Rule<Label>;
 type Bindings = category::Bindings<Label>;
@@ -44,7 +48,7 @@ pub struct GameState {
     dragging: Option<Dragging>,
     main_selection: Option<RuleSelection>,
     goal_selection: Option<RuleSelection>,
-    action_history: Vec<category::Action>, // TODO: move to [RenderableCategory]
+    action_history: Vec<CategoryAction>, // TODO: move to [RenderableCategory]
 }
 
 impl GameState {

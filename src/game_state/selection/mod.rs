@@ -181,7 +181,8 @@ fn infer_construction(
         None => return vec![],
     };
 
-    category::find::find_candidates(all_constraints, &bindings, category)
+    category
+        .find_candidates(all_constraints, &bindings)
         .map(|candidates| {
             candidates
                 .into_iter()

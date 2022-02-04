@@ -9,7 +9,6 @@ mod morphism;
 mod object;
 mod util;
 
-pub(crate) use apply::*;
 pub use builder::*;
 pub use category::*;
 pub(crate) use commute::*;

@@ -5,17 +5,17 @@ pub struct GraphLink {
 }
 
 impl GraphLink {
-    pub fn new(fact: &CategoryWrapper, goal: &CategoryWrapper) -> Self {
+    pub fn new(fact: &Category, goal: &Category) -> Self {
         Self {
             bindings: {
                 let mut bindings = Bindings::new();
                 // Vertices
                 for (_, object) in goal.objects.iter() {
-                    let label = &object.label;
+                    let label = &object.inner.label;
                     if let Some(id) = fact
                         .objects
                         .iter()
-                        .find(|(_, object)| label.eq(&object.label))
+                        .find(|(_, object)| label.eq(&object.inner.label))
                         .map(|(&id, _)| id)
                     {
                         bindings.bind_object(label.clone(), id);
@@ -24,11 +24,11 @@ impl GraphLink {
 
                 // Edges
                 for (_, morphism) in goal.morphisms.iter() {
-                    let label = &morphism.label;
+                    let label = &morphism.inner.label;
                     if let Some(id) = fact
                         .morphisms
                         .iter()
-                        .find(|(_, morphism)| label.eq(&morphism.label))
+                        .find(|(_, morphism)| label.eq(&morphism.inner.label))
                         .map(|(&id, _)| id)
                     {
                         bindings.bind_morphism(label.clone(), id);

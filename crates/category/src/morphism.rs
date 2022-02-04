@@ -3,9 +3,10 @@ use std::collections::HashMap;
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct Morphism {
+pub struct Morphism<T> {
     pub connection: MorphismConnection,
     pub tags: Vec<MorphismTag>,
+    pub inner: T,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,8 +37,8 @@ impl MorphismConnection {
     }
 }
 
-pub struct Morphisms {
-    morphisms: HashMap<MorphismId, Morphism>,
+pub struct Morphisms<T> {
+    morphisms: HashMap<MorphismId, Morphism<T>>,
     next_id: MorphismId,
 }
 
@@ -50,7 +51,7 @@ impl MorphismId {
     }
 }
 
-impl Morphisms {
+impl<T> Morphisms<T> {
     pub fn new() -> Self {
         Self {
             morphisms: HashMap::new(),
@@ -58,7 +59,7 @@ impl Morphisms {
         }
     }
 
-    pub(crate) fn new_morphism(&mut self, morphism: Morphism) -> MorphismId {
+    pub(crate) fn new_morphism(&mut self, morphism: Morphism<T>) -> MorphismId {
         let id = self.next_id;
         self.next_id.0 += 1;
         assert!(
@@ -70,9 +71,9 @@ impl Morphisms {
 
     pub(crate) fn insert(
         &mut self,
-        morphism: Morphism,
+        morphism: Morphism<T>,
         id: MorphismId,
-    ) -> Result<Option<Morphism>, ()> {
+    ) -> Result<Option<Morphism<T>>, ()> {
         if id.0 >= self.next_id.0 {
             return Err(());
         }
@@ -84,27 +85,27 @@ impl Morphisms {
         self.morphisms.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&MorphismId, &Morphism)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&MorphismId, &Morphism<T>)> {
         self.morphisms.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&MorphismId, &mut Morphism)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&MorphismId, &mut Morphism<T>)> {
         self.morphisms.iter_mut()
     }
 
-    pub fn remove(&mut self, id: &MorphismId) -> Option<Morphism> {
+    pub fn remove(&mut self, id: &MorphismId) -> Option<Morphism<T>> {
         self.morphisms.remove(id)
     }
 
-    pub fn retain(&mut self, f: impl FnMut(&MorphismId, &mut Morphism) -> bool) {
+    pub fn retain(&mut self, f: impl FnMut(&MorphismId, &mut Morphism<T>) -> bool) {
         self.morphisms.retain(f);
     }
 
-    pub fn get(&self, id: &MorphismId) -> Option<&Morphism> {
+    pub fn get(&self, id: &MorphismId) -> Option<&Morphism<T>> {
         self.morphisms.get(id)
     }
 
-    pub fn get_mut(&mut self, id: &MorphismId) -> Option<&mut Morphism> {
+    pub fn get_mut(&mut self, id: &MorphismId) -> Option<&mut Morphism<T>> {
         self.morphisms.get_mut(id)
     }
 

@@ -30,7 +30,7 @@ impl GameState {
         &mut self,
         category: &FocusedCategory,
         world_pos: Vec2<f32>,
-    ) -> Option<(&mut CategoryWrapper, Vec2<f32>, AABB<f32>)> {
+    ) -> Option<(&mut Category, Vec2<f32>, AABB<f32>)> {
         self.world_to_category_pos(category, world_pos)
             .and_then(|(_, graph_pos, aabb)| {
                 self.get_category_mut(category)
@@ -70,7 +70,7 @@ impl GameState {
         })
     }
 
-    pub fn get_category_mut(&mut self, category: &FocusedCategory) -> Option<&mut CategoryWrapper> {
+    pub fn get_category_mut(&mut self, category: &FocusedCategory) -> Option<&mut Category> {
         match category {
             FocusedCategory::Rule { index } => self
                 .rules

@@ -19,7 +19,7 @@ impl GameState {
                                 .objects
                                 .get_mut(&id)
                                 .unwrap();
-                            object.is_anchor = !object.is_anchor;
+                            object.inner.is_anchor = !object.inner.is_anchor;
                         }
                     }
                 }
@@ -247,7 +247,7 @@ impl GameState {
                             .world_to_category(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
                                 category.objects.get_mut(&id).map(|object| {
-                                    object.position = local_pos.clamp_aabb(local_aabb);
+                                    object.inner.position = local_pos.clamp_aabb(local_aabb);
                                 })
                             })
                             .is_some(),
@@ -255,7 +255,7 @@ impl GameState {
                             .world_to_category(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
                                 category.morphisms.get_mut(&id).map(|morphism| {
-                                    let positions = &mut morphism.positions;
+                                    let positions = &mut morphism.inner.positions;
                                     let center = positions.len() / 2;
                                     if let Some(pos) = positions.get_mut(center) {
                                         *pos = local_pos.clamp_aabb(local_aabb);
@@ -286,13 +286,13 @@ impl GameState {
                         // Select rule
                         if let &FocusedCategory::Rule { index } = &self.focused_category {
                             let main_selection = RuleSelection::new(
-                                &self.fact_category.inner.inner,
+                                &self.fact_category.inner,
                                 index,
                                 &self.rules,
                                 false,
                             );
                             let goal_selection = RuleSelection::new(
-                                &self.goal_category.inner.inner,
+                                &self.goal_category.inner,
                                 index,
                                 &self.rules,
                                 true,
@@ -355,7 +355,7 @@ impl GameState {
                                             && selection
                                                 .as_mut()
                                                 .unwrap()
-                                                .select(&category.inner, selected, &self.rules)
+                                                .select(category, selected, &self.rules)
                                                 .is_none()
                                         {
                                             let selection = selection.take().unwrap();

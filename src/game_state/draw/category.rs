@@ -16,7 +16,7 @@ pub fn draw_category(
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    category: &CategoryWrapper,
+    category: &Category,
     background_color: Color<f32>,
     selection: Option<&Vec<CategoryThing>>,
 ) {
@@ -37,9 +37,7 @@ pub fn draw_category(
     }
 
     // Morphisms
-    for (id, arrow) in category.morphisms.iter() {
-        // TODO: better error handling?
-        let morphism = category.inner.morphisms.get(id).unwrap();
+    for (id, morphism) in category.morphisms.iter() {
         draw_morphism(
             geng,
             font,
@@ -48,7 +46,6 @@ pub fn draw_category(
             camera,
             background_color,
             category,
-            arrow,
             morphism,
             selected_edges.contains(id),
         );
@@ -72,11 +69,11 @@ pub fn draw_category(
     let offset = vec2(height / 2.0, height / 2.0);
 
     // Equalities
-    for (i, equality) in category.inner.equalities.all_equalities().enumerate() {
+    for (i, equality) in category.equalities.all_equalities().enumerate() {
         let pos = framebuffer_size - offset - vec2(0.0, i as f32 * height * 1.5);
 
         let get = |edge| {
-            let label = &category.morphisms.get(edge).unwrap().label;
+            let label = &category.morphisms.get(edge).unwrap().inner.label;
             if label.is_empty() {
                 format!("[{}]", edge.raw())
             } else {
@@ -98,15 +95,15 @@ fn draw_object(
     font: &Rc<geng::Font>,
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
-    object: &Point,
+    object: &Object,
     background_color: Color<f32>,
     is_selected: bool,
 ) {
     // Selection
     if is_selected {
         draw_2d::Ellipse::circle(
-            object.position,
-            object.radius + SELECTED_RADIUS,
+            object.inner.position,
+            object.inner.radius + SELECTED_RADIUS,
             SELECTED_COLOR,
         )
         .draw_2d(geng, framebuffer, camera);
@@ -114,28 +111,32 @@ fn draw_object(
 
     // Outline
     draw_2d::Ellipse::circle_with_cut(
-        object.position,
-        object.radius - POINT_OUTLINE_WIDTH,
-        object.radius,
-        object.color,
+        object.inner.position,
+        object.inner.radius - POINT_OUTLINE_WIDTH,
+        object.inner.radius,
+        object.inner.color,
     )
     .draw_2d(geng, framebuffer, camera);
 
     // Background
     draw_2d::Ellipse::circle(
-        object.position,
-        object.radius - POINT_OUTLINE_WIDTH,
+        object.inner.position,
+        object.inner.radius - POINT_OUTLINE_WIDTH,
         background_color,
     )
     .draw_2d(geng, framebuffer, camera);
 
     // Label
-    draw_2d::Text::unit(font.clone(), object.label.to_owned(), object.color)
-        .fit_into(Ellipse::circle(
-            object.position,
-            (object.radius - POINT_OUTLINE_WIDTH) * 0.8,
-        ))
-        .draw_2d(geng, framebuffer, camera);
+    draw_2d::Text::unit(
+        font.clone(),
+        object.inner.label.to_owned(),
+        object.inner.color,
+    )
+    .fit_into(Ellipse::circle(
+        object.inner.position,
+        (object.inner.radius - POINT_OUTLINE_WIDTH) * 0.8,
+    ))
+    .draw_2d(geng, framebuffer, camera);
 }
 
 fn draw_morphism(
@@ -145,8 +146,7 @@ fn draw_morphism(
     framebuffer: &mut ugli::Framebuffer,
     camera: &Camera2d,
     background_color: Color<f32>,
-    category: &CategoryWrapper,
-    arrow: &Arrow,
+    category: &Category,
     morphism: &Morphism,
     is_selected: bool,
 ) {
@@ -171,17 +171,18 @@ fn draw_morphism(
         }
     };
 
-    let start = from.position;
-    let end = to.position;
+    let start = from.inner.position;
+    let end = to.inner.position;
 
     // Line body
-    let chain = if arrow.positions.len() == 1 {
-        Trajectory::parabola([start, arrow.positions[0], end], -1.0..=1.0).chain(CURVE_RESOLUTION)
-    } else if arrow.positions.len() > 1 {
+    let chain = if morphism.inner.positions.len() == 1 {
+        Trajectory::parabola([start, morphism.inner.positions[0], end], -1.0..=1.0)
+            .chain(CURVE_RESOLUTION)
+    } else if morphism.inner.positions.len() > 1 {
         CardinalSpline::new(
             {
                 let mut bodies = vec![start];
-                bodies.extend(arrow.positions.iter().copied());
+                bodies.extend(morphism.inner.positions.iter().copied());
                 bodies.push(end);
                 bodies
             },
@@ -198,11 +199,14 @@ fn draw_morphism(
     let head_length = ARROW_HEAD_LENGTH * scale;
 
     let (min, max) = if isomorphism {
-        (from.radius / chain_len, 1.0 - to.radius / chain_len)
+        (
+            from.inner.radius / chain_len,
+            1.0 - to.inner.radius / chain_len,
+        )
     } else {
         (
-            from.radius / chain_len,
-            1.0 - (to.radius + head_length) / chain_len,
+            from.inner.radius / chain_len,
+            1.0 - (to.inner.radius + head_length) / chain_len,
         )
     };
     let chain = chain.take_range_ratio(min..=max);
@@ -234,39 +238,54 @@ fn draw_morphism(
         .iter()
         .any(|tag| matches!(tag, MorphismTag::Unique))
     {
-        draw_dashed_chain(geng, framebuffer, camera, &chain, ARROW_WIDTH, arrow.color);
+        draw_dashed_chain(
+            geng,
+            framebuffer,
+            camera,
+            &chain,
+            ARROW_WIDTH,
+            morphism.inner.color,
+        );
     } else {
-        draw_2d::Chain::new(chain, ARROW_WIDTH, arrow.color, 1).draw_2d(geng, framebuffer, camera);
+        draw_2d::Chain::new(chain, ARROW_WIDTH, morphism.inner.color, 1).draw_2d(
+            geng,
+            framebuffer,
+            camera,
+        );
     }
 
     // Line head
     let direction_norm = head_direction.normalize_or_zero();
     let normal = direction_norm.rotate_90();
-    let head_offset = direction_norm * (head_length + to.radius);
+    let head_offset = direction_norm * (head_length + to.inner.radius);
     let head = end - head_offset;
     let head_width = normal * ARROW_HEAD_WIDTH * scale;
 
     if !isomorphism {
         draw_2d::Polygon::new(
             vec![
-                end - direction_norm * to.radius,
+                end - direction_norm * to.inner.radius,
                 head + head_width,
                 head - head_width,
             ],
-            arrow.color,
+            morphism.inner.color,
         )
         .draw_2d(geng, framebuffer, camera)
     }
 
-    if let Some(&center) = arrow.positions.get(arrow.positions.len() / 2) {
+    if let Some(&center) = morphism
+        .inner
+        .positions
+        .get(morphism.inner.positions.len() / 2)
+    {
         // Label
-        draw_2d::Text::unit(font.clone(), arrow.label.to_owned(), Color::GRAY)
+        draw_2d::Text::unit(font.clone(), morphism.inner.label.to_owned(), Color::GRAY)
             .fit_into(AABB::point(center).extend_uniform(ARROW_LABEL_FONT_SIZE))
             .draw_2d(geng, framebuffer, camera);
 
         // Isomorphism
         if isomorphism {
-            draw_2d::Ellipse::circle(center, ARROW_ICON_RADIUS, arrow.color).draw_2d(
+            draw_2d::Ellipse::circle(center, ARROW_ICON_RADIUS, morphism.inner.color).draw_2d(
                 geng,
                 framebuffer,
                 camera,
@@ -281,7 +300,7 @@ fn draw_morphism(
             draw_2d::TexturedQuad::colored(
                 AABB::point(center).extend_uniform(ARROW_ICON_RADIUS),
                 &assets.isomorphism,
-                arrow.color,
+                morphism.inner.color,
             )
             .draw_2d(geng, framebuffer, camera);
         }

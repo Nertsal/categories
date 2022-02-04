@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct Object {
+pub struct Object<T> {
     pub tags: Vec<ObjectTag>,
+    pub inner: T,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -12,15 +13,15 @@ pub enum ObjectTag<O = ObjectId> {
     Product(O, O),
 }
 
-pub struct Objects {
-    objects: HashMap<ObjectId, Object>,
+pub struct Objects<O> {
+    objects: HashMap<ObjectId, Object<O>>,
     next_id: ObjectId,
 }
 
 #[derive(Hash, PartialOrd, Ord, PartialEq, Eq, Debug, Clone, Copy)]
 pub struct ObjectId(u64);
 
-impl Objects {
+impl<T> Objects<T> {
     pub fn new() -> Self {
         Self {
             objects: HashMap::new(),
@@ -28,7 +29,7 @@ impl Objects {
         }
     }
 
-    pub(crate) fn new_object(&mut self, object: Object) -> ObjectId {
+    pub(crate) fn new_object(&mut self, object: Object<T>) -> ObjectId {
         let id = self.next_id;
         self.next_id.0 += 1;
         assert!(
@@ -40,9 +41,9 @@ impl Objects {
 
     pub(crate) fn insert(
         &mut self,
-        object: Object,
+        object: Object<T>,
         object_id: ObjectId,
-    ) -> Result<Option<Object>, ()> {
+    ) -> Result<Option<Object<T>>, ()> {
         if object_id.0 >= self.next_id.0 {
             return Err(());
         }
@@ -54,23 +55,23 @@ impl Objects {
         self.objects.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&ObjectId, &Object)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&ObjectId, &Object<T>)> {
         self.objects.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ObjectId, &mut Object)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ObjectId, &mut Object<T>)> {
         self.objects.iter_mut()
     }
 
-    pub fn get(&self, id: &ObjectId) -> Option<&Object> {
+    pub fn get(&self, id: &ObjectId) -> Option<&Object<T>> {
         self.objects.get(id)
     }
 
-    pub fn get_mut(&mut self, id: &ObjectId) -> Option<&mut Object> {
+    pub fn get_mut(&mut self, id: &ObjectId) -> Option<&mut Object<T>> {
         self.objects.get_mut(id)
     }
 
-    pub(crate) fn remove(&mut self, id: &ObjectId) -> Option<Object> {
+    pub(crate) fn remove(&mut self, id: &ObjectId) -> Option<Object<T>> {
         self.objects.remove(id)
     }
 
