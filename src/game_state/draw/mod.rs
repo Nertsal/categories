@@ -1,7 +1,7 @@
 use super::*;
 
-mod dashed;
 pub mod category;
+mod dashed;
 
 use dashed::*;
 use geng::Draw2d;
@@ -24,7 +24,7 @@ impl GameState {
         .and_then(|selection| {
             selection
                 .current()
-                .map(|&current| (selection.rule(), vec![current]))
+                .map(|&(_, current)| (selection.rule(), vec![current]))
         });
 
         // Render graphs
@@ -33,7 +33,9 @@ impl GameState {
         {
             // Choose selected objects
             let selection = match (&selected_rule, focused_graph) {
-                (Some((rule_index, _)), FocusedCategory::Rule { index }) if index == *rule_index => {
+                (Some((rule_index, _)), FocusedCategory::Rule { index })
+                    if index == *rule_index =>
+                {
                     let (_, selection) = selected_rule.take().unwrap();
                     Some(selection)
                 }

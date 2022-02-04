@@ -9,7 +9,7 @@ pub use select::*;
 #[derive(Debug)]
 pub struct RuleSelection {
     rule_index: usize,
-    rule_input: Vec<CategoryThing>,
+    rule_input: Vec<(Label, CategoryThing)>,
     current_selection: usize,
     selection: Vec<CategoryThing>,
     inferred_options: Option<Vec<CategoryThing>>,
@@ -23,24 +23,9 @@ impl RuleSelection {
         rules: &Vec<RenderableRule>,
         inverse: bool,
     ) -> Self {
+        let rule = &rules[rule_index];
         let mut selection = RuleSelection {
-            rule_input: match inverse {
-                false => rules[rule_index].inner.get_input(),
-                true => todo!(), //rules[rule_index].inverse_graph_input(),
-            }
-            .iter()
-            .filter_map(|constraint| match constraint {
-                category::Constraint::Object { label, tags } => {
-                    Some(CategoryThing::Object { id: todo!() })
-                }
-                category::Constraint::Morphism {
-                    label,
-                    connection,
-                    tags,
-                } => Some(CategoryThing::Morphism { id: todo!() }),
-                category::Constraint::Equality(_, _) | category::Constraint::Commute { .. } => None,
-            })
-            .collect(),
+            rule_input: rule.input.clone(),
             selection: Vec::new(),
             inferred_options: None,
             current_selection: 0,
@@ -59,8 +44,28 @@ impl RuleSelection {
         self.rule_index
     }
 
-    pub fn current(&self) -> Option<&CategoryThing> {
+    pub fn current(&self) -> Option<&(Label, CategoryThing)> {
         self.rule_input.get(self.current_selection)
+    }
+
+    pub fn to_bindings(self) -> Bindings {
+        let mut bindings = Bindings::new();
+        for (label, thing) in self
+            .rule_input
+            .into_iter()
+            .map(|(label, _)| label)
+            .zip(self.selection.into_iter())
+        {
+            match thing {
+                CategoryThing::Object { id } => {
+                    bindings.bind_object(label, id);
+                }
+                CategoryThing::Morphism { id } => {
+                    bindings.bind_morphism(label, id);
+                }
+            }
+        }
+        bindings
     }
 
     /// Select a vertex. Returns the next vertex
@@ -79,7 +84,7 @@ impl RuleSelection {
         self.current_selection += 1;
         self.infer_current(category, rules);
 
-        self.current()
+        self.current().map(|(_, thing)| thing)
     }
 
     pub fn selection(&self) -> &Vec<CategoryThing> {
@@ -95,7 +100,7 @@ impl RuleSelection {
         let constraints = rules.get(self.rule()).map(|rule| {
             let statement = match self.inverse {
                 false => rule.inner.get_statement().iter(),
-                true => todo!(), //rule.inverse_statement().iter(),
+                true => rule.inner.get_statement().iter(), // TODO: fix inverse
             };
             statement.map_while(|construction| match construction {
                 category::RuleConstruction::Forall(constraints) => Some(constraints),

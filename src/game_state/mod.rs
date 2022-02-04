@@ -58,10 +58,7 @@ impl GameState {
         let goal_category = RenderableCategory::new(geng, assets, init::category::goal_category());
         let rules = init::rules::default_rules(geng, assets)
             .into_iter()
-            .map(|rule| RenderableRule {
-                category: RenderableCategory::from_rule(geng, assets, &rule),
-                inner: rule,
-            })
+            .map(|rule| RenderableRule::from_rule(geng, assets, rule))
             .collect();
         Self {
             geng: geng.clone(),

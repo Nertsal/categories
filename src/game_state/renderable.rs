@@ -3,6 +3,7 @@ use super::*;
 pub struct RenderableRule {
     pub inner: Rule,
     pub category: RenderableCategory,
+    pub input: Vec<(Label, CategoryThing)>,
 }
 
 pub struct RenderableCategory {
@@ -12,6 +13,28 @@ pub struct RenderableCategory {
     pub camera: Camera2d,
     pub texture: ugli::Texture,
     pub texture_size: Vec2<usize>,
+}
+
+impl RenderableRule {
+    pub fn from_rule(geng: &Geng, assets: &Rc<Assets>, rule: Rule) -> Self {
+        let (category, input) = Category::from_rule(
+            &rule,
+            |label, _| Point::new(label, RULE_INPUT_COLOR),
+            |label, _| {
+                Arrow::new(
+                    label,
+                    RULE_INPUT_COLOR,
+                    util::random_shift(),
+                    util::random_shift(),
+                )
+            },
+        );
+        Self {
+            inner: rule,
+            category: RenderableCategory::new(geng, assets, category),
+            input,
+        }
+    }
 }
 
 impl RenderableCategory {
@@ -29,10 +52,6 @@ impl RenderableCategory {
             inner: category,
             texture_size,
         }
-    }
-
-    pub fn from_rule(geng: &Geng, assets: &Rc<Assets>, rule: &Rule) -> Self {
-        Self::new(geng, assets, todo!())
     }
 
     pub fn resize_texture(&mut self, new_size: Vec2<usize>) {

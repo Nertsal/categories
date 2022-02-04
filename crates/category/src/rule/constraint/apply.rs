@@ -6,6 +6,8 @@ impl<O, M> Category<O, M> {
         &mut self,
         constraints: &Constraints<L>,
         bindings: &Bindings<L>,
+        object_constructor: impl Fn(&L, &Vec<ObjectTag<L>>) -> O,
+        morphism_constructor: impl Fn(&L, &Vec<MorphismTag<L, L>>) -> M,
     ) -> (Vec<Action<O, M>>, Bindings<L>) {
         let mut bindings = bindings.clone();
 
@@ -41,8 +43,8 @@ impl<O, M> Category<O, M> {
         let mut new_edges_names = Vec::new();
 
         // Constraint vertices
-        for (label, tags) in constrained_vertices {
-            let tags = tags
+        for (label, label_tags) in constrained_vertices {
+            let tags = label_tags
                 .iter()
                 .map(|tag| tag.map_borrowed(|label| bindings.get_object(label).unwrap())) // TODO: proper error handling
                 .collect::<Vec<_>>();
@@ -52,7 +54,7 @@ impl<O, M> Category<O, M> {
             } else {
                 new_vertices.push(Object {
                     tags,
-                    inner: todo!(),
+                    inner: object_constructor(label, label_tags),
                 });
                 new_vertices_names.push(label.clone());
             }
@@ -72,18 +74,42 @@ impl<O, M> Category<O, M> {
         }
 
         // Constraint edges
-        for (label, connection, tags) in constrained_edges {
+        for (label, connection, label_tags) in constrained_edges {
             let connection = match connection {
                 MorphismConnection::Regular { from, to } => MorphismConnection::Regular {
-                    from: get_object_or_new(from, self, &mut bindings, &mut action_history),
-                    to: get_object_or_new(to, self, &mut bindings, &mut action_history),
+                    from: get_object_or_new(
+                        from,
+                        self,
+                        &mut bindings,
+                        &mut action_history,
+                        &object_constructor,
+                    ),
+                    to: get_object_or_new(
+                        to,
+                        self,
+                        &mut bindings,
+                        &mut action_history,
+                        &object_constructor,
+                    ),
                 },
                 MorphismConnection::Isomorphism(a, b) => MorphismConnection::Isomorphism(
-                    get_object_or_new(a, self, &mut bindings, &mut action_history),
-                    get_object_or_new(b, self, &mut bindings, &mut action_history),
+                    get_object_or_new(
+                        a,
+                        self,
+                        &mut bindings,
+                        &mut action_history,
+                        &object_constructor,
+                    ),
+                    get_object_or_new(
+                        b,
+                        self,
+                        &mut bindings,
+                        &mut action_history,
+                        &object_constructor,
+                    ),
                 ),
             };
-            let tags = tags
+            let tags = label_tags
                 .iter()
                 .map(|tag| {
                     tag.map_borrowed(
@@ -99,7 +125,7 @@ impl<O, M> Category<O, M> {
                 new_edges.push(Morphism {
                     connection,
                     tags,
-                    inner: todo!(),
+                    inner: morphism_constructor(label, label_tags),
                 });
                 new_edges_names.push(label.clone());
             }
@@ -170,6 +196,7 @@ fn get_object_or_new<O, M, L: Label>(
     category: &mut Category<O, M>,
     bindings: &mut Bindings<L>,
     action_history: &mut Vec<Action<O, M>>,
+    object_constructor: impl Fn(&L, &Vec<ObjectTag<L>>) -> O,
 ) -> ObjectId {
     bindings.get_object(label).unwrap_or_else(|| {
         create_vertices(
@@ -178,7 +205,7 @@ fn get_object_or_new<O, M, L: Label>(
             action_history,
             vec![Object {
                 tags: vec![],
-                inner: todo!(),
+                inner: object_constructor(label, &vec![]),
             }],
             vec![label.clone()],
         )[0]

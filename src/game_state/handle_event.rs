@@ -338,10 +338,10 @@ impl GameState {
                             let selection = match focused_category {
                                 FocusedCategory::Rule { .. } => None,
                                 FocusedCategory::Fact => {
-                                    Some((&self.fact_category.inner, &mut self.main_selection))
+                                    Some((&mut self.fact_category.inner, &mut self.main_selection))
                                 }
                                 FocusedCategory::Goal => {
-                                    Some((&self.goal_category.inner, &mut self.goal_selection))
+                                    Some((&mut self.goal_category.inner, &mut self.goal_selection))
                                 }
                             };
 
@@ -359,8 +359,21 @@ impl GameState {
                                                 .is_none()
                                         {
                                             let selection = selection.take().unwrap();
-                                            todo!()
-                                            // self.apply_rule(focused_category, selection);
+                                            let rule = &self.rules[selection.rule()].inner;
+                                            category.apply_rule(
+                                                rule,
+                                                selection.to_bindings(),
+                                                |label, _| Point::new(label, Color::WHITE),
+                                                |label, _| {
+                                                    Arrow::new(
+                                                        label,
+                                                        Color::WHITE,
+                                                        util::random_shift(),
+                                                        util::random_shift(),
+                                                    )
+                                                },
+                                            );
+                                            //TODO: place actions on the stack
                                         }
                                     }
                                     None => {
