@@ -409,7 +409,7 @@ impl GameState {
                                                     )
                                                 },
                                             );
-                                            //TODO: place actions on the stack
+                                            //TODO: place actions in the history
                                         }
                                     }
                                     None => {

@@ -156,7 +156,22 @@ impl<O, M> Category<O, M> {
 
         let actions = self.action_do(Action::NewEqualities(constrained_equalities));
         assert_eq!(actions.len(), 1);
+        action_history.extend(actions);
 
+        // Constraint commutativities
+        let constrained_commutes = constrained_commutes
+            .into_iter()
+            .filter_map(|(f, g, h)| {
+                bindings.get_morphism(f).and_then(|f| {
+                    bindings
+                        .get_morphism(g)
+                        .and_then(|g| bindings.get_morphism(h).map(|h| (f, g, h)))
+                })
+            })
+            .collect();
+
+        let actions = self.action_do(Action::NewCommutes(constrained_commutes));
+        assert_eq!(actions.len(), 1);
         action_history.extend(actions);
 
         (action_history, bindings)

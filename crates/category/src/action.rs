@@ -3,11 +3,13 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum Action<O, M> {
     NewObjects(Vec<Object<O>>),
-    NewMorphisms(Vec<Morphism<M>>),
     RemoveObjects(Vec<ObjectId>),
+    NewMorphisms(Vec<Morphism<M>>),
     RemoveMorphisms(Vec<MorphismId>),
     NewEqualities(Vec<(MorphismId, MorphismId)>),
     RemoveEqualities(Vec<(MorphismId, MorphismId)>),
+    NewCommutes(Vec<(MorphismId, MorphismId, MorphismId)>),
+    RemoveCommutes(Vec<(MorphismId, MorphismId, MorphismId)>),
 }
 
 impl<O, M> Category<O, M> {
@@ -91,6 +93,33 @@ impl<O, M> Category<O, M> {
                     self.equalities.remove_equality(f, g);
                 });
                 vec![Action::NewEqualities(equals)]
+            }
+            Action::NewCommutes(commutes) => {
+                commutes
+                    .iter()
+                    .copied()
+                    .filter(|(f, g, _h)| {
+                        let check = |id| {
+                            self.morphisms
+                                .get(id)
+                                .map(|morphism| {
+                                    morphism
+                                        .tags
+                                        .iter()
+                                        .any(|tag| matches!(tag, MorphismTag::Unique))
+                                })
+                                .unwrap_or(false)
+                        };
+                        check(f) && check(g)
+                    })
+                    .for_each(|(f, g, h)| self.equalities.new_commute(f, g, h));
+                vec![Action::RemoveCommutes(commutes)]
+            }
+            Action::RemoveCommutes(commutes) => {
+                commutes.iter().copied().for_each(|(f, g, h)| {
+                    self.equalities.remove_commute(f, g, h);
+                });
+                vec![Action::NewCommutes(commutes)]
             }
         }
     }
