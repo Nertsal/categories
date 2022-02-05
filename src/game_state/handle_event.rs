@@ -363,11 +363,47 @@ impl GameState {
                                             category.apply_rule(
                                                 rule,
                                                 selection.to_bindings(),
-                                                |label, _| Point::new(label, Color::WHITE),
-                                                |label, _| {
+                                                |tags| {
+                                                    let label = tags
+                                                        .into_iter()
+                                                        .filter_map(|tag| {
+                                                            tag.map(|object| &object.inner.label)
+                                                                .infer_name()
+                                                        })
+                                                        .find(|_| true)
+                                                        .unwrap_or_default();
+                                                    Point::new(label, Color::WHITE)
+                                                },
+                                                |connection, tags| {
+                                                    let color = match connection {
+                                                        MorphismConnection::Isomorphism(_, _) => {
+                                                            ARROW_ISOMORPHISM_COLOR
+                                                        }
+                                                        MorphismConnection::Regular { .. } => tags
+                                                            .iter()
+                                                            .filter_map(|tag| match tag {
+                                                                MorphismTag::Unique => {
+                                                                    Some(ARROW_UNIQUE_COLOR)
+                                                                }
+                                                                _ => None,
+                                                            })
+                                                            .find(|_| true)
+                                                            .unwrap_or(ARROW_REGULAR_COLOR),
+                                                    };
+                                                    let label = tags
+                                                        .into_iter()
+                                                        .filter_map(|tag| {
+                                                            tag.map(
+                                                                |object| &object.inner.label,
+                                                                |morphism| &morphism.inner.label,
+                                                            )
+                                                            .infer_name()
+                                                        })
+                                                        .find(|_| true)
+                                                        .unwrap_or_default();
                                                     Arrow::new(
                                                         label,
-                                                        ARROW_REGULAR_COLOR,
+                                                        color,
                                                         util::random_shift(),
                                                         util::random_shift(),
                                                     )

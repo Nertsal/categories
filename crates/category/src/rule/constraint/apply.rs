@@ -6,8 +6,11 @@ impl<O, M> Category<O, M> {
         &mut self,
         constraints: &Constraints<L>,
         bindings: &Bindings<L>,
-        object_constructor: impl Fn(&L, &Vec<ObjectTag<L>>) -> O,
-        morphism_constructor: impl Fn(&L, &Vec<MorphismTag<L, L>>) -> M,
+        object_constructor: &impl Fn(Vec<ObjectTag<&Object<O>>>) -> O,
+        morphism_constructor: &impl Fn(
+            MorphismConnection<&Object<O>>,
+            Vec<MorphismTag<&Object<O>, &Morphism<M>>>,
+        ) -> M,
     ) -> (Vec<Action<O, M>>, Bindings<L>) {
         let mut bindings = bindings.clone();
 
@@ -43,8 +46,8 @@ impl<O, M> Category<O, M> {
         let mut new_edges_names = Vec::new();
 
         // Constraint vertices
-        for (label, label_tags) in constrained_vertices {
-            let tags = label_tags
+        for (label, tags) in constrained_vertices {
+            let tags = tags
                 .iter()
                 .map(|tag| tag.map_borrowed(|label| bindings.get_object(label).unwrap())) // TODO: proper error handling
                 .collect::<Vec<_>>();
@@ -52,9 +55,14 @@ impl<O, M> Category<O, M> {
             if let Some(_) = bindings.get_object(label) {
                 // TODO: possibly need to add a tag
             } else {
+                let label_tags = tags
+                    .iter()
+                    .map(|tag| tag.map_borrowed(|id| self.objects.get(id).unwrap())) // TODO: better error handling
+                    .collect();
+
                 new_vertices.push(Object {
+                    inner: object_constructor(label_tags),
                     tags,
-                    inner: object_constructor(label, label_tags),
                 });
                 new_vertices_names.push(label.clone());
             }
@@ -74,42 +82,18 @@ impl<O, M> Category<O, M> {
         }
 
         // Constraint edges
-        for (label, connection, label_tags) in constrained_edges {
-            let connection = match connection {
-                MorphismConnection::Regular { from, to } => MorphismConnection::Regular {
-                    from: get_object_or_new(
-                        from,
-                        self,
-                        &mut bindings,
-                        &mut action_history,
-                        &object_constructor,
-                    ),
-                    to: get_object_or_new(
-                        to,
-                        self,
-                        &mut bindings,
-                        &mut action_history,
-                        &object_constructor,
-                    ),
-                },
-                MorphismConnection::Isomorphism(a, b) => MorphismConnection::Isomorphism(
-                    get_object_or_new(
-                        a,
-                        self,
-                        &mut bindings,
-                        &mut action_history,
-                        &object_constructor,
-                    ),
-                    get_object_or_new(
-                        b,
-                        self,
-                        &mut bindings,
-                        &mut action_history,
-                        &object_constructor,
-                    ),
-                ),
-            };
-            let tags = label_tags
+        for (label, connection, tags) in constrained_edges {
+            let connection = connection.map_borrowed(|label| {
+                get_object_or_new(
+                    label,
+                    self,
+                    &mut bindings,
+                    &mut action_history,
+                    object_constructor,
+                )
+            });
+
+            let tags = tags
                 .iter()
                 .map(|tag| {
                     tag.map_borrowed(
@@ -122,10 +106,22 @@ impl<O, M> Category<O, M> {
             if let Some(_) = bindings.get_morphism(label) {
                 // TODO: possibly add a tag
             } else {
+                let label_connection = connection.map_borrowed(|id| self.objects.get(id).unwrap()); // TODO: better error handling
+
+                let label_tags = tags
+                    .iter()
+                    .map(|tag| {
+                        tag.map_borrowed(
+                            |id| self.objects.get(id).unwrap(), // TODO: better error handling
+                            |id| self.morphisms.get(id).unwrap(), // TODO: better error handling
+                        )
+                    })
+                    .collect();
+
                 new_edges.push(Morphism {
+                    inner: morphism_constructor(label_connection, label_tags),
                     connection,
                     tags,
-                    inner: morphism_constructor(label, label_tags),
                 });
                 new_edges_names.push(label.clone());
             }
@@ -196,7 +192,7 @@ fn get_object_or_new<O, M, L: Label>(
     category: &mut Category<O, M>,
     bindings: &mut Bindings<L>,
     action_history: &mut Vec<Action<O, M>>,
-    object_constructor: impl Fn(&L, &Vec<ObjectTag<L>>) -> O,
+    object_constructor: impl Fn(Vec<ObjectTag<&Object<O>>>) -> O,
 ) -> ObjectId {
     bindings.get_object(label).unwrap_or_else(|| {
         create_vertices(
@@ -205,7 +201,7 @@ fn get_object_or_new<O, M, L: Label>(
             action_history,
             vec![Object {
                 tags: vec![],
-                inner: object_constructor(label, &vec![]),
+                inner: object_constructor(vec![]),
             }],
             vec![label.clone()],
         )[0]

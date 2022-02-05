@@ -5,8 +5,11 @@ impl<O, M> Category<O, M> {
         &mut self,
         rule: &Rule<L>,
         bindings: Bindings<L>,
-        object_constructor: impl Fn(&L, &Vec<ObjectTag<L>>) -> O,
-        morphism_constructor: impl Fn(&L, &Vec<MorphismTag<L, L>>) -> M,
+        object_constructor: impl Fn(Vec<ObjectTag<&Object<O>>>) -> O,
+        morphism_constructor: impl Fn(
+            MorphismConnection<&Object<O>>,
+            Vec<MorphismTag<&Object<O>, &Morphism<M>>>,
+        ) -> M,
     ) -> (Vec<Action<O, M>>, bool) {
         self.apply_impl(
             rule.get_statement(),
@@ -20,8 +23,11 @@ impl<O, M> Category<O, M> {
         &mut self,
         statement: &[RuleConstruction<L>],
         bindings: Bindings<L>,
-        object_constructor: &impl Fn(&L, &Vec<ObjectTag<L>>) -> O,
-        morphism_constructor: &impl Fn(&L, &Vec<MorphismTag<L, L>>) -> M,
+        object_constructor: &impl Fn(Vec<ObjectTag<&Object<O>>>) -> O,
+        morphism_constructor: &impl Fn(
+            MorphismConnection<&Object<O>>,
+            Vec<MorphismTag<&Object<O>, &Morphism<M>>>,
+        ) -> M,
     ) -> (Vec<Action<O, M>>, bool) {
         let construction = match statement.first() {
             Some(construction) => construction,
