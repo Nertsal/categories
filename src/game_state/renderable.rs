@@ -17,13 +17,21 @@ pub struct RenderableCategory {
 
 impl RenderableRule {
     pub fn from_rule(geng: &Geng, assets: &Rc<Assets>, rule: Rule) -> Self {
+        fn part_color(part: category::RulePart) -> Color<f32> {
+            match part {
+                category::RulePart::Input => RULE_INPUT_COLOR,
+                category::RulePart::Forall => RULE_FORALL_COLOR,
+                category::RulePart::Exists => RULE_EXISTS_COLOR,
+                category::RulePart::Output => RULE_OUTPUT_COLOR,
+            }
+        }
         let (category, input) = Category::from_rule(
             &rule,
-            |label, _| Point::new(label, RULE_INPUT_COLOR),
-            |label, _| {
+            |part, label, _| Point::new(label, part_color(part)),
+            |part, label, _| {
                 Arrow::new(
                     label,
-                    RULE_INPUT_COLOR,
+                    part_color(part),
                     util::random_shift(),
                     util::random_shift(),
                 )

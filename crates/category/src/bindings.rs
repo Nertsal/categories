@@ -4,8 +4,8 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub struct Bindings<L: Label> {
-    objects: HashMap<L, ObjectId>,
-    morphisms: HashMap<L, MorphismId>,
+    pub objects: HashMap<L, ObjectId>,
+    pub morphisms: HashMap<L, MorphismId>,
 }
 
 impl<L: Label> Bindings<L> {

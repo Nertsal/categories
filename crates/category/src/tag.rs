@@ -12,7 +12,7 @@ impl<L: Label + Display> ObjectTag<L> {
 }
 
 impl<O> ObjectTag<O> {
-    pub fn map<V, Fv: Fn(O) -> V>(self, fv: Fv) -> ObjectTag<V> {
+    pub fn map<V, Fv: FnMut(O) -> V>(self, mut fv: Fv) -> ObjectTag<V> {
         match self {
             Self::Initial => ObjectTag::Initial,
             Self::Terminal => ObjectTag::Terminal,
@@ -20,7 +20,7 @@ impl<O> ObjectTag<O> {
         }
     }
 
-    pub fn map_borrowed<V, Fv: Fn(&O) -> V>(&self, fv: Fv) -> ObjectTag<V> {
+    pub fn map_borrowed<V, Fv: FnMut(&O) -> V>(&self, mut fv: Fv) -> ObjectTag<V> {
         match self {
             Self::Initial => ObjectTag::Initial,
             Self::Terminal => ObjectTag::Terminal,
@@ -40,7 +40,11 @@ impl<L: Label + Display> MorphismTag<L, L> {
 }
 
 impl<O, M> MorphismTag<O, M> {
-    pub fn map<V, E, Fv: Fn(O) -> V, Fe: Fn(M) -> E>(self, fv: Fv, fe: Fe) -> MorphismTag<V, E> {
+    pub fn map<V, E, Fv: FnMut(O) -> V, Fe: FnMut(M) -> E>(
+        self,
+        mut fv: Fv,
+        mut fe: Fe,
+    ) -> MorphismTag<V, E> {
         match self {
             Self::Unique => MorphismTag::Unique,
             Self::Identity(v) => MorphismTag::Identity(fv(v)),
@@ -52,10 +56,10 @@ impl<O, M> MorphismTag<O, M> {
         }
     }
 
-    pub fn map_borrowed<V, E, Fv: Fn(&O) -> V, Fe: Fn(&M) -> E>(
+    pub fn map_borrowed<V, E, Fv: FnMut(&O) -> V, Fe: FnMut(&M) -> E>(
         &self,
-        fv: Fv,
-        fe: Fe,
+        mut fv: Fv,
+        mut fe: Fe,
     ) -> MorphismTag<V, E> {
         match self {
             Self::Unique => MorphismTag::Unique,
