@@ -18,7 +18,7 @@ fn arrow(label: impl Into<Label>) -> Arrow {
         label: label.into(),
         positions: (0..ARROW_BODIES).map(|_| util::random_shift()).collect(),
         velocities: (0..ARROW_BODIES).map(|_| Vec2::ZERO).collect(),
-        color: Color::WHITE,
+        color: ARROW_REGULAR_COLOR,
     }
 }
 
