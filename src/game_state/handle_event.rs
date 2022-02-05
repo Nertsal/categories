@@ -367,7 +367,7 @@ impl GameState {
                                                 |label, _| {
                                                     Arrow::new(
                                                         label,
-                                                        Color::WHITE,
+                                                        ARROW_REGULAR_COLOR,
                                                         util::random_shift(),
                                                         util::random_shift(),
                                                     )
