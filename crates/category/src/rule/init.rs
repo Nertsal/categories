@@ -157,8 +157,24 @@ fn add_constraints<'a, O, M, L: 'a + Label>(
                 bindings.bind_morphism(label.clone(), id);
                 Some((label.clone(), CategoryThing::Morphism { id }))
             }
-            Constraint::Equality(_, _) => None, // TODO: allow equality input
-            Constraint::Commute { .. } => None, // TODO: allow commutativity input
+            Constraint::Equality(f, g) => {
+                let [f, g] = [f, g].map(|label| {
+                    bindings
+                        .get_morphism(label)
+                        .expect("Morphisms in equality constraint must be created explicitly")
+                });
+                category.equalities.new_equality(f, g);
+                None // TODO: allow equality input
+            }
+            Constraint::Commute { f, g, h } => {
+                let [f, g, h] = [f, g, h].map(|label| {
+                    bindings
+                        .get_morphism(label)
+                        .expect("Morphisms in equality constraint must be created explicitly")
+                });
+                category.equalities.new_commute(f, g, h);
+                None // TODO: allow commute input
+            }
         })
         .collect()
 }
