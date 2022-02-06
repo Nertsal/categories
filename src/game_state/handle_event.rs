@@ -407,6 +407,7 @@ impl GameState {
                                                 },
                                             );
                                             //TODO: place actions in the history
+                                            self.check_goal();
                                         }
                                     }
                                     None => {

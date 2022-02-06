@@ -43,7 +43,7 @@ impl<O, M> Category<O, M> {
                             .map(|(_, morphism)| morphism)
                             .collect();
                         (object, morphisms)
-                    }) // TODO: use `unzip`
+                    })
                     .fold(
                         (Vec::new(), Vec::new()),
                         |(mut acc_objects, mut acc_morphisms), (object, morphisms)| {
