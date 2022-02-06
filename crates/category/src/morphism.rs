@@ -44,7 +44,8 @@ impl<T> MorphismConnection<T> {
         }
     }
 
-    /// Returns the ids of the connected object in an arbitrary order.
+    /// Returns the ids of the connected object.
+    /// If the morphism is regular, then the order is **from**, **to**.
     pub fn end_points(&self) -> [&T; 2] {
         match self {
             Self::Regular { from, to } => [from, to],

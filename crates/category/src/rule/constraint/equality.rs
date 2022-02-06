@@ -6,10 +6,15 @@ pub fn constraint_equality<'a, O, M, L: Label>(
     bindings: &'a Bindings<L>,
     category: &'a Category<O, M>,
 ) -> Box<dyn Iterator<Item = Bindings<L>> + 'a> {
-    let constraints = vec![morphism_f, morphism_g]
-        .into_iter()
-        .map(|label| (label.clone(), bindings.get_morphism(label)))
-        .collect::<Vec<_>>();
+    let constraints =
+        [morphism_f, morphism_g].map(|label| (label.clone(), bindings.get_morphism(label)));
+
+    match constraints {
+        [(_, Some(f)), (_, Some(g))] if f == g => {
+            return Box::new(std::iter::once(Bindings::new()))
+        }
+        _ => (),
+    }
 
     Box::new(
         category

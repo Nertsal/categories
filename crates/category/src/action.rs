@@ -98,20 +98,6 @@ impl<O, M> Category<O, M> {
                 commutes
                     .iter()
                     .copied()
-                    .filter(|(f, g, _h)| {
-                        let check = |id| {
-                            self.morphisms
-                                .get(id)
-                                .map(|morphism| {
-                                    morphism
-                                        .tags
-                                        .iter()
-                                        .any(|tag| matches!(tag, MorphismTag::Unique))
-                                })
-                                .unwrap_or(false)
-                        };
-                        check(f) && check(g)
-                    })
                     .for_each(|(f, g, h)| self.equalities.new_commute(f, g, h));
                 vec![Action::RemoveCommutes(commutes)]
             }

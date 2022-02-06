@@ -366,11 +366,10 @@ impl GameState {
                                                 |tags| {
                                                     let label = tags
                                                         .into_iter()
-                                                        .filter_map(|tag| {
+                                                        .find_map(|tag| {
                                                             tag.map(|object| &object.inner.label)
                                                                 .infer_name()
                                                         })
-                                                        .find(|_| true)
                                                         .unwrap_or_default();
                                                     Point::new(label, Color::WHITE)
                                                 },
@@ -381,25 +380,23 @@ impl GameState {
                                                         }
                                                         MorphismConnection::Regular { .. } => tags
                                                             .iter()
-                                                            .filter_map(|tag| match tag {
+                                                            .find_map(|tag| match tag {
                                                                 MorphismTag::Unique => {
                                                                     Some(ARROW_UNIQUE_COLOR)
                                                                 }
                                                                 _ => None,
                                                             })
-                                                            .find(|_| true)
                                                             .unwrap_or(ARROW_REGULAR_COLOR),
                                                     };
                                                     let label = tags
                                                         .into_iter()
-                                                        .filter_map(|tag| {
+                                                        .find_map(|tag| {
                                                             tag.map(
                                                                 |object| &object.inner.label,
                                                                 |morphism| &morphism.inner.label,
                                                             )
                                                             .infer_name()
                                                         })
-                                                        .find(|_| true)
                                                         .unwrap_or_default();
                                                     Arrow::new(
                                                         label,

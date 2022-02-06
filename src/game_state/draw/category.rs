@@ -2,14 +2,6 @@ use geng::draw_2d::Draw2d;
 
 use super::*;
 
-pub fn morphism_color<O, M>(tag: &Option<MorphismTag<O, M>>) -> Color<f32> {
-    match tag {
-        Some(MorphismTag::Unique) => ARROW_UNIQUE_COLOR,
-        Some(MorphismTag::Isomorphism(_, _)) => ARROW_ISOMORPHISM_COLOR,
-        _ => ARROW_REGULAR_COLOR,
-    }
-}
-
 pub fn draw_category(
     geng: &Geng,
     assets: &Rc<Assets>,
@@ -85,6 +77,33 @@ pub fn draw_category(
         draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)
             .fit_into(AABB::ZERO.extend_positive(vec2(framebuffer_size.x, height)))
             .align_bounding_box(vec2(1.0, 1.0))
+            .translate(pos)
+            .draw_2d(geng, framebuffer, &geng::PixelPerfectCamera);
+    }
+
+    // Commutes
+    let offset = vec2(height / 2.0, -height / 2.0);
+    for (i, commute) in category.equalities.all_commutes().enumerate() {
+        let pos = vec2(0.0, framebuffer_size.y) + offset - vec2(0.0, i as f32 * height * 1.5);
+
+        let get = |edge| {
+            let label = &category.morphisms.get(edge).unwrap().inner.label;
+            if label.is_empty() {
+                format!("[{}]", edge.raw())
+            } else {
+                label.to_owned()
+            }
+        };
+
+        let text = format!(
+            "{} . {} = {}",
+            get(&commute.1),
+            get(&commute.0),
+            get(&commute.2)
+        );
+        draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)
+            .fit_into(AABB::ZERO.extend_positive(vec2(framebuffer_size.x, height)))
+            .align_bounding_box(vec2(0.0, 1.0))
             .translate(pos)
             .draw_2d(geng, framebuffer, &geng::PixelPerfectCamera);
     }

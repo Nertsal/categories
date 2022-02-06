@@ -31,11 +31,11 @@ impl Equalities {
         self.commutes.insert(Commute { f, g, h });
     }
 
-    pub fn check_equality(&self, f: MorphismId, g: MorphismId) -> bool {
+    pub fn contains_equality(&self, f: MorphismId, g: MorphismId) -> bool {
         self.equalities.contains(&(f, g)) || self.equalities.contains(&(g, f))
     }
 
-    pub fn check_commutativity(&self, f: MorphismId, g: MorphismId, h: MorphismId) -> bool {
+    pub fn contains_commute(&self, f: MorphismId, g: MorphismId, h: MorphismId) -> bool {
         self.commutes.contains(&Commute { f, g, h })
     }
 

@@ -19,7 +19,12 @@ pub fn rule_product<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, RuleConst
                 .morphism("f", "C", "A", vec![])
                 .morphism("g", "C", "B", vec![]),
         )
-        .exists(ConstraintsBuilder::new().morphism("m", "C", "AxB", vec![MorphismTag::Unique]))
+        .exists(
+            ConstraintsBuilder::new()
+                .morphism("m", "C", "AxB", vec![MorphismTag::Unique])
+                .commutes("m", "p1", "f")
+                .commutes("m", "p2", "g"),
+        )
         .forall(
             ConstraintsBuilder::new()
                 .morphism("m'", "C", "AxB", vec![])

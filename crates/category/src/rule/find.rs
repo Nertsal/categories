@@ -64,7 +64,7 @@ fn process<'a, O, M, L: Label>(
                     next_binds
                 })
                 .collect::<Vec<_>>(),
-            None => vec![binds.clone()],
+            None => vec![binds],
         };
         binds
     })
