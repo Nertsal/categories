@@ -29,8 +29,8 @@ impl GameState {
                     self.goal_selection = None;
                 }
                 geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
-                    todo!()
-                    // self.action_undo();
+                    self.fact_category.action_undo();
+                    // TODO: undo actions in the goal category
                 }
                 _ => (),
             },

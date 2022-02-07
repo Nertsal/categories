@@ -4,12 +4,12 @@ impl GameState {
     pub fn apply_rule(&mut self, category: FocusedCategory, selection: RuleSelection) {
         let category = match category {
             FocusedCategory::Rule { .. } => unimplemented!(),
-            FocusedCategory::Fact => &mut self.fact_category.inner,
-            FocusedCategory::Goal => &mut self.goal_category.inner,
+            FocusedCategory::Fact => &mut self.fact_category,
+            FocusedCategory::Goal => &mut self.goal_category,
         };
         let rule = &self.rules[selection.rule()].inner;
 
-        category.apply_rule(
+        let (actions, applied) = category.inner.apply_rule(
             rule,
             selection.to_bindings(),
             |tags| {
@@ -44,9 +44,9 @@ impl GameState {
             },
         );
 
-        //TODO: place actions in the history
+        category.action_history.extend(actions);
 
-        if self.check_goal() {
+        if applied && self.check_goal() {
             println!("Hooray! Goal reached!");
             // TODO: display on screen
         }

@@ -48,7 +48,6 @@ pub struct GameState {
     dragging: Option<Dragging>,
     main_selection: Option<RuleSelection>,
     goal_selection: Option<RuleSelection>,
-    action_history: Vec<CategoryAction>, // TODO: move to [RenderableCategory]
 }
 
 impl GameState {
@@ -66,7 +65,6 @@ impl GameState {
             main_selection: None,
             goal_selection: None,
             focused_category: FocusedCategory::Fact,
-            action_history: vec![],
             ui_camera: PixelPerfectCamera,
             graph_link: GraphLink::new(&fact_category.inner, &goal_category.inner),
             fact_category,
