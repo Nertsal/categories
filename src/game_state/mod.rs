@@ -7,7 +7,7 @@ mod constants;
 mod drag;
 mod draw;
 mod focus;
-mod goal;
+mod apply_rule;
 mod graph_link;
 mod graph_types;
 mod graph_util;

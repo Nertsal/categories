@@ -302,8 +302,7 @@ impl GameState {
                                     self.main_selection = Some(main_selection);
                                 }
                                 None => {
-                                    todo!()
-                                    // self.apply_rule(FocusedCategory::Fact, main_selection);
+                                    self.apply_rule(FocusedCategory::Fact, main_selection);
                                 }
                             }
                             match goal_selection.current() {
@@ -311,8 +310,7 @@ impl GameState {
                                     self.goal_selection = Some(goal_selection);
                                 }
                                 None => {
-                                    todo!()
-                                    // self.apply_rule(FocusedCategory::Goal, goal_selection);
+                                    self.apply_rule(FocusedCategory::Goal, goal_selection);
                                 }
                             }
                         }
@@ -359,55 +357,7 @@ impl GameState {
                                                 .is_none()
                                         {
                                             let selection = selection.take().unwrap();
-                                            let rule = &self.rules[selection.rule()].inner;
-                                            category.apply_rule(
-                                                rule,
-                                                selection.to_bindings(),
-                                                |tags| {
-                                                    let label = tags
-                                                        .into_iter()
-                                                        .find_map(|tag| {
-                                                            tag.map(|object| &object.inner.label)
-                                                                .infer_name()
-                                                        })
-                                                        .unwrap_or_default();
-                                                    Point::new(label, Color::WHITE)
-                                                },
-                                                |connection, tags| {
-                                                    let color = match connection {
-                                                        MorphismConnection::Isomorphism(_, _) => {
-                                                            ARROW_ISOMORPHISM_COLOR
-                                                        }
-                                                        MorphismConnection::Regular { .. } => tags
-                                                            .iter()
-                                                            .find_map(|tag| match tag {
-                                                                MorphismTag::Unique => {
-                                                                    Some(ARROW_UNIQUE_COLOR)
-                                                                }
-                                                                _ => None,
-                                                            })
-                                                            .unwrap_or(ARROW_REGULAR_COLOR),
-                                                    };
-                                                    let label = tags
-                                                        .into_iter()
-                                                        .find_map(|tag| {
-                                                            tag.map(
-                                                                |object| &object.inner.label,
-                                                                |morphism| &morphism.inner.label,
-                                                            )
-                                                            .infer_name()
-                                                        })
-                                                        .unwrap_or_default();
-                                                    Arrow::new(
-                                                        label,
-                                                        color,
-                                                        util::random_shift(),
-                                                        util::random_shift(),
-                                                    )
-                                                },
-                                            );
-                                            //TODO: place actions in the history
-                                            self.check_goal();
+                                            self.apply_rule(focused_category, selection);
                                         }
                                     }
                                     None => {
