@@ -13,12 +13,12 @@ fn point(label: impl Into<Label>) -> Point {
     }
 }
 
-fn arrow(label: impl Into<Label>) -> Arrow {
+fn isomorphism(label: impl Into<Label>) -> Arrow {
     Arrow {
         label: label.into(),
         positions: (0..ARROW_BODIES).map(|_| util::random_shift()).collect(),
         velocities: (0..ARROW_BODIES).map(|_| Vec2::ZERO).collect(),
-        color: ARROW_REGULAR_COLOR,
+        color: ARROW_ISOMORPHISM_COLOR,
     }
 }
 
@@ -55,6 +55,6 @@ pub fn goal_category() -> Category {
             vec![ObjectTag::Product("A".into(), "BxC".into())],
             point("Ax(BxC)"),
         )
-        .isomorphism("", "Ax(BxC)", "(AxB)xC", vec![], arrow(""))
+        .isomorphism("", "Ax(BxC)", "(AxB)xC", vec![], isomorphism(""))
         .build()
 }
