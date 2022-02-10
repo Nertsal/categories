@@ -11,6 +11,7 @@ pub use builder::*;
 use constraint::*;
 pub use init::*;
 
+#[derive(Debug, Clone)]
 pub struct Rule<L: Label> {
     statement: RuleStatement<L>,
 }

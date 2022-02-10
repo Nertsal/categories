@@ -289,13 +289,13 @@ impl GameState {
                                 &self.fact_category.inner,
                                 index,
                                 &self.rules,
-                                false,
+                                None,
                             );
                             let goal_selection = RuleSelection::new(
                                 &self.goal_category.inner,
                                 index,
                                 &self.rules,
-                                true,
+                                Some(0),
                             );
                             match main_selection.current() {
                                 Some(_) => {

@@ -13,7 +13,7 @@ pub struct RuleSelection {
     current_selection: usize,
     selection: Vec<CategoryThing>,
     inferred_options: Option<Vec<CategoryThing>>,
-    inverse: bool,
+    inverse: Option<usize>,
 }
 
 impl RuleSelection {
@@ -21,7 +21,7 @@ impl RuleSelection {
         category: &Category,
         rule_index: usize,
         rules: &Vec<RenderableRule>,
-        inverse: bool,
+        inverse: Option<usize>,
     ) -> Self {
         let rule = &rules[rule_index];
         let mut selection = RuleSelection {
@@ -36,7 +36,7 @@ impl RuleSelection {
         selection
     }
 
-    pub fn inverse(&self) -> bool {
+    pub fn inverse(&self) -> Option<usize> {
         self.inverse
     }
 
@@ -99,8 +99,8 @@ impl RuleSelection {
     fn infer_current(&mut self, category: &Category, rules: &Vec<RenderableRule>) {
         let constraints = rules.get(self.rule()).map(|rule| {
             let statement = match self.inverse {
-                false => rule.inner.get_statement().iter(),
-                true => rule.inner.get_statement().iter(), // TODO: fix inverse
+                None => rule.inner.get_statement().iter(),
+                Some(inverse) => rule.inverse[inverse].get_statement().iter(),
             };
             statement.map_while(|construction| match construction {
                 category::RuleConstruction::Forall(constraints) => Some(constraints),

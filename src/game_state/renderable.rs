@@ -2,6 +2,7 @@ use super::*;
 
 pub struct RenderableRule {
     pub inner: Rule,
+    pub inverse: Vec<Rule>,
     pub category: RenderableCategory,
     pub input: Vec<(Label, CategoryThing)>,
 }
@@ -39,6 +40,7 @@ impl RenderableRule {
             },
         );
         Self {
+            inverse: rule.invert(),
             inner: rule,
             category: RenderableCategory::new(geng, assets, category),
             input,
