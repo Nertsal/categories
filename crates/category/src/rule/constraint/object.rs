@@ -32,12 +32,10 @@ fn object_matches<O, L: Label>(
 ) -> Option<Bindings<L>> {
     let mut new_bindings = Bindings::new();
 
-    for tag_check in tags.iter().flat_map(|constraint| {
-        object
-            .tags
-            .iter()
-            .map(|tag| tag_matches(constraint, tag, bindings))
-    }) {
+    for tag_check in tags
+        .iter()
+        .map(|constraint| tag_matches(constraint, &object.tags, bindings))
+    {
         let binds = match tag_check {
             Some(binds) => binds,
             None => return None,
@@ -50,24 +48,36 @@ fn object_matches<O, L: Label>(
 
 fn tag_matches<L: Label>(
     constraint: &ObjectTag<L>,
-    tag: &ObjectTag,
+    tags: &[ObjectTag],
     bindings: &Bindings<L>,
 ) -> Option<Bindings<L>> {
-    match (constraint, tag) {
-        (ObjectTag::Initial, ObjectTag::Initial) => Some(Bindings::new()),
-        (ObjectTag::Initial, _) => None,
-        (ObjectTag::Terminal, ObjectTag::Terminal) => Some(Bindings::new()),
-        (ObjectTag::Terminal, _) => None,
-        (
-            ObjectTag::Product(constraint_a, constraint_b),
-            &ObjectTag::Product(object_a, object_b),
-        ) => constraint_unordered(
-            vec![constraint_a, constraint_b]
-                .into_iter()
-                .map(|label| (label.clone(), bindings.get_object(label))),
-            vec![object_a, object_b],
-        )
-        .map(|binds| Bindings::from_objects(binds)),
-        (ObjectTag::Product(_, _), _) => None,
+    match constraint {
+        ObjectTag::Initial => tags.iter().find_map(|tag| {
+            if let ObjectTag::Initial = tag {
+                Some(Bindings::new())
+            } else {
+                None
+            }
+        }),
+        ObjectTag::Terminal => tags.iter().find_map(|tag| {
+            if let ObjectTag::Terminal = tag {
+                Some(Bindings::new())
+            } else {
+                None
+            }
+        }),
+        ObjectTag::Product(constraint_a, constraint_b) => tags.iter().find_map(|tag| {
+            if let &ObjectTag::Product(object_a, object_b) = tag {
+                constraint_unordered(
+                    vec![constraint_a, constraint_b]
+                        .into_iter()
+                        .map(|label| (label.clone(), bindings.get_object(label))),
+                    vec![object_a, object_b],
+                )
+                .map(|binds| Bindings::from_objects(binds))
+            } else {
+                None
+            }
+        }),
     }
 }

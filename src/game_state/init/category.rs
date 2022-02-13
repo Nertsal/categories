@@ -25,36 +25,15 @@ fn isomorphism(label: impl Into<Label>) -> Arrow {
 pub fn fact_category() -> Category {
     CategoryBuilder::<_, _, Label>::new()
         .object("A", vec![], point("A"))
-        .object("B", vec![], point("B"))
-        .object("C", vec![], point("C"))
+        .object("1", vec![ObjectTag::Terminal], point("1"))
         .build()
 }
 
 pub fn goal_category() -> Category {
     CategoryBuilder::<_, _, Label>::new()
         .object("A", vec![], point("A"))
-        .object("B", vec![], point("B"))
-        .object("C", vec![], point("C"))
-        .object(
-            "AxB",
-            vec![ObjectTag::Product("A".into(), "B".into())],
-            point("AxB"),
-        )
-        .object(
-            "BxC",
-            vec![ObjectTag::Product("B".into(), "C".into())],
-            point("BxC"),
-        )
-        .object(
-            "(AxB)xC",
-            vec![ObjectTag::Product("AxB".into(), "C".into())],
-            point("(AxB)xC"),
-        )
-        .object(
-            "Ax(BxC)",
-            vec![ObjectTag::Product("A".into(), "BxC".into())],
-            point("Ax(BxC)"),
-        )
-        .isomorphism("", "Ax(BxC)", "(AxB)xC", vec![], isomorphism(""))
+        .object("1", vec![ObjectTag::Terminal], point("1"))
+        .object("Ax1", vec![ObjectTag::Product("A", "1")], point("Ax1"))
+        .isomorphism("", "A", "Ax1", vec![], isomorphism(""))
         .build()
 }

@@ -12,7 +12,7 @@ pub fn constraint_morphism<'a, O, M, L: Label>(
             let morphism = category
                 .morphisms
                 .get(&morphism)
-                .expect("Invalid bindings: unknown object id"); // TODO: return an error
+                .expect("Invalid bindings: unknown morphism id"); // TODO: return an error
             morphism_matches(connection, tags, morphism, bindings)
                 .map_or(Box::new(vec![].into_iter()), |binds| {
                     Box::new(std::iter::once(binds))
@@ -68,12 +68,10 @@ fn morphism_matches<M, L: Label>(
     };
 
     // Check tags
-    for tag_check in tags.iter().flat_map(|constraint| {
-        morphism
-            .tags
-            .iter()
-            .map(|tag| tag_matches(constraint, tag, bindings))
-    }) {
+    for tag_check in tags
+        .iter()
+        .map(|constraint| tags_matches(constraint, &morphism.tags, bindings))
+    {
         let binds = match tag_check {
             Some(binds) => binds,
             None => return None,
@@ -84,50 +82,57 @@ fn morphism_matches<M, L: Label>(
     Some(new_bindings)
 }
 
-fn tag_matches<L: Label>(
+fn tags_matches<L: Label>(
     constraint: &MorphismTag<L, L>,
-    tag: &MorphismTag,
+    tags: &[MorphismTag],
     bindings: &Bindings<L>,
 ) -> Option<Bindings<L>> {
-    match (constraint, tag) {
-        (MorphismTag::Unique, _) => Some(Bindings::new()),
-        (MorphismTag::Identity(constraint), &MorphismTag::Identity(object)) => {
-            bindings.get_object(constraint).map_or_else(
-                || Some(Bindings::single_object(constraint.clone(), object)),
-                |id| {
-                    if id == object {
-                        Some(Bindings::new())
-                    } else {
-                        None
-                    }
-                },
-            )
-        }
-        (MorphismTag::Identity(_), _) => None,
-        (
-            MorphismTag::Composition {
-                first: constraint_first,
-                second: constraint_second,
-            },
-            &MorphismTag::Composition { first, second },
-        ) => constraint_ordered(
-            vec![constraint_first, constraint_second]
-                .into_iter()
-                .map(|label| (label.clone(), bindings.get_morphism(label))),
-            vec![first, second],
-        )
-        .map(|binds| Bindings::from_morphisms(binds)),
-        (MorphismTag::Composition { .. }, _) => None,
-        (
-            MorphismTag::Isomorphism(constraint_f, constraint_g),
-            &MorphismTag::Isomorphism(morphism_f, morphism_g),
-        ) => constraint_ordered(
-            vec![constraint_f, constraint_g]
-                .into_iter()
-                .map(|label| (label.clone(), bindings.get_morphism(label))),
-            vec![morphism_f, morphism_g],
-        )
-        .map(|binds| Bindings::from_morphisms(binds)),
-        (MorphismTag::Isomorphism(_, _), _) => None,
+    match constraint {
+        MorphismTag::Unique => Some(Bindings::new()),
+        MorphismTag::Identity(constraint) => tags.iter().find_map(|tag| {
+            if let &MorphismTag::Identity(object) = tag {
+                bindings.get_object(constraint).map_or_else(
+                    || Some(Bindings::single_object(constraint.clone(), object)),
+                    |id| {
+                        if id == object {
+                            Some(Bindings::new())
+                        } else {
+                            None
+                        }
+                    },
+                )
+            } else {
+                None
+            }
+        }),
+        MorphismTag::Composition {
+            first: constraint_first,
+            second: constraint_second,
+        } => tags.iter().find_map(|tag| {
+            if let &MorphismTag::Composition { first, second } = tag {
+                constraint_ordered(
+                    vec![constraint_first, constraint_second]
+                        .into_iter()
+                        .map(|label| (label.clone(), bindings.get_morphism(label))),
+                    vec![first, second],
+                )
+                .map(|binds| Bindings::from_morphisms(binds))
+            } else {
+                None
+            }
+        }),
+        MorphismTag::Isomorphism(constraint_f, constraint_g) => tags.iter().find_map(|tag| {
+            if let &MorphismTag::Isomorphism(morphism_f, morphism_g) = tag {
+                constraint_ordered(
+                    vec![constraint_f, constraint_g]
+                        .into_iter()
+                        .map(|label| (label.clone(), bindings.get_morphism(label))),
+                    vec![morphism_f, morphism_g],
+                )
+                .map(|binds| Bindings::from_morphisms(binds))
+            } else {
+                None
+            }
+        }),
     }
 }
