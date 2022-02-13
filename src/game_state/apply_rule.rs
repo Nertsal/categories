@@ -13,10 +13,9 @@ impl GameState {
             None => &rule.inner,
         };
 
-
         let (actions, applied) = category.inner.apply_rule(
             rule,
-            selection.into_bindings(),
+            selection.get_bindings().clone(),
             |tags| {
                 let label = tags
                     .into_iter()
@@ -51,9 +50,18 @@ impl GameState {
 
         category.action_history.extend(actions);
 
-        if applied && self.check_goal() {
-            println!("Hooray! Goal reached!");
-            // TODO: display on screen
+        if applied {
+            if selection.inverse().is_some() {
+                // TODO: smarter removal
+                for morphism in selection.get_bindings().morphisms.values() {
+                    category.inner.morphisms.remove(morphism);
+                }
+            }
+
+            if self.check_goal() {
+                println!("Hooray! Goal reached!");
+                // TODO: display on screen
+            }
         }
     }
 

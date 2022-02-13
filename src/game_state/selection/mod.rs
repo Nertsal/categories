@@ -53,9 +53,8 @@ impl RuleSelection {
         self.rule_input.get(self.current_selection)
     }
 
-    /// Converts the selection into bindings to be passed to the rule.
-    pub fn into_bindings(self) -> Bindings {
-        self.selected
+    pub fn get_bindings(&self) -> &Bindings {
+        &self.selected
     }
 
     /// Select a vertex. Returns the next vertex
