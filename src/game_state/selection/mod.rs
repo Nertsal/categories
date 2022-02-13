@@ -53,10 +53,6 @@ impl RuleSelection {
         self.rule_input.get(self.current_selection)
     }
 
-    pub fn get_bindings(&self) -> &Bindings {
-        &self.selected
-    }
-
     /// Converts the selection into bindings to be passed to the rule.
     pub fn into_bindings(self) -> Bindings {
         self.selected

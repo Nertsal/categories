@@ -1,5 +1,5 @@
 use super::*;
 
-pub fn default_rules(geng: &Geng, assets: &Rc<Assets>) -> Vec<Rule> {
+pub fn default_rules() -> Vec<Rule> {
     ::category::axioms::rule_axioms()
 }

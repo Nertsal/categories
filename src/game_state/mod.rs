@@ -56,7 +56,7 @@ impl GameState {
         let state = State::default();
         let fact_category = RenderableCategory::new(geng, assets, init::category::fact_category());
         let goal_category = RenderableCategory::new(geng, assets, init::category::goal_category());
-        let rules = init::rules::default_rules(geng, assets)
+        let rules = init::rules::default_rules()
             .into_iter()
             .map(|rule| RenderableRule::from_rule(geng, assets, rule))
             .collect();
