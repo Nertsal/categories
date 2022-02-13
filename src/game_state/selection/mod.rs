@@ -9,10 +9,10 @@ pub use select::*;
 #[derive(Debug)]
 pub struct RuleSelection {
     rule_index: usize,
-    rule_input: Vec<(Label, CategoryThing)>,
+    rule_input: Vec<RuleInput<Label>>,
     current_selection: usize,
-    selection: Vec<CategoryThing>,
-    inferred_options: Option<Vec<CategoryThing>>,
+    selected: Bindings,
+    inferred_options: Option<Vec<RuleInput<Label>>>,
     inverse: Option<usize>,
 }
 
@@ -24,11 +24,16 @@ impl RuleSelection {
         inverse: Option<usize>,
     ) -> Self {
         let rule = &rules[rule_index];
+        let rule_input = match inverse {
+            None => rule.input.clone(),
+            Some(_) => rule.inverse_input.clone(),
+        };
+
         let mut selection = RuleSelection {
-            rule_input: rule.input.clone(),
-            selection: Vec::new(),
+            selected: Bindings::new(),
             inferred_options: None,
             current_selection: 0,
+            rule_input,
             rule_index,
             inverse,
         };
@@ -44,28 +49,17 @@ impl RuleSelection {
         self.rule_index
     }
 
-    pub fn current(&self) -> Option<&(Label, CategoryThing)> {
+    pub fn current(&self) -> Option<&RuleInput<Label>> {
         self.rule_input.get(self.current_selection)
     }
 
-    pub fn to_bindings(self) -> Bindings {
-        let mut bindings = Bindings::new();
-        for (label, thing) in self
-            .rule_input
-            .into_iter()
-            .map(|(label, _)| label)
-            .zip(self.selection.into_iter())
-        {
-            match thing {
-                CategoryThing::Object { id } => {
-                    bindings.bind_object(label, id);
-                }
-                CategoryThing::Morphism { id } => {
-                    bindings.bind_morphism(label, id);
-                }
-            }
-        }
-        bindings
+    pub fn get_bindings(&self) -> &Bindings {
+        &self.selected
+    }
+
+    /// Converts the selection into bindings to be passed to the rule.
+    pub fn into_bindings(self) -> Bindings {
+        self.selected
     }
 
     /// Select a vertex. Returns the next vertex
@@ -73,25 +67,50 @@ impl RuleSelection {
     pub fn select(
         &mut self,
         category: &Category,
-        selection: CategoryThing,
+        selection: RuleInput<Label>,
         rules: &Vec<RenderableRule>,
-    ) -> Option<&CategoryThing> {
+    ) -> Option<&RuleInput<Label>> {
         if self.current_selection >= self.rule_input.len() {
             return None;
         }
 
-        self.selection.push(selection);
+        match selection {
+            RuleInput::Object { label, id } => {
+                self.selected.bind_object(label, id);
+            }
+            RuleInput::Morphism { label, id } => {
+                self.selected.bind_morphism(label, id);
+            }
+            RuleInput::Equality {
+                label_f,
+                id_f,
+                label_g,
+                id_g,
+            } => {
+                self.selected.bind_morphism(label_f, id_f);
+                self.selected.bind_morphism(label_g, id_g);
+            }
+            RuleInput::Commute {
+                label_f,
+                id_f,
+                label_g,
+                id_g,
+                label_h,
+                id_h,
+            } => {
+                self.selected.bind_morphism(label_f, id_f);
+                self.selected.bind_morphism(label_g, id_g);
+                self.selected.bind_morphism(label_h, id_h);
+            }
+        }
+
         self.current_selection += 1;
         self.infer_current(category, rules);
 
-        self.current().map(|(_, thing)| thing)
+        self.current()
     }
 
-    pub fn selection(&self) -> &Vec<CategoryThing> {
-        &self.selection
-    }
-
-    pub fn inferred_options(&self) -> &Option<Vec<CategoryThing>> {
+    pub fn inferred_options(&self) -> &Option<Vec<RuleInput<Label>>> {
         &self.inferred_options
     }
 
@@ -115,94 +134,67 @@ impl RuleSelection {
                     .chain(constraints.flat_map(|x| x.iter()))
                     .cloned()
                     .collect();
-                infer_construction(construction, &constraints, category, &self.selection)
+                construction
+                    .first()
+                    .map(|constraint| {
+                        infer_construction(constraint, &constraints, category, &self.selected)
+                    })
+                    .unwrap_or_default()
             })
         });
     }
 }
 
 fn infer_construction(
-    input_constraints: &Constraints,
+    input_constraint: &category::Constraint<Label>,
     all_constraints: &Constraints,
     category: &Category,
-    selection: &Vec<CategoryThing>,
-) -> Vec<CategoryThing> {
+    bindings: &Bindings,
+) -> Vec<RuleInput<Label>> {
     use category::Constraint;
 
-    let mut input_constraints = input_constraints.iter();
-
-    let mut bindings = Bindings::new();
-    for selected in selection {
-        let constraint = input_constraints.next().unwrap();
-        match (constraint, selected) {
-            (Constraint::Object { label, .. }, CategoryThing::Object { id }) => {
-                bindings.bind_object(label.clone(), *id);
-            }
-            (Constraint::Object { .. }, _) => (),
-            (
-                Constraint::Morphism {
-                    label,
-                    connection,
-                    tags,
-                },
-                CategoryThing::Morphism { id },
-            ) => {
-                bindings.bind_morphism(label.clone(), *id);
-                let morphism = category.morphisms.get(id).unwrap();
-
-                match (morphism.connection, connection) {
-                    (
-                        MorphismConnection::Regular { from, to },
-                        MorphismConnection::Regular {
-                            from: constraint_from,
-                            to: constraint_to,
-                        },
-                    ) => {
-                        bindings.bind_object(constraint_from.clone(), from);
-                        bindings.bind_object(constraint_to.clone(), to);
-                    }
-                    (
-                        MorphismConnection::Isomorphism(a, b),
-                        MorphismConnection::Isomorphism(constraint_a, constraint_b),
-                    ) => {
-                        bindings.bind_object(constraint_a.clone(), a);
-                        bindings.bind_object(constraint_b.clone(), b);
-                    }
-                    _ => return vec![],
-                }
-            }
-            (Constraint::Morphism { .. }, _) => (),
-            (Constraint::Equality(_, _), _) => {
-                // TODO: select equalities either from the list, or by clicking on morphisms
-            }
-            (Constraint::Commute { f, g, h }, _) => {
-                // TODO: similar to equalities
-            }
-        }
-    }
-
-    let next = match input_constraints.next() {
-        Some(x) => x,
-        None => return vec![],
-    };
-
     category
-        .find_candidates(all_constraints, &bindings)
+        .find_candidates(all_constraints, bindings)
         .map(|candidates| {
             candidates
                 .into_iter()
-                .filter_map(|binds| match next {
-                    Constraint::Object { label, .. } => Some(CategoryThing::Object {
+                .map(|binds| match input_constraint {
+                    Constraint::Object { label, .. } => RuleInput::Object {
+                        label: label.clone(),
                         id: binds.get_object(label).expect(
                             "An object was expected to be inferred, does it not have a name?",
                         ),
-                    }),
-                    Constraint::Morphism { label, .. } => Some(CategoryThing::Morphism {
+                    },
+                    Constraint::Morphism { label, .. } => RuleInput::Morphism {
+                        label: label.clone(),
                         id: binds.get_morphism(label).expect(
                             "A morphism was expected to be inferred, does it not have a name?",
                         ),
-                    }),
-                    _ => None,
+                    },
+                    Constraint::Equality(f, g) => RuleInput::Equality {
+                        label_f: f.clone(),
+                        label_g: g.clone(),
+                        id_f: binds.get_morphism(f).expect(
+                            "A morphism was expected to be inferred, does it not have a name?",
+                        ),
+                        id_g: binds.get_morphism(g).expect(
+                            "A morphism was expected to be inferred, does it not have a name?",
+                        ),
+                    },
+                    Constraint::Commute { f, g, h } => RuleInput::Commute {
+                        label_f: f.clone(),
+                        label_g: g.clone(),
+                        label_h: h.clone(),
+                        id_f: binds.get_morphism(f).expect(
+                            "A morphism was expected to be inferred, does it not have a name?",
+                        ),
+                        id_g: binds.get_morphism(g).expect(
+                            "A morphism was expected to be inferred, does it not have a name?",
+                        ),
+                        id_h: binds.get_morphism(h).expect(
+                            "A morphism was expected to be inferred, does it not have a name?",
+                        ),
+                    },
                 })
                 .collect()
         })

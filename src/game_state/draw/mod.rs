@@ -24,7 +24,7 @@ impl GameState {
         .and_then(|selection| {
             selection
                 .current()
-                .map(|&(_, current)| (selection.rule(), vec![current]))
+                .map(|current| (selection.rule(), current.clone()))
         });
 
         // Render graphs
@@ -36,8 +36,8 @@ impl GameState {
                 (Some((rule_index, _)), FocusedCategory::Rule { index })
                     if index == *rule_index =>
                 {
-                    let (_, selection) = selected_rule.take().unwrap();
-                    Some(selection)
+                    let (_, input) = selected_rule.take().unwrap();
+                    Some(vec![input])
                 }
                 (_, focused_graph) => match focused_graph {
                     FocusedCategory::Fact => self.main_selection.as_ref(),

@@ -10,7 +10,7 @@ pub fn draw_category(
     camera: &Camera2d,
     category: &Category,
     background_color: Color<f32>,
-    selection: Option<&Vec<CategoryThing>>,
+    selection: Option<&Vec<RuleInput<Label>>>,
 ) {
     // Selection
     let mut selected_vertices = HashSet::new();
@@ -18,11 +18,17 @@ pub fn draw_category(
     if let Some(selection) = selection {
         for selection in selection {
             match selection {
-                CategoryThing::Object { id } => {
+                RuleInput::Object { id, .. } => {
                     selected_vertices.insert(id);
                 }
-                CategoryThing::Morphism { id } => {
+                RuleInput::Morphism { id, .. } => {
                     selected_edges.insert(id);
+                }
+                RuleInput::Equality { .. } => {
+                    // TODO
+                }
+                RuleInput::Commute { .. } => {
+                    // TODO
                 }
             }
         }

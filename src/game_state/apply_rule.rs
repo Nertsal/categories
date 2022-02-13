@@ -11,7 +11,7 @@ impl GameState {
 
         let (actions, applied) = category.inner.apply_rule(
             rule,
-            selection.to_bindings(),
+            selection.into_bindings(),
             |tags| {
                 let label = tags
                     .into_iter()

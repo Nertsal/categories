@@ -324,11 +324,11 @@ impl GameState {
                             &DragTarget::Vertex {
                                 category: graph,
                                 id,
-                            } => Some((graph, CategoryThing::Object { id })),
+                            } => Some((graph, RuleInput::Object { label: (), id })),
                             &DragTarget::Edge {
                                 category: graph,
                                 id,
-                            } => Some((graph, CategoryThing::Morphism { id })),
+                            } => Some((graph, RuleInput::Morphism { label: (), id })),
                             _ => None,
                         };
 
@@ -346,15 +346,66 @@ impl GameState {
                             if let Some((category, selection)) = selection {
                                 match selection
                                     .as_ref()
-                                    .and_then(|selection| selection.inferred_options().as_ref())
-                                {
-                                    Some(options) => {
-                                        if options.contains(&selected)
-                                            && selection
-                                                .as_mut()
-                                                .unwrap()
-                                                .select(category, selected, &self.rules)
-                                                .is_none()
+                                    .and_then(|selection| {
+                                        selection.current().and_then(|current| {
+                                            selection
+                                                .inferred_options()
+                                                .as_ref()
+                                                .map(|options| (current.clone(), options))
+                                        })
+                                    })
+                                    .and_then(|(current, options)| {
+                                        let selected = match (current, selected) {
+                                            (
+                                                RuleInput::Object { label, .. },
+                                                RuleInput::Object { id, .. },
+                                            ) => Some(RuleInput::Object { label, id }),
+                                            (RuleInput::Object { .. }, _) => None,
+                                            (
+                                                RuleInput::Morphism { label, .. },
+                                                RuleInput::Morphism { id, .. },
+                                            ) => Some(RuleInput::Morphism { label, id }),
+                                            (RuleInput::Morphism { .. }, _) => None,
+                                            (
+                                                RuleInput::Equality {
+                                                    label_f, label_g, ..
+                                                },
+                                                RuleInput::Equality { id_f, id_g, .. },
+                                            ) => Some(RuleInput::Equality {
+                                                label_f,
+                                                label_g,
+                                                id_f,
+                                                id_g,
+                                            }),
+                                            (RuleInput::Equality { .. }, _) => None,
+                                            (
+                                                RuleInput::Commute {
+                                                    label_f,
+                                                    label_g,
+                                                    label_h,
+                                                    ..
+                                                },
+                                                RuleInput::Commute {
+                                                    id_f, id_g, id_h, ..
+                                                },
+                                            ) => Some(RuleInput::Commute {
+                                                label_f,
+                                                label_g,
+                                                label_h,
+                                                id_f,
+                                                id_g,
+                                                id_h,
+                                            }),
+                                            (RuleInput::Commute { .. }, _) => None,
+                                        };
+                                        selected.filter(|selected| options.contains(selected))
+                                    }) {
+                                    Some(selected) => {
+                                        if selection
+                                            .as_mut()
+                                            .unwrap()
+                                            .select(category, selected, &self.rules)
+                                            .is_none()
                                         {
                                             let selection = selection.take().unwrap();
                                             self.apply_rule(focused_category, selection);

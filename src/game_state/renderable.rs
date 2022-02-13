@@ -4,7 +4,8 @@ pub struct RenderableRule {
     pub inner: Rule,
     pub inverse: Vec<Rule>,
     pub category: RenderableCategory,
-    pub input: Vec<(Label, CategoryThing)>,
+    pub input: Vec<RuleInput<Label>>,
+    pub inverse_input: Vec<RuleInput<Label>>,
 }
 
 pub struct RenderableCategory {
@@ -27,23 +28,44 @@ impl RenderableRule {
                 category::RulePart::Output => RULE_OUTPUT_COLOR,
             }
         }
-        let (category, input) = Category::from_rule(
-            &rule,
-            |part, label, _| Point::new(label, part_color(part)),
-            |part, label, _| {
-                Arrow::new(
-                    label,
-                    part_color(part),
-                    util::random_shift(),
-                    util::random_shift(),
-                )
-            },
-        );
+
+        fn object_constructor(
+            part: category::RulePart,
+            label: &Label,
+            _tags: &Vec<ObjectTag<Label>>,
+        ) -> Point {
+            Point::new(label, part_color(part))
+        }
+
+        fn morphism_constructor(
+            part: category::RulePart,
+            label: &Label,
+            _tags: &Vec<MorphismTag<Label, Label>>,
+        ) -> Arrow {
+            Arrow::new(
+                label,
+                part_color(part),
+                util::random_shift(),
+                util::random_shift(),
+            )
+        }
+
+        let (category, input) =
+            Category::from_rule(&rule, object_constructor, morphism_constructor);
+
+        let inverse = rule.invert();
+
+        let inverse_input = inverse
+            .last()
+            .map(|rule| Category::from_rule(rule, object_constructor, morphism_constructor).1)
+            .unwrap_or_default();
+
         Self {
-            inverse: rule.invert(),
-            inner: rule,
             category: RenderableCategory::new(geng, assets, category),
+            inner: rule,
+            inverse,
             input,
+            inverse_input,
         }
     }
 }
@@ -74,7 +96,7 @@ impl RenderableCategory {
     pub fn update_texture(
         &mut self,
         background_color: Color<f32>,
-        selection: Option<&Vec<CategoryThing>>,
+        selection: Option<&Vec<RuleInput<Label>>>,
     ) {
         let mut temp_framebuffer = ugli::Framebuffer::new_color(
             self.geng.ugli(),
