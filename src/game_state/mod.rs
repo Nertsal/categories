@@ -47,7 +47,7 @@ pub struct GameState {
     graph_link: GraphLink,
     focused_category: FocusedCategory,
     dragging: Option<Dragging>,
-    main_selection: Option<RuleSelection>,
+    fact_selection: Option<RuleSelection>,
     goal_selection: Option<RuleSelection>,
 }
 
@@ -63,7 +63,7 @@ impl GameState {
         Self {
             geng: geng.clone(),
             dragging: None,
-            main_selection: None,
+            fact_selection: None,
             goal_selection: None,
             focused_category: FocusedCategory::Fact,
             ui_camera: PixelPerfectCamera,

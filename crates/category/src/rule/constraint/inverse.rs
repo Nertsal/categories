@@ -49,10 +49,9 @@ fn invert_statement<L: Label>(statement: &RuleStatement<L>) -> Vec<RuleStatement
     for construction in statement {
         match construction {
             RuleConstruction::Forall(constraints) => {
-                if let Some(forall) = last_forall.take() {
+                if let Some(forall) = last_forall.replace(constraints.clone()) {
                     prelude_exists.extend(forall);
                 }
-                last_forall = Some(constraints.clone());
             }
             RuleConstruction::Exists(constraints) => {
                 if let Some(forall) = last_forall.take() {

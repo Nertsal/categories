@@ -118,13 +118,16 @@ impl RuleSelection {
     fn infer_current(&mut self, category: &Category, rules: &Vec<RenderableRule>) {
         let constraints = rules.get(self.rule()).map(|rule| {
             let statement = match self.inverse {
-                None => rule.inner.get_statement().iter(),
-                Some(inverse) => rule.inverse[inverse].get_statement().iter(),
+                None => rule.inner.get_statement(),
+                Some(inverse) => rule.inverse[inverse].get_statement(),
             };
-            statement.map_while(|construction| match construction {
-                category::RuleConstruction::Forall(constraints) => Some(constraints),
-                category::RuleConstruction::Exists(_) => None,
-            })
+            println!("inferring: {statement:#?}");
+            statement
+                .iter()
+                .map_while(|construction| match construction {
+                    category::RuleConstruction::Forall(constraints) => Some(constraints),
+                    category::RuleConstruction::Exists(_) => None,
+                })
         });
 
         self.inferred_options = constraints.and_then(|mut constraints| {
@@ -142,6 +145,8 @@ impl RuleSelection {
                     .unwrap_or_default()
             })
         });
+
+        println!("^- options: {:?}", self.inferred_options);
     }
 }
 
@@ -167,33 +172,33 @@ fn infer_construction(
                     },
                     Constraint::Morphism { label, .. } => RuleInput::Morphism {
                         label: label.clone(),
-                        id: binds.get_morphism(label).expect(
-                            "A morphism was expected to be inferred, does it not have a name?",
-                        ),
+                        id: binds
+                            .get_morphism(label)
+                            .expect("A morphism could not be inferred"),
                     },
                     Constraint::Equality(f, g) => RuleInput::Equality {
                         label_f: f.clone(),
                         label_g: g.clone(),
-                        id_f: binds.get_morphism(f).expect(
-                            "A morphism was expected to be inferred, does it not have a name?",
-                        ),
-                        id_g: binds.get_morphism(g).expect(
-                            "A morphism was expected to be inferred, does it not have a name?",
-                        ),
+                        id_f: binds
+                            .get_morphism(f)
+                            .expect("A morphism could not be inferred"),
+                        id_g: binds
+                            .get_morphism(g)
+                            .expect("A morphism could not be inferred"),
                     },
                     Constraint::Commute { f, g, h } => RuleInput::Commute {
                         label_f: f.clone(),
                         label_g: g.clone(),
                         label_h: h.clone(),
-                        id_f: binds.get_morphism(f).expect(
-                            "A morphism was expected to be inferred, does it not have a name?",
-                        ),
-                        id_g: binds.get_morphism(g).expect(
-                            "A morphism was expected to be inferred, does it not have a name?",
-                        ),
-                        id_h: binds.get_morphism(h).expect(
-                            "A morphism was expected to be inferred, does it not have a name?",
-                        ),
+                        id_f: binds
+                            .get_morphism(f)
+                            .expect("A morphism could not be inferred"),
+                        id_g: binds
+                            .get_morphism(g)
+                            .expect("A morphism could not be inferred"),
+                        id_h: binds
+                            .get_morphism(h)
+                            .expect("A morphism could not be inferred"),
                     },
                 })
                 .collect()

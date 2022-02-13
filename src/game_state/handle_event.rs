@@ -25,7 +25,7 @@ impl GameState {
                 }
                 geng::Key::Escape => {
                     // Clear selection
-                    self.main_selection = None;
+                    self.fact_selection = None;
                     self.goal_selection = None;
                 }
                 geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
@@ -299,7 +299,7 @@ impl GameState {
                             );
                             match main_selection.current() {
                                 Some(_) => {
-                                    self.main_selection = Some(main_selection);
+                                    self.fact_selection = Some(main_selection);
                                 }
                                 None => {
                                     self.apply_rule(FocusedCategory::Fact, main_selection);
@@ -336,7 +336,7 @@ impl GameState {
                             let selection = match focused_category {
                                 FocusedCategory::Rule { .. } => None,
                                 FocusedCategory::Fact => {
-                                    Some((&mut self.fact_category.inner, &mut self.main_selection))
+                                    Some((&mut self.fact_category.inner, &mut self.fact_selection))
                                 }
                                 FocusedCategory::Goal => {
                                     Some((&mut self.goal_category.inner, &mut self.goal_selection))
