@@ -138,7 +138,6 @@ impl<O, M> Category<O, M> {
 
         // Extend edges
         if extend_morphisms.len() > 0 {
-            println!("Extending morphisms");
             let actions = self.action_do(Action::ExtendMorphismTags(extend_morphisms));
             assert_eq!(actions.len(), 1);
             action_history.extend(actions);

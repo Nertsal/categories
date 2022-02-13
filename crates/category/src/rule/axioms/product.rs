@@ -21,7 +21,7 @@ pub fn rule_product<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, RuleConst
         )
         .exists(
             ConstraintsBuilder::new()
-                .morphism("m", "C", "AxB", vec![MorphismTag::Unique])
+                .morphism("m", "C", "AxB", vec![])
                 .commutes("m", "p1", "f")
                 .commutes("m", "p2", "g"),
         )
