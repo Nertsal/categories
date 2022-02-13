@@ -132,7 +132,7 @@ impl RuleSelection {
                     .cloned()
                     .collect();
                 construction
-                    .first()
+                    .get(self.current_selection)
                     .map(|constraint| {
                         infer_construction(constraint, &constraints, category, &self.selected)
                     })
