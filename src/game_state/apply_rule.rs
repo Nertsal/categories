@@ -7,7 +7,12 @@ impl GameState {
             FocusedCategory::Fact => &mut self.fact_category,
             FocusedCategory::Goal => &mut self.goal_category,
         };
-        let rule = &self.rules[selection.rule()].inner;
+        let rule = &self.rules[selection.rule()];
+        let rule = match selection.inverse() {
+            Some(inverse) => &rule.inverse[inverse],
+            None => &rule.inner,
+        };
+
 
         let (actions, applied) = category.inner.apply_rule(
             rule,

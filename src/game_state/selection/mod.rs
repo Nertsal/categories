@@ -121,11 +121,10 @@ impl RuleSelection {
                 None => rule.inner.get_statement(),
                 Some(inverse) => rule.inverse[inverse].get_statement(),
             };
-            println!("inferring: {statement:#?}");
             statement
                 .iter()
                 .map_while(|construction| match construction {
-                    category::RuleConstruction::Forall(constraints) => Some(constraints),
+                    category::RuleConstruction::Forall(c) => Some(c),
                     category::RuleConstruction::Exists(_) => None,
                 })
         });
@@ -134,7 +133,7 @@ impl RuleSelection {
             constraints.next().map(|construction| {
                 let constraints = construction
                     .iter()
-                    .chain(constraints.flat_map(|x| x.iter()))
+                    .chain(constraints.flat_map(|x| x))
                     .cloned()
                     .collect();
                 construction
@@ -145,8 +144,6 @@ impl RuleSelection {
                     .unwrap_or_default()
             })
         });
-
-        println!("^- options: {:?}", self.inferred_options);
     }
 }
 
@@ -157,49 +154,51 @@ fn infer_construction(
     bindings: &Bindings,
 ) -> Vec<RuleInput<Label>> {
     use category::Constraint;
-
     category
         .find_candidates(all_constraints, bindings)
         .map(|candidates| {
             candidates
                 .into_iter()
-                .map(|binds| match input_constraint {
-                    Constraint::Object { label, .. } => RuleInput::Object {
-                        label: label.clone(),
-                        id: binds
-                            .get_object(label)
-                            .expect("An object could not be inferred"),
-                    },
-                    Constraint::Morphism { label, .. } => RuleInput::Morphism {
-                        label: label.clone(),
-                        id: binds
-                            .get_morphism(label)
-                            .expect("A morphism could not be inferred"),
-                    },
-                    Constraint::Equality(f, g) => RuleInput::Equality {
-                        label_f: f.clone(),
-                        label_g: g.clone(),
-                        id_f: binds
-                            .get_morphism(f)
-                            .expect("A morphism could not be inferred"),
-                        id_g: binds
-                            .get_morphism(g)
-                            .expect("A morphism could not be inferred"),
-                    },
-                    Constraint::Commute { f, g, h } => RuleInput::Commute {
-                        label_f: f.clone(),
-                        label_g: g.clone(),
-                        label_h: h.clone(),
-                        id_f: binds
-                            .get_morphism(f)
-                            .expect("A morphism could not be inferred"),
-                        id_g: binds
-                            .get_morphism(g)
-                            .expect("A morphism could not be inferred"),
-                        id_h: binds
-                            .get_morphism(h)
-                            .expect("A morphism could not be inferred"),
-                    },
+                .map(|mut binds| {
+                    binds.extend(bindings.clone());
+                    match input_constraint {
+                        Constraint::Object { label, .. } => RuleInput::Object {
+                            label: label.clone(),
+                            id: binds
+                                .get_object(label)
+                                .expect("An object could not be inferred"),
+                        },
+                        Constraint::Morphism { label, .. } => RuleInput::Morphism {
+                            label: label.clone(),
+                            id: binds
+                                .get_morphism(label)
+                                .expect("A morphism could not be inferred"),
+                        },
+                        Constraint::Equality(f, g) => RuleInput::Equality {
+                            label_f: f.clone(),
+                            label_g: g.clone(),
+                            id_f: binds
+                                .get_morphism(f)
+                                .expect("A morphism could not be inferred"),
+                            id_g: binds
+                                .get_morphism(g)
+                                .expect("A morphism could not be inferred"),
+                        },
+                        Constraint::Commute { f, g, h } => RuleInput::Commute {
+                            label_f: f.clone(),
+                            label_g: g.clone(),
+                            label_h: h.clone(),
+                            id_f: binds
+                                .get_morphism(f)
+                                .expect("A morphism could not be inferred"),
+                            id_g: binds
+                                .get_morphism(g)
+                                .expect("A morphism could not be inferred"),
+                            id_h: binds
+                                .get_morphism(h)
+                                .expect("A morphism could not be inferred"),
+                        },
+                    }
                 })
                 .collect()
         })
