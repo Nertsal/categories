@@ -32,11 +32,11 @@ fn object_matches<O, L: Label>(
 ) -> Option<Bindings<L>> {
     let mut new_bindings = Bindings::new();
 
-    for tag_check in tags.iter().map(|constraint| {
+    for tag_check in tags.iter().flat_map(|constraint| {
         object
             .tags
             .iter()
-            .find_map(|tag| tag_matches(constraint, tag, bindings))
+            .map(|tag| tag_matches(constraint, tag, bindings))
     }) {
         let binds = match tag_check {
             Some(binds) => binds,

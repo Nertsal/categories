@@ -68,11 +68,11 @@ fn morphism_matches<M, L: Label>(
     };
 
     // Check tags
-    for tag_check in tags.iter().map(|constraint| {
+    for tag_check in tags.iter().flat_map(|constraint| {
         morphism
             .tags
             .iter()
-            .find_map(|tag| tag_matches(constraint, tag, bindings))
+            .map(|tag| tag_matches(constraint, tag, bindings))
     }) {
         let binds = match tag_check {
             Some(binds) => binds,
