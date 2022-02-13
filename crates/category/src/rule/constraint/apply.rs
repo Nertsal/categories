@@ -42,7 +42,9 @@ impl<O, M> Category<O, M> {
 
         let mut new_vertices = Vec::new();
         let mut new_vertices_names = Vec::new();
+        let mut extend_vertices = Vec::new();
         let mut new_edges = Vec::new();
+        let mut extend_edges = Vec::new();
         let mut new_edges_names = Vec::new();
 
         // Constraint vertices
@@ -52,8 +54,8 @@ impl<O, M> Category<O, M> {
                 .map(|tag| tag.map_borrowed(|label| bindings.get_object(label).unwrap())) // TODO: proper error handling
                 .collect::<Vec<_>>();
 
-            if let Some(_) = bindings.get_object(label) {
-                // TODO: possibly need to add a tag
+            if let Some(object) = bindings.get_object(label) {
+                extend_vertices.push((object, tags));
             } else {
                 let label_tags = tags
                     .iter()
@@ -69,6 +71,10 @@ impl<O, M> Category<O, M> {
         }
 
         let mut action_history = Vec::new();
+
+        // Extend vertices
+        let actions = self.action_do(Action::ExtendObjectTags(extend_vertices));
+        assert_eq!(actions.len(), 1);
 
         // Create new vertices
         if new_vertices.len() > 0 {
@@ -103,8 +109,8 @@ impl<O, M> Category<O, M> {
                 })
                 .collect::<Vec<_>>();
 
-            if let Some(_) = bindings.get_morphism(label) {
-                // TODO: possibly add a tag
+            if let Some(morphism_id) = bindings.get_morphism(label) {
+                extend_edges.push((morphism_id, tags));
             } else {
                 let label_connection = connection.map_borrowed(|id| self.objects.get(id).unwrap()); // TODO: better error handling
 
@@ -126,6 +132,10 @@ impl<O, M> Category<O, M> {
                 new_edges_names.push(label.clone());
             }
         }
+
+        // Extend edges
+        let actions = self.action_do(Action::ExtendMorphismTags(extend_edges));
+        assert_eq!(actions.len(), 1);
 
         // Create new edges
         if new_edges.len() > 0 {

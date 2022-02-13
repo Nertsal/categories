@@ -3,8 +3,12 @@ use super::*;
 #[derive(Debug, Clone)]
 pub enum Action<O, M> {
     NewObjects(Vec<Object<O>>),
+    ExtendObjectTags(Vec<(ObjectId, Vec<ObjectTag>)>),
+    RemoveObjectTags(Vec<(ObjectId, Vec<ObjectTag>)>),
     RemoveObjects(Vec<ObjectId>),
     NewMorphisms(Vec<Morphism<M>>),
+    ExtendMorphismTags(Vec<(MorphismId, Vec<MorphismTag>)>),
+    RemoveMorphismTags(Vec<(MorphismId, Vec<MorphismTag>)>),
     RemoveMorphisms(Vec<MorphismId>),
     NewEqualities(Vec<(MorphismId, MorphismId)>),
     RemoveEqualities(Vec<(MorphismId, MorphismId)>),
@@ -32,6 +36,38 @@ impl<O, M> Category<O, M> {
                     })
                     .collect();
                 vec![Action::RemoveMorphisms(morphisms)]
+            }
+            Action::ExtendObjectTags(mut extensions) => {
+                extensions.retain(|(id, _)| self.objects.contains(id));
+                for (object_id, new_tags) in extensions.clone() {
+                    let object = self.objects.get_mut(&object_id).unwrap(); // Check was done when retaining
+                    object.tags.extend(new_tags);
+                }
+                vec![Action::RemoveObjectTags(extensions)]
+            }
+            Action::ExtendMorphismTags(mut extensions) => {
+                extensions.retain(|(id, _)| self.morphisms.contains(id));
+                for (morphism_id, new_tags) in extensions.clone() {
+                    let morphism = self.morphisms.get_mut(&morphism_id).unwrap(); // Check was done when retaining
+                    morphism.tags.extend(new_tags);
+                }
+                vec![Action::RemoveMorphismTags(extensions)]
+            }
+            Action::RemoveObjectTags(mut extensions) => {
+                extensions.retain(|(id, _)| self.objects.contains(id));
+                for (object_id, new_tags) in &extensions {
+                    let object = self.objects.get_mut(object_id).unwrap(); // Check was done when retaining
+                    object.tags.retain(|tag| !new_tags.contains(tag));
+                }
+                vec![Action::ExtendObjectTags(extensions)]
+            }
+            Action::RemoveMorphismTags(mut extensions) => {
+                extensions.retain(|(id, _)| self.morphisms.contains(id));
+                for (morphism_id, new_tags) in &extensions {
+                    let morphism = self.morphisms.get_mut(morphism_id).unwrap(); // Check was done when retaining
+                    morphism.tags.retain(|tag| !new_tags.contains(tag));
+                }
+                vec![Action::ExtendMorphismTags(extensions)]
             }
             Action::RemoveObjects(objects) => {
                 let (objects, morphisms) = objects
