@@ -80,19 +80,23 @@ impl<O, M> Category<O, M> {
                         .into_iter()
                         .map(|mut binds| {
                             binds.extend(bindings.clone());
-                            (
-                                self.apply_impl(
-                                    statement,
-                                    binds,
-                                    object_constructor,
-                                    morphism_constructor,
-                                )
-                                .0,
-                                true,
-                            )
+                            let (mut actions, binds) = self.apply_constraints(
+                                constraints,
+                                &binds,
+                                object_constructor,
+                                morphism_constructor,
+                            );
+                            let (new_actions, _) = self.apply_impl(
+                                statement,
+                                binds,
+                                object_constructor,
+                                morphism_constructor,
+                            );
+                            actions.extend(new_actions);
+                            (actions, true)
                         })
                         .fold(
-                            (Vec::new(), false),
+                            (vec![], false),
                             |(mut acc_actions, acc_apply), (action, apply)| {
                                 acc_actions.extend(action);
                                 (acc_actions, acc_apply || apply)

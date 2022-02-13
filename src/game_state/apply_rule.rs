@@ -13,7 +13,7 @@ impl GameState {
             None => &rule.inner,
         };
 
-        let (actions, applied) = category.inner.apply_rule(
+        let (undo_actions, applied) = category.inner.apply_rule(
             rule,
             selection.get_bindings().clone(),
             |tags| {
@@ -48,7 +48,25 @@ impl GameState {
             },
         );
 
-        category.action_history.extend(actions);
+        for action in &undo_actions {
+            match action {
+                category::Action::RemoveMorphismTags(extensions) => {
+                    for (morphism_id, new_tags) in extensions {
+                        if let Some(morphism) = category.inner.morphisms.get_mut(morphism_id) {
+                            if new_tags
+                                .iter()
+                                .any(|tag| matches!(tag, MorphismTag::Unique))
+                            {
+                                morphism.inner.color = ARROW_UNIQUE_COLOR;
+                            }
+                        }
+                    }
+                }
+                _ => (),
+            }
+        }
+
+        category.action_history.extend(undo_actions);
 
         if applied {
             if selection.inverse().is_some() {

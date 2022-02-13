@@ -14,22 +14,22 @@ impl<O, M> Category<O, M> {
     ) -> (Vec<Action<O, M>>, Bindings<L>) {
         let mut bindings = bindings.clone();
 
-        let mut constrained_vertices = Vec::new();
-        let mut constrained_edges = Vec::new();
+        let mut constrained_objects = Vec::new();
+        let mut constrained_morphisms = Vec::new();
         let mut constrained_equalities = Vec::new();
         let mut constrained_commutes = Vec::new();
 
         for constraint in constraints {
             match constraint {
                 Constraint::Object { label, tags } => {
-                    constrained_vertices.push((label, tags));
+                    constrained_objects.push((label, tags));
                 }
                 Constraint::Morphism {
                     label,
                     connection,
                     tags,
                 } => {
-                    constrained_edges.push((label, connection, tags));
+                    constrained_morphisms.push((label, connection, tags));
                 }
                 Constraint::Equality(f, g) => {
                     constrained_equalities.push((f, g));
@@ -40,55 +40,58 @@ impl<O, M> Category<O, M> {
             }
         }
 
-        let mut new_vertices = Vec::new();
-        let mut new_vertices_names = Vec::new();
-        let mut extend_vertices = Vec::new();
-        let mut new_edges = Vec::new();
-        let mut extend_edges = Vec::new();
-        let mut new_edges_names = Vec::new();
+        let mut new_objects = Vec::new();
+        let mut new_object_names = Vec::new();
+        let mut extend_objects = Vec::new();
+        let mut new_morphisms = Vec::new();
+        let mut extend_morphisms = Vec::new();
+        let mut new_morphism_names = Vec::new();
 
         // Constraint vertices
-        for (label, tags) in constrained_vertices {
+        for (label, tags) in constrained_objects {
             let tags = tags
                 .iter()
                 .map(|tag| tag.map_borrowed(|label| bindings.get_object(label).unwrap())) // TODO: proper error handling
                 .collect::<Vec<_>>();
 
             if let Some(object) = bindings.get_object(label) {
-                extend_vertices.push((object, tags));
+                extend_objects.push((object, tags));
             } else {
                 let label_tags = tags
                     .iter()
                     .map(|tag| tag.map_borrowed(|id| self.objects.get(id).unwrap())) // TODO: better error handling
                     .collect();
 
-                new_vertices.push(Object {
+                new_objects.push(Object {
                     inner: object_constructor(label_tags),
                     tags,
                 });
-                new_vertices_names.push(label.clone());
+                new_object_names.push(label.clone());
             }
         }
 
         let mut action_history = Vec::new();
 
         // Extend vertices
-        let actions = self.action_do(Action::ExtendObjectTags(extend_vertices));
-        assert_eq!(actions.len(), 1);
+        if extend_objects.len() > 0 {
+            let actions = self.action_do(Action::ExtendObjectTags(extend_objects));
+            assert_eq!(actions.len(), 1);
+            action_history.extend(actions);
+        }
 
         // Create new vertices
-        if new_vertices.len() > 0 {
+        if new_objects.len() > 0 {
             create_vertices(
                 self,
                 &mut bindings,
                 &mut action_history,
-                new_vertices,
-                new_vertices_names,
+                new_objects,
+                new_object_names,
             );
         }
 
         // Constraint edges
-        for (label, connection, tags) in constrained_edges {
+        for (label, connection, tags) in constrained_morphisms {
             let connection = connection.map_borrowed(|label| {
                 get_object_or_new(
                     label,
@@ -110,7 +113,7 @@ impl<O, M> Category<O, M> {
                 .collect::<Vec<_>>();
 
             if let Some(morphism_id) = bindings.get_morphism(label) {
-                extend_edges.push((morphism_id, tags));
+                extend_morphisms.push((morphism_id, tags));
             } else {
                 let label_connection = connection.map_borrowed(|id| self.objects.get(id).unwrap()); // TODO: better error handling
 
@@ -124,28 +127,32 @@ impl<O, M> Category<O, M> {
                     })
                     .collect();
 
-                new_edges.push(Morphism {
+                new_morphisms.push(Morphism {
                     inner: morphism_constructor(label_connection, label_tags),
                     connection,
                     tags,
                 });
-                new_edges_names.push(label.clone());
+                new_morphism_names.push(label.clone());
             }
         }
 
         // Extend edges
-        let actions = self.action_do(Action::ExtendMorphismTags(extend_edges));
-        assert_eq!(actions.len(), 1);
+        if extend_morphisms.len() > 0 {
+            println!("Extending morphisms");
+            let actions = self.action_do(Action::ExtendMorphismTags(extend_morphisms));
+            assert_eq!(actions.len(), 1);
+            action_history.extend(actions);
+        }
 
         // Create new edges
-        if new_edges.len() > 0 {
-            let actions = self.action_do(Action::NewMorphisms(new_edges));
+        if new_morphisms.len() > 0 {
+            let actions = self.action_do(Action::NewMorphisms(new_morphisms));
             assert_eq!(actions.len(), 1);
             // Bind new edges
             match &actions[0] {
                 Action::RemoveMorphisms(edges) => {
-                    assert_eq!(edges.len(), new_edges_names.len());
-                    for (label, id) in new_edges_names.into_iter().zip(edges.iter().copied()) {
+                    assert_eq!(edges.len(), new_morphism_names.len());
+                    for (label, id) in new_morphism_names.into_iter().zip(edges.iter().copied()) {
                         bindings.bind_morphism(label, id);
                     }
                 }
@@ -162,11 +169,13 @@ impl<O, M> Category<O, M> {
                     .get_morphism(f)
                     .and_then(|f| bindings.get_morphism(g).map(|g| (f, g)))
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        let actions = self.action_do(Action::NewEqualities(constrained_equalities));
-        assert_eq!(actions.len(), 1);
-        action_history.extend(actions);
+        if constrained_equalities.len() > 0 {
+            let actions = self.action_do(Action::NewEqualities(constrained_equalities));
+            assert_eq!(actions.len(), 1);
+            action_history.extend(actions);
+        }
 
         // Constraint commutativities
         let constrained_commutes = constrained_commutes
@@ -178,11 +187,13 @@ impl<O, M> Category<O, M> {
                         .and_then(|g| bindings.get_morphism(h).map(|h| (f, g, h)))
                 })
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        let actions = self.action_do(Action::NewCommutes(constrained_commutes));
-        assert_eq!(actions.len(), 1);
-        action_history.extend(actions);
+        if constrained_commutes.len() > 0 {
+            let actions = self.action_do(Action::NewCommutes(constrained_commutes));
+            assert_eq!(actions.len(), 1);
+            action_history.extend(actions);
+        }
 
         (action_history, bindings)
     }
