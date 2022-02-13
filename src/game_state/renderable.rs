@@ -50,10 +50,13 @@ impl RenderableRule {
             )
         }
 
+        println!("\nrule: {rule:?}");
+
         let (category, input) =
             Category::from_rule(&rule, object_constructor, morphism_constructor);
 
         let inverse = rule.invert();
+        println!("^- inverse rule: {inverse:#?}");
 
         let inverse_input = inverse
             .last()

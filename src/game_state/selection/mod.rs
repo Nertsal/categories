@@ -166,9 +166,9 @@ fn infer_construction(
                 .map(|binds| match input_constraint {
                     Constraint::Object { label, .. } => RuleInput::Object {
                         label: label.clone(),
-                        id: binds.get_object(label).expect(
-                            "An object was expected to be inferred, does it not have a name?",
-                        ),
+                        id: binds
+                            .get_object(label)
+                            .expect("An object could not be inferred"),
                     },
                     Constraint::Morphism { label, .. } => RuleInput::Morphism {
                         label: label.clone(),
