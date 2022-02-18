@@ -1,3 +1,4 @@
+mod commute;
 mod composition;
 mod identity;
 mod initial;
@@ -7,6 +8,7 @@ mod terminal;
 
 use super::*;
 
+pub use commute::*;
 pub use composition::*;
 pub use identity::*;
 pub use initial::*;
@@ -22,6 +24,7 @@ fn get_axioms<'a, T: Label + From<&'a str>>() -> Result<Vec<Rule<T>>, RuleConstr
     Ok(vec![
         rule_identity()?,
         rule_composition()?,
+        rule_commutativity()?,
         rule_terminal()?,
         rule_initial()?,
         rule_product()?,
