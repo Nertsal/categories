@@ -50,6 +50,15 @@ impl GameState {
 
         for action in &undo_actions {
             match action {
+                category::Action::RemoveMorphisms(morphisms) => {
+                    for morphism_id in morphisms {
+                        if let Some(morphism) = category.inner.morphisms.get_mut(morphism_id) {
+                            if morphism.inner.label.is_empty() {
+                                morphism.inner.label = format!("{:?}", morphism_id.raw());
+                            }
+                        }
+                    }
+                }
                 category::Action::RemoveMorphismTags(extensions) => {
                     for (morphism_id, new_tags) in extensions {
                         if let Some(morphism) = category.inner.morphisms.get_mut(morphism_id) {

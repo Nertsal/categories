@@ -33,7 +33,7 @@ impl<L: Label + Display> MorphismTag<L, L> {
     pub fn infer_name(&self) -> Option<String> {
         match &self.map_borrowed(|label| format!("{label}"), |label| format!("{label}")) {
             MorphismTag::Identity(_) => Some(format!("id")),
-            MorphismTag::Composition { first, second } => label_operation(first, second, "."),
+            MorphismTag::Composition { first, second } => label_operation(second, first, " o "), // TODO: use ∘
             _ => None,
         }
     }

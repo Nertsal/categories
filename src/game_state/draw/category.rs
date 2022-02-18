@@ -102,7 +102,7 @@ pub fn draw_category(
         };
 
         let text = format!(
-            "{} . {} = {}",
+            "{} o {} = {}",
             get(&commute.1),
             get(&commute.0),
             get(&commute.2)
