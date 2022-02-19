@@ -57,8 +57,8 @@ impl RuleSelection {
         &self.selected
     }
 
-    /// Select a vertex. Returns the next vertex
-    /// from the rule graph to select.
+    /// Select an object/morphism. Returns the next object/morphism
+    /// from the rule to select.
     pub fn select(
         &mut self,
         category: &Category,

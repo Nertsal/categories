@@ -274,152 +274,171 @@ impl GameState {
     }
 
     fn drag_stop(&mut self, mouse_position: Vec2<f64>, _mouse_button: geng::MouseButton) {
-        if let Some(dragging) = self.dragging.take() {
-            let world_pos = self.ui_camera.screen_to_world(
-                self.state.framebuffer_size,
-                mouse_position.map(|x| x as f32),
-            );
-            match &dragging.action {
-                DragAction::Selection { .. } => {
-                    let dragged_delta = mouse_position - dragging.mouse_start_position;
-                    if dragged_delta.len().approx_eq(&0.0) {
-                        // Select rule
-                        if let &FocusedCategory::Rule { index } = &self.focused_category {
-                            let main_selection = RuleSelection::new(
-                                &self.fact_category.inner,
-                                index,
-                                &self.rules,
-                                None,
-                            );
-                            let goal_selection = RuleSelection::new(
-                                &self.goal_category.inner,
-                                index,
-                                &self.rules,
-                                Some(0),
-                            );
-                            match main_selection.current() {
-                                Some(_) => {
-                                    self.fact_selection = Some(main_selection);
-                                }
-                                None => {
-                                    self.apply_rule(FocusedCategory::Fact, main_selection);
-                                }
-                            }
-                            match goal_selection.current() {
-                                Some(_) => {
-                                    self.goal_selection = Some(goal_selection);
-                                }
-                                None => {
-                                    self.apply_rule(FocusedCategory::Goal, goal_selection);
-                                }
-                            }
-                        }
-                    }
-                }
-                DragAction::Move { target } => {
-                    let delta = world_pos - dragging.world_start_position;
-                    if delta.len().approx_eq(&0.0) {
-                        // Select vertex or edge
-                        let selected = match target {
-                            &DragTarget::Vertex {
-                                category: graph,
-                                id,
-                            } => Some((graph, RuleInput::Object { label: (), id })),
-                            &DragTarget::Edge {
-                                category: graph,
-                                id,
-                            } => Some((graph, RuleInput::Morphism { label: (), id })),
-                            _ => None,
-                        };
+        let dragging = match self.dragging.take() {
+            Some(x) => x,
+            None => return,
+        };
 
-                        if let Some((focused_category, selected)) = selected {
-                            let selection = match focused_category {
-                                FocusedCategory::Rule { .. } => None,
-                                FocusedCategory::Fact => {
-                                    Some((&mut self.fact_category.inner, &mut self.fact_selection))
-                                }
-                                FocusedCategory::Goal => {
-                                    Some((&mut self.goal_category.inner, &mut self.goal_selection))
-                                }
-                            };
+        let mouse_world_pos = self.ui_camera.screen_to_world(
+            self.state.framebuffer_size,
+            mouse_position.map(|x| x as f32),
+        );
 
-                            if let Some((category, selection)) = selection {
-                                match selection
-                                    .as_ref()
-                                    .and_then(|selection| {
-                                        selection.current().and_then(|current| {
-                                            selection
-                                                .inferred_options()
-                                                .as_ref()
-                                                .map(|options| (current.clone(), options))
-                                        })
-                                    })
-                                    .and_then(|(current, options)| {
-                                        let selected = match (current, selected) {
-                                            (
-                                                RuleInput::Object { label, .. },
-                                                RuleInput::Object { id, .. },
-                                            ) => Some(RuleInput::Object { label, id }),
-                                            (RuleInput::Object { .. }, _) => None,
-                                            (
-                                                RuleInput::Morphism { label, .. },
-                                                RuleInput::Morphism { id, .. },
-                                            ) => Some(RuleInput::Morphism { label, id }),
-                                            (RuleInput::Morphism { .. }, _) => None,
-                                            (
-                                                RuleInput::Equality {
-                                                    label_f, label_g, ..
-                                                },
-                                                RuleInput::Equality { id_f, id_g, .. },
-                                            ) => Some(RuleInput::Equality {
-                                                label_f,
-                                                label_g,
-                                                id_f,
-                                                id_g,
-                                            }),
-                                            (RuleInput::Equality { .. }, _) => None,
-                                            (
-                                                RuleInput::Commute {
-                                                    label_f,
-                                                    label_g,
-                                                    label_h,
-                                                    ..
-                                                },
-                                                RuleInput::Commute {
-                                                    id_f, id_g, id_h, ..
-                                                },
-                                            ) => Some(RuleInput::Commute {
-                                                label_f,
-                                                label_g,
-                                                label_h,
-                                                id_f,
-                                                id_g,
-                                                id_h,
-                                            }),
-                                            (RuleInput::Commute { .. }, _) => None,
-                                        };
-                                        selected.filter(|selected| options.contains(selected))
-                                    }) {
-                                    Some(selected) => {
-                                        if selection
-                                            .as_mut()
-                                            .unwrap()
-                                            .select(category, selected, &self.rules)
-                                            .is_none()
-                                        {
-                                            let selection = selection.take().unwrap();
-                                            self.apply_rule(focused_category, selection);
-                                        }
-                                    }
-                                    None => {
-                                        *selection = None;
-                                    }
-                                }
-                            }
-                        }
-                    }
+        match &dragging.action {
+            DragAction::Selection { .. } => {
+                self.drag_selection_stop(mouse_position, dragging.mouse_start_position);
+            }
+            DragAction::Move { target } => {
+                self.drag_move_stop(mouse_world_pos, dragging.world_start_position, target);
+            }
+            _ => (),
+        }
+    }
+
+    fn drag_selection_stop(&mut self, mouse_position: Vec2<f64>, mouse_start_position: Vec2<f64>) {
+        let dragged_delta = mouse_position - mouse_start_position;
+        if !dragged_delta.len().approx_eq(&0.0) {
+            return;
+        }
+
+        // Select rule
+        if let &FocusedCategory::Rule { index } = &self.focused_category {
+            let main_selection =
+                RuleSelection::new(&self.fact_category.inner, index, &self.rules, None);
+            let goal_selection =
+                RuleSelection::new(&self.goal_category.inner, index, &self.rules, Some(0));
+            match main_selection.current() {
+                Some(_) => {
+                    self.fact_selection = Some(main_selection);
                 }
-                _ => (),
+                None => {
+                    self.apply_rule(FocusedCategory::Fact, main_selection);
+                }
+            }
+            match goal_selection.current() {
+                Some(_) => {
+                    self.goal_selection = Some(goal_selection);
+                }
+                None => {
+                    self.apply_rule(FocusedCategory::Goal, goal_selection);
+                }
+            }
+        }
+    }
+
+    fn drag_move_stop(
+        &mut self,
+        world_pos: Vec2<f32>,
+        world_start_position: Vec2<f32>,
+        target: &DragTarget,
+    ) {
+        let delta = world_pos - world_start_position;
+        if !delta.len().approx_eq(&0.0) {
+            return;
+        }
+
+        // Select vertex or edge
+        let selected = match target {
+            &DragTarget::Vertex {
+                category: graph,
+                id,
+            } => Some((graph, RuleInput::Object { label: (), id })),
+            &DragTarget::Edge {
+                category: graph,
+                id,
+            } => Some((graph, RuleInput::Morphism { label: (), id })),
+            _ => None,
+        };
+
+        let (focused_category, selected) = match selected {
+            Some(x) => x,
+            None => return,
+        };
+
+        let selection = match focused_category {
+            FocusedCategory::Rule { .. } => None,
+            FocusedCategory::Fact => {
+                Some((&mut self.fact_category.inner, &mut self.fact_selection))
+            }
+            FocusedCategory::Goal => {
+                Some((&mut self.goal_category.inner, &mut self.goal_selection))
+            }
+        };
+
+        let (category, selection) = match selection {
+            Some(x) => x,
+            None => return,
+        };
+
+        let selected = selection
+            .as_ref()
+            .and_then(|selection| {
+                selection.current().and_then(|current| {
+                    selection
+                        .inferred_options()
+                        .as_ref()
+                        .map(|options| (current.clone(), options))
+                })
+            })
+            .and_then(|(current, options)| {
+                let selected = match (current, selected) {
+                    (RuleInput::Object { label, .. }, RuleInput::Object { id, .. }) => {
+                        Some(RuleInput::Object { label, id })
+                    }
+                    (RuleInput::Object { .. }, _) => None,
+                    (RuleInput::Morphism { label, .. }, RuleInput::Morphism { id, .. }) => {
+                        Some(RuleInput::Morphism { label, id })
+                    }
+                    (RuleInput::Morphism { .. }, _) => None,
+                    (
+                        RuleInput::Equality {
+                            label_f, label_g, ..
+                        },
+                        RuleInput::Equality { id_f, id_g, .. },
+                    ) => Some(RuleInput::Equality {
+                        label_f,
+                        label_g,
+                        id_f,
+                        id_g,
+                    }),
+                    (RuleInput::Equality { .. }, _) => None,
+                    (
+                        RuleInput::Commute {
+                            label_f,
+                            label_g,
+                            label_h,
+                            ..
+                        },
+                        RuleInput::Commute {
+                            id_f, id_g, id_h, ..
+                        },
+                    ) => Some(RuleInput::Commute {
+                        label_f,
+                        label_g,
+                        label_h,
+                        id_f,
+                        id_g,
+                        id_h,
+                    }),
+                    (RuleInput::Commute { .. }, _) => None,
+                };
+                selected.filter(|selected| options.contains(selected))
+            });
+
+        match selected {
+            Some(selected) => {
+                if selection
+                    .as_mut()
+                    .unwrap()
+                    .select(category, selected, &self.rules)
+                    .is_none()
+                {
+                    let selection = selection.take().unwrap();
+                    self.apply_rule(focused_category, selection);
+                }
+            }
+            None => {
+                *selection = None;
             }
         }
     }
