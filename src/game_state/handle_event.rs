@@ -427,12 +427,11 @@ impl GameState {
 
         match selected {
             Some(selected) => {
-                if selection
+                let next = selection
                     .as_mut()
                     .unwrap()
-                    .select(category, selected, &self.rules)
-                    .is_none()
-                {
+                    .select(category, selected, &self.rules);
+                if next.is_none() {
                     let selection = selection.take().unwrap();
                     self.apply_rule(focused_category, selection);
                 }

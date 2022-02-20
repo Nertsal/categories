@@ -52,7 +52,7 @@ impl<O, M> Category<O, M> {
         rule: &Rule<L>,
         object_constructor: impl Fn(RulePart, &L, &Vec<ObjectTag<L>>) -> O,
         morphism_constructor: impl Fn(RulePart, &L, &Vec<MorphismTag<L, L>>) -> M,
-    ) -> (Self, Vec<RuleInput<L>>) {
+    ) -> (Self, Vec<RuleInput<L>>, Bindings<L>) {
         let statement = rule.get_statement();
         let statement_len = statement.len();
         let mut statement_iter = statement.iter();
@@ -116,7 +116,7 @@ impl<O, M> Category<O, M> {
             }
         }
 
-        (category, input)
+        (category, input, bindings)
     }
 }
 

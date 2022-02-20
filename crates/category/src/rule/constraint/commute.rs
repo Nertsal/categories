@@ -37,6 +37,32 @@ pub fn constraint_commute<'a, O, M, L: Label>(
         category
             .equalities
             .all_commutes()
+            .chain(category.morphisms.iter().flat_map(|(&id, morphism)| {
+                let [&from, &to] = morphism.connection.end_points();
+                let mut left_id = None;
+                let mut right_id = None;
+                for (&id, id_morphism) in category.morphisms.iter() {
+                    let [&id_from, &id_to] = id_morphism.connection.end_points();
+                    if from == id_from && is_identity(id_morphism).is_some() {
+                        left_id = Some(id);
+                        if right_id.is_some() {
+                            break;
+                        }
+                    } else if to == id_to && is_identity(id_morphism).is_some() {
+                        right_id = Some(id);
+                        if left_id.is_some() {
+                            break;
+                        }
+                    }
+                }
+                let commutes = vec![
+                    left_id.map(|left_id| (left_id, id, id)),
+                    right_id.map(|right_id| (id, right_id, id)),
+                    is_composition(morphism).map(|(f, g)| (f, g, id)),
+                ];
+
+                commutes.into_iter().filter_map(|x| x)
+            }))
             .filter_map(move |(f, g, h)| {
                 constraint_ordered(constraints.iter().cloned(), vec![f, g, h])
                     .map(|binds| Bindings::from_morphisms(binds))
@@ -47,6 +73,13 @@ pub fn constraint_commute<'a, O, M, L: Label>(
 fn is_identity<T>(morphism: &Morphism<T>) -> Option<ObjectId> {
     morphism.tags.iter().find_map(|tag| match tag {
         &MorphismTag::Identity(object) => Some(object),
+        _ => None,
+    })
+}
+
+fn is_composition<T>(morphism: &Morphism<T>) -> Option<(MorphismId, MorphismId)> {
+    morphism.tags.iter().find_map(|tag| match tag {
+        &MorphismTag::Composition { first, second } => Some((first, second)),
         _ => None,
     })
 }

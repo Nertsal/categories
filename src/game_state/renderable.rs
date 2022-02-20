@@ -6,6 +6,7 @@ pub struct RenderableRule {
     pub category: RenderableCategory,
     pub input: Vec<RuleInput<Label>>,
     pub inverse_input: Vec<RuleInput<Label>>,
+    pub bindings: Bindings,
 }
 
 pub struct RenderableCategory {
@@ -50,7 +51,7 @@ impl RenderableRule {
             )
         }
 
-        let (category, input) =
+        let (category, input, bindings) =
             Category::from_rule(&rule, object_constructor, morphism_constructor);
 
         let inverse = rule.invert();
@@ -66,6 +67,7 @@ impl RenderableRule {
             inverse,
             input,
             inverse_input,
+            bindings,
         }
     }
 }
