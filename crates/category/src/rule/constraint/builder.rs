@@ -71,23 +71,18 @@ impl<L: Label> ConstraintsBuilder<L> {
         self
     }
 
-    pub fn equality(mut self, label_f: impl Into<L>, label_g: impl Into<L>) -> Self {
-        self.0
-            .push(Constraint::Equality(label_f.into(), label_g.into()));
-        self
-    }
-
-    pub fn commutes(
+    pub fn equality(
         mut self,
-        label_f: impl Into<L>,
-        label_g: impl Into<L>,
-        label_h: impl Into<L>,
+        left: impl IntoIterator<Item = impl Into<L>>,
+        right: impl IntoIterator<Item = impl Into<L>>,
     ) -> Self {
-        self.0.push(Constraint::Commute {
-            f: label_f.into(),
-            g: label_g.into(),
-            h: label_h.into(),
-        });
+        self.0.push(Constraint::Equality(
+            Equality::new(
+                left.into_iter().map(|x| x.into()).collect(),
+                right.into_iter().map(|x| x.into()).collect(),
+            )
+            .expect("Failed to constraint equality"),
+        ));
         self
     }
 }

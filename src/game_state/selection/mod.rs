@@ -70,26 +70,10 @@ impl RuleSelection {
             RuleInput::Morphism { label, id } => {
                 self.selected.bind_morphism(label, id);
             }
-            RuleInput::Equality {
-                label_f,
-                id_f,
-                label_g,
-                id_g,
-            } => {
-                self.selected.bind_morphism(label_f, id_f);
-                self.selected.bind_morphism(label_g, id_g);
-            }
-            RuleInput::Commute {
-                label_f,
-                id_f,
-                label_g,
-                id_g,
-                label_h,
-                id_h,
-            } => {
-                self.selected.bind_morphism(label_f, id_f);
-                self.selected.bind_morphism(label_g, id_g);
-                self.selected.bind_morphism(label_h, id_h);
+            RuleInput::Equality { left, right } => {
+                for (label, id) in left.into_iter().chain(right) {
+                    self.selected.bind_morphism(label, id);
+                }
             }
         }
 
@@ -142,10 +126,11 @@ impl RuleSelection {
                         }),
                     },
                     Constraint::Morphism { label, .. } => check_morphism(label),
-                    Constraint::Equality(f, g) => check_morphism(f).or_else(|| check_morphism(g)),
-                    Constraint::Commute { f, g, h } => check_morphism(f)
-                        .or_else(|| check_morphism(g))
-                        .or_else(|| check_morphism(h)),
+                    Constraint::Equality(equality) => equality
+                        .left()
+                        .iter()
+                        .chain(equality.right())
+                        .find_map(|label| check_morphism(label)),
                 });
 
                 let inferred = current
@@ -187,36 +172,29 @@ fn infer_construction(
                                 .get_morphism(label)
                                 .expect("A morphism could not be inferred"),
                         },
-                        RuleInput::Equality {
-                            label_f, label_g, ..
-                        } => RuleInput::Equality {
-                            label_f: label_f.clone(),
-                            label_g: label_g.clone(),
-                            id_f: binds
-                                .get_morphism(label_f)
-                                .expect("A morphism could not be inferred"),
-                            id_g: binds
-                                .get_morphism(label_g)
-                                .expect("A morphism could not be inferred"),
-                        },
-                        RuleInput::Commute {
-                            label_f,
-                            label_g,
-                            label_h,
-                            ..
-                        } => RuleInput::Commute {
-                            label_f: label_f.clone(),
-                            label_g: label_g.clone(),
-                            label_h: label_h.clone(),
-                            id_f: binds
-                                .get_morphism(label_f)
-                                .expect("A morphism could not be inferred"),
-                            id_g: binds
-                                .get_morphism(label_g)
-                                .expect("A morphism could not be inferred"),
-                            id_h: binds
-                                .get_morphism(label_h)
-                                .expect("A morphism could not be inferred"),
+                        RuleInput::Equality { left, right } => RuleInput::Equality {
+                            left: left
+                                .iter()
+                                .map(|(label, _)| {
+                                    (
+                                        label.clone(),
+                                        binds
+                                            .get_morphism(label)
+                                            .expect("A morphism could not be inferred"),
+                                    )
+                                })
+                                .collect(),
+                            right: right
+                                .iter()
+                                .map(|(label, _)| {
+                                    (
+                                        label.clone(),
+                                        binds
+                                            .get_morphism(label)
+                                            .expect("A morphism could not be inferred"),
+                                    )
+                                })
+                                .collect(),
                         },
                     }
                 })

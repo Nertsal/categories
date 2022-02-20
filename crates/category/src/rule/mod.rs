@@ -36,10 +36,9 @@ pub enum Constraint<L: Label> {
         connection: MorphismConnection<L>,
         tags: Vec<MorphismTag<L, L>>,
     },
-    /// Require two morphisms to be equal to each other
-    Equality(L, L),
-    /// Require a triangle to commute, meaning that: g . f = h
-    Commute { f: L, g: L, h: L },
+    /// Require morphisms (or compositions of morphisms) to be equal to each other
+    /// (i.e. commute)
+    Equality(Equality<L>),
 }
 
 impl<L: Label> Rule<L> {

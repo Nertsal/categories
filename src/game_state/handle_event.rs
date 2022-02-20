@@ -391,36 +391,24 @@ impl GameState {
                     }
                     (RuleInput::Morphism { .. }, _) => None,
                     (
+                        RuleInput::Equality { left, right },
                         RuleInput::Equality {
-                            label_f, label_g, ..
+                            left: id_left,
+                            right: id_right,
                         },
-                        RuleInput::Equality { id_f, id_g, .. },
                     ) => Some(RuleInput::Equality {
-                        label_f,
-                        label_g,
-                        id_f,
-                        id_g,
+                        left: left
+                            .into_iter()
+                            .map(|(label, _)| label)
+                            .zip(id_left.into_iter().map(|(_, id)| id))
+                            .collect(),
+                        right: right
+                            .into_iter()
+                            .map(|(label, _)| label)
+                            .zip(id_right.into_iter().map(|(_, id)| id))
+                            .collect(),
                     }),
                     (RuleInput::Equality { .. }, _) => None,
-                    (
-                        RuleInput::Commute {
-                            label_f,
-                            label_g,
-                            label_h,
-                            ..
-                        },
-                        RuleInput::Commute {
-                            id_f, id_g, id_h, ..
-                        },
-                    ) => Some(RuleInput::Commute {
-                        label_f,
-                        label_g,
-                        label_h,
-                        id_f,
-                        id_g,
-                        id_h,
-                    }),
-                    (RuleInput::Commute { .. }, _) => None,
                 };
                 selected.filter(|selected| options.contains(selected))
             });

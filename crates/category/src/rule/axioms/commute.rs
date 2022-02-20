@@ -5,8 +5,8 @@ pub fn rule_commutativity<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, Rul
     RuleBuilder::new()
         .forall(
             ConstraintsBuilder::new()
-                .commutes("f", "l", "h")
-                .commutes("g", "k", "l"),
+                .equality(vec!["f", "l"], vec!["h"])
+                .equality(vec!["g", "k"], vec!["l"]),
         )
         .forall(
             ConstraintsBuilder::new()
@@ -27,7 +27,7 @@ pub fn rule_commutativity<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, Rul
                         second: "g",
                     }],
                 )
-                .commutes("g o f", "k", "h"),
+                .equality(vec!["g o f", "k"], vec!["h"]),
         )
         .build()
 }

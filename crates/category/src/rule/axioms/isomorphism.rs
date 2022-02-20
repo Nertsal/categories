@@ -11,8 +11,8 @@ pub fn rule_isomorphism<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, RuleC
             ConstraintsBuilder::new()
                 .morphism("id_a", "A", "A", vec![MorphismTag::Identity("A")])
                 .morphism("id_b", "B", "B", vec![MorphismTag::Identity("B")])
-                .commutes("f", "g", "id_a")
-                .commutes("g", "f", "id_b"),
+                .equality(vec!["f", "g"], vec!["id_a"])
+                .equality(vec!["g", "f"], vec!["id_b"]),
         )
         .exists(ConstraintsBuilder::new().isomorphism(
             "",

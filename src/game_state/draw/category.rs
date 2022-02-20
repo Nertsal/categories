@@ -27,9 +27,6 @@ pub fn draw_category(
                 RuleInput::Equality { .. } => {
                     // TODO
                 }
-                RuleInput::Commute { .. } => {
-                    // TODO
-                }
             }
         }
     }
@@ -79,37 +76,26 @@ pub fn draw_category(
             }
         };
 
-        let text = format!("{} = {}", get(&equality.0), get(&equality.1));
+        let mut text = String::new();
+
+        let mut left = equality.left().iter().rev();
+        text.push_str(&left.next().map(|id| get(id)).unwrap_or_default());
+        for id in left {
+            text.push_str(" o ");
+            text.push_str(&get(id));
+        }
+
+        text.push_str(" = ");
+        let mut right = equality.right().iter().rev();
+        text.push_str(&right.next().map(|id| get(id)).unwrap_or_default());
+        for id in right {
+            text.push_str(" o ");
+            text.push_str(&get(id));
+        }
+
         draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)
             .fit_into(AABB::ZERO.extend_positive(vec2(framebuffer_size.x, height)))
             .align_bounding_box(vec2(1.0, 1.0))
-            .translate(pos)
-            .draw_2d(geng, framebuffer, &geng::PixelPerfectCamera);
-    }
-
-    // Commutes
-    let offset = vec2(height / 2.0, -height / 2.0);
-    for (i, commute) in category.equalities.all_commutes().enumerate() {
-        let pos = vec2(0.0, framebuffer_size.y) + offset - vec2(0.0, i as f32 * height * 1.5);
-
-        let get = |edge| {
-            let label = &category.morphisms.get(edge).unwrap().inner.label;
-            if label.is_empty() {
-                format!("[{}]", edge.raw())
-            } else {
-                label.to_owned()
-            }
-        };
-
-        let text = format!(
-            "{} o {} = {}",
-            get(&commute.1),
-            get(&commute.0),
-            get(&commute.2)
-        );
-        draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)
-            .fit_into(AABB::ZERO.extend_positive(vec2(framebuffer_size.x, height)))
-            .align_bounding_box(vec2(0.0, 1.0))
             .translate(pos)
             .draw_2d(geng, framebuffer, &geng::PixelPerfectCamera);
     }

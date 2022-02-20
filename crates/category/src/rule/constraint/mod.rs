@@ -3,7 +3,6 @@ use super::*;
 mod apply;
 mod builder;
 mod category;
-mod commute;
 mod equality;
 mod inverse;
 mod morphism;
@@ -12,7 +11,6 @@ mod util;
 
 pub use builder::*;
 pub use category::*;
-pub(crate) use commute::*;
 pub(crate) use equality::*;
 pub use inverse::*;
 pub(crate) use morphism::*;

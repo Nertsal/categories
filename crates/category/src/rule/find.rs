@@ -30,14 +30,8 @@ impl<O, M> Category<O, M> {
                 bindings,
                 self,
             )),
-            Constraint::Equality(f, g) => Box::new(process(
-                constraint_equality(f, g, bindings, self),
-                constraints,
-                bindings,
-                self,
-            )),
-            Constraint::Commute { f, g, h } => Box::new(process(
-                constraint_commute(f, g, h, bindings, self),
+            Constraint::Equality(equality) => Box::new(process(
+                constraint_equality(equality, bindings, self),
                 constraints,
                 bindings,
                 self,

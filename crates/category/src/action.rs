@@ -10,10 +10,8 @@ pub enum Action<O, M> {
     ExtendMorphismTags(Vec<(MorphismId, Vec<MorphismTag>)>),
     RemoveMorphismTags(Vec<(MorphismId, Vec<MorphismTag>)>),
     RemoveMorphisms(Vec<MorphismId>),
-    NewEqualities(Vec<(MorphismId, MorphismId)>),
-    RemoveEqualities(Vec<(MorphismId, MorphismId)>),
-    NewCommutes(Vec<(MorphismId, MorphismId, MorphismId)>),
-    RemoveCommutes(Vec<(MorphismId, MorphismId, MorphismId)>),
+    NewEqualities(Vec<Equality>),
+    RemoveEqualities(Vec<Equality>),
 }
 
 impl<O, M> Category<O, M> {
@@ -96,11 +94,11 @@ impl<O, M> Category<O, M> {
                     .flat_map(|&morphism| {
                         let equals: Vec<_> = self
                             .equalities
-                            .get_equalities(morphism)
-                            .map(|id| (morphism, id))
+                            .get_equalities_with(morphism)
+                            .cloned()
                             .collect();
-                        equals.iter().for_each(|&(f, g)| {
-                            self.equalities.remove_equality(f, g);
+                        equals.iter().for_each(|equality| {
+                            self.equalities.remove_equality(equality);
                         });
                         equals
                     })
@@ -115,33 +113,16 @@ impl<O, M> Category<O, M> {
                 ]
             }
             Action::NewEqualities(equals) => {
-                equals
-                    .iter()
-                    .copied()
-                    .filter(|&(f, g)| f != g)
-                    .for_each(|(f, g)| {
-                        self.equalities.new_equality(f, g);
-                    });
+                equals.iter().cloned().for_each(|equality| {
+                    self.equalities.new_equality(equality);
+                });
                 vec![Action::RemoveEqualities(equals)]
             }
             Action::RemoveEqualities(equals) => {
-                equals.iter().copied().for_each(|(f, g)| {
-                    self.equalities.remove_equality(f, g);
+                equals.iter().for_each(|equality| {
+                    self.equalities.remove_equality(equality);
                 });
                 vec![Action::NewEqualities(equals)]
-            }
-            Action::NewCommutes(commutes) => {
-                commutes
-                    .iter()
-                    .copied()
-                    .for_each(|(f, g, h)| self.equalities.new_commute(f, g, h));
-                vec![Action::RemoveCommutes(commutes)]
-            }
-            Action::RemoveCommutes(commutes) => {
-                commutes.iter().copied().for_each(|(f, g, h)| {
-                    self.equalities.remove_commute(f, g, h);
-                });
-                vec![Action::NewCommutes(commutes)]
             }
         }
     }

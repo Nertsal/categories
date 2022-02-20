@@ -22,15 +22,15 @@ pub fn rule_product<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, RuleConst
         .exists(
             ConstraintsBuilder::new()
                 .morphism("m", "C", "AxB", vec![])
-                .commutes("m", "p1", "f")
-                .commutes("m", "p2", "g"),
+                .equality(vec!["m", "p1"], vec!["f"])
+                .equality(vec!["m", "p2"], vec!["g"]),
         )
         .forall(
             ConstraintsBuilder::new()
                 .morphism("m'", "C", "AxB", vec![])
-                .commutes("m'", "p1", "f")
-                .commutes("m'", "p2", "g"),
+                .equality(vec!["m'", "p1"], vec!["f"])
+                .equality(vec!["m'", "p2"], vec!["g"]),
         )
-        .exists(ConstraintsBuilder::new().equality("m", "m'"))
+        .exists(ConstraintsBuilder::new().equality(vec!["m"], vec!["m'"]))
         .build()
 }

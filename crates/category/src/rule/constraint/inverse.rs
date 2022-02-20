@@ -68,8 +68,7 @@ fn invert_constraints<L: Label>(constraints: &Constraints<L>) -> Constraints<L> 
                     })
                     .collect(),
             },
-            Constraint::Equality(_, _) => constraint.clone(),
-            Constraint::Commute { .. } => constraint.clone(),
+            Constraint::Equality(_) => constraint.clone(),
         })
         .collect()
 }

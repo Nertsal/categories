@@ -31,19 +31,8 @@ pub enum RuleInput<L> {
         id: MorphismId,
     },
     Equality {
-        label_f: L,
-        id_f: MorphismId,
-        label_g: L,
-        id_g: MorphismId,
-    },
-    /// g . f = h
-    Commute {
-        label_f: L,
-        id_f: MorphismId,
-        label_g: L,
-        id_g: MorphismId,
-        label_h: L,
-        id_h: MorphismId,
+        left: Vec<(L, MorphismId)>,
+        right: Vec<(L, MorphismId)>,
     },
 }
 
@@ -261,32 +250,30 @@ fn add_constraints<'a, O, M, L: 'a + Label>(
                     id,
                 })
             }
-            Constraint::Equality(label_f, label_g) => {
-                let [id_f, id_g] =
-                    [label_f, label_g].map(|label| get_morphism(label, bindings, category));
-                category.equalities.new_equality(id_f, id_g);
+            Constraint::Equality(equality) => {
+                let (left_input, left_eq) = equality
+                    .left()
+                    .iter()
+                    .map(|label| {
+                        let id = get_morphism(label, bindings, category);
+                        ((label.clone(), id), id)
+                    })
+                    .unzip();
+                let (right_input, right_eq) = equality
+                    .right()
+                    .iter()
+                    .map(|label| {
+                        let id = get_morphism(label, bindings, category);
+                        ((label.clone(), id), id)
+                    })
+                    .unzip();
+                let equality =
+                    Equality::new(left_eq, right_eq).expect("Failed to construct equality");
+
+                category.equalities.new_equality(equality);
                 Some(RuleInput::Equality {
-                    label_f: label_f.clone(),
-                    label_g: label_g.clone(),
-                    id_f,
-                    id_g,
-                })
-            }
-            Constraint::Commute {
-                f: label_f,
-                g: label_g,
-                h: label_h,
-            } => {
-                let [id_f, id_g, id_h] = [label_f, label_g, label_h]
-                    .map(|label| get_morphism(label, bindings, category));
-                category.equalities.new_commute(id_f, id_g, id_h);
-                Some(RuleInput::Commute {
-                    label_f: label_f.clone(),
-                    label_g: label_g.clone(),
-                    label_h: label_h.clone(),
-                    id_f,
-                    id_g,
-                    id_h,
+                    left: left_input,
+                    right: right_input,
                 })
             }
         })

@@ -17,7 +17,6 @@ impl<O, M> Category<O, M> {
         let mut constrained_objects = Vec::new();
         let mut constrained_morphisms = Vec::new();
         let mut constrained_equalities = Vec::new();
-        let mut constrained_commutes = Vec::new();
 
         for constraint in constraints {
             match constraint {
@@ -31,11 +30,8 @@ impl<O, M> Category<O, M> {
                 } => {
                     constrained_morphisms.push((label, connection, tags));
                 }
-                Constraint::Equality(f, g) => {
-                    constrained_equalities.push((f, g));
-                }
-                Constraint::Commute { f, g, h } => {
-                    constrained_commutes.push((f, g, h));
+                Constraint::Equality(equality) => {
+                    constrained_equalities.push(equality);
                 }
             }
         }
@@ -163,33 +159,27 @@ impl<O, M> Category<O, M> {
         // Constraint equalities
         let constrained_equalities = constrained_equalities
             .into_iter()
-            .filter_map(|(f, g)| {
-                bindings
-                    .get_morphism(f)
-                    .and_then(|f| bindings.get_morphism(g).map(|g| (f, g)))
+            .filter_map(|equality| {
+                let mut left = Vec::with_capacity(equality.left().len());
+                for label in equality.left() {
+                    match bindings.get_morphism(label) {
+                        None => return None,
+                        Some(id) => left.push(id),
+                    }
+                }
+                let mut right = Vec::with_capacity(equality.right().len());
+                for label in equality.right() {
+                    match bindings.get_morphism(label) {
+                        None => return None,
+                        Some(id) => right.push(id),
+                    }
+                }
+                Some(Equality::new(left, right).expect("Failed to apply equality"))
             })
             .collect::<Vec<_>>();
 
         if constrained_equalities.len() > 0 {
             let actions = self.action_do(Action::NewEqualities(constrained_equalities));
-            assert_eq!(actions.len(), 1);
-            action_history.extend(actions);
-        }
-
-        // Constraint commutativities
-        let constrained_commutes = constrained_commutes
-            .into_iter()
-            .filter_map(|(f, g, h)| {
-                bindings.get_morphism(f).and_then(|f| {
-                    bindings
-                        .get_morphism(g)
-                        .and_then(|g| bindings.get_morphism(h).map(|h| (f, g, h)))
-                })
-            })
-            .collect::<Vec<_>>();
-
-        if constrained_commutes.len() > 0 {
-            let actions = self.action_do(Action::NewCommutes(constrained_commutes));
             assert_eq!(actions.len(), 1);
             action_history.extend(actions);
         }
