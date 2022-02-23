@@ -13,11 +13,6 @@ impl<O, M> Category<O, M> {
         };
         let constraints = &constraints[1..];
 
-        println!("\n---- Finding candidates ----");
-        println!("Bindings: {:?}", bindings);
-        println!("Constraint: {:?}", constraint);
-        println!("");
-
         let binds: Box<dyn Iterator<Item = _>> = match constraint {
             Constraint::Object { label, tags } => Box::new(process(
                 constraint_object(label, tags, bindings, self),
