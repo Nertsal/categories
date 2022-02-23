@@ -36,7 +36,7 @@ fn test_product() {
     print_category(&category);
     assert_eq!(3, category.objects.len());
     assert_eq!(3, category.morphisms.len());
-    assert_eq!(2, category.equalities.all_equalities().count());
+    assert_eq!(0, category.equalities.all_equalities().count());
 
     // Find morphisms f: Identity(AxB), g: AxB->A
     let constraints = ConstraintsBuilder::new()
@@ -75,14 +75,14 @@ fn test_product() {
     print_category(&category);
     assert_eq!(3, category.objects.len());
     assert_eq!(4, category.morphisms.len());
-    assert_eq!(2, category.equalities.all_equalities().count());
+    assert_eq!(0, category.equalities.all_equalities().count());
 
     // Apply product rule
     category.apply_rule(&rule_product, bindings, |_| (), |_, _| ());
     print_category(&category);
     assert_eq!(3, category.objects.len());
     assert_eq!(4, category.morphisms.len());
-    assert_eq!(2, category.equalities.all_equalities().count());
+    assert_eq!(0, category.equalities.all_equalities().count());
 }
 
 fn print_category<O: Debug, M: Debug>(category: &Category<O, M>) {
