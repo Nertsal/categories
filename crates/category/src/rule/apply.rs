@@ -80,6 +80,12 @@ impl<O, M> Category<O, M> {
                         .into_iter()
                         .map(|mut binds| {
                             binds.extend(bindings.clone());
+                            // Keep object and morphism constraints to add extra tags
+                            let constraints =
+                                constraints.iter().filter(|constraint| match constraint {
+                                    Constraint::Object { .. } | Constraint::Morphism { .. } => true,
+                                    Constraint::Equality(_) => false,
+                                });
                             let (mut actions, binds) = self.apply_constraints(
                                 constraints,
                                 &binds,

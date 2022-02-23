@@ -9,8 +9,8 @@ mod morphism;
 mod object;
 mod util;
 
+pub use self::category::*;
 pub use builder::*;
-pub use category::*;
 pub(crate) use equality::*;
 pub use inverse::*;
 pub(crate) use morphism::*;

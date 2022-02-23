@@ -13,10 +13,20 @@ pub struct Equality<T = MorphismId> {
 }
 
 impl<T> Equality<T> {
-    pub fn new(left: Vec<T>, right: Vec<T>) -> Result<Self, ()> {
+    /// Constructs a new equality and check its validity.
+    /// May change the order (i.e. right may become left)
+    /// to preserve equality uniqueness
+    pub fn new(mut left: Vec<T>, mut right: Vec<T>) -> Result<Self, ()>
+    where
+        T: Ord,
+    {
         // TODO: check validity
         if left.len() == 0 || right.len() == 0 {
             return Err(());
+        }
+
+        if left > right {
+            std::mem::swap(&mut left, &mut right);
         }
 
         Ok(Self { left, right })

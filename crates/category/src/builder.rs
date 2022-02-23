@@ -21,6 +21,27 @@ impl<O, M, L: Label> CategoryBuilder<O, M, L> {
         self.category
     }
 
+    pub fn equality<T: Into<L>>(
+        mut self,
+        left: impl IntoIterator<Item = T>,
+        right: impl IntoIterator<Item = T>,
+    ) -> Self {
+        let left = left
+            .into_iter()
+            .map(|label| self.morphisms[&label.into()])
+            .collect();
+        let right = right
+            .into_iter()
+            .map(|label| self.morphisms[&label.into()])
+            .collect();
+
+        self.category
+            .equalities
+            .new_equality(Equality::new(left, right).unwrap());
+
+        self
+    }
+
     pub fn object<T: Into<L>>(
         mut self,
         label: T,

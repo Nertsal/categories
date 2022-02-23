@@ -2,9 +2,9 @@ use super::*;
 
 impl<O, M> Category<O, M> {
     /// Applies the rule constraints to the graph.
-    pub fn apply_constraints<L: Label>(
+    pub fn apply_constraints<'a, L: 'a + Label>(
         &mut self,
-        constraints: &Constraints<L>,
+        constraints: impl IntoIterator<Item = &'a Constraint<L>> + 'a,
         bindings: &Bindings<L>,
         object_constructor: &impl Fn(Vec<ObjectTag<&Object<O>>>) -> O,
         morphism_constructor: &impl Fn(
@@ -14,11 +14,16 @@ impl<O, M> Category<O, M> {
     ) -> (Vec<Action<O, M>>, Bindings<L>) {
         let mut bindings = bindings.clone();
 
+        println!("\n---- Applying constraints ----");
+        println!("Given: {bindings:?}");
+        println!("Constraints:");
+
         let mut constrained_objects = Vec::new();
         let mut constrained_morphisms = Vec::new();
         let mut constrained_equalities = Vec::new();
 
         for constraint in constraints {
+            println!("  {constraint:?}");
             match constraint {
                 Constraint::Object { label, tags } => {
                     constrained_objects.push((label, tags));
@@ -77,6 +82,14 @@ impl<O, M> Category<O, M> {
 
         // Create new vertices
         if new_objects.len() > 0 {
+            println!(
+                "Creating objects: {:?}",
+                new_objects
+                    .iter()
+                    .map(|object| (&object.tags))
+                    .collect::<Vec<_>>()
+            );
+
             create_vertices(
                 self,
                 &mut bindings,
@@ -141,6 +154,13 @@ impl<O, M> Category<O, M> {
 
         // Create new edges
         if new_morphisms.len() > 0 {
+            println!(
+                "Creating morphisms: {:?}",
+                new_morphisms
+                    .iter()
+                    .map(|morphism| (&morphism.connection, &morphism.tags))
+                    .collect::<Vec<_>>()
+            );
             let actions = self.action_do(Action::NewMorphisms(new_morphisms));
             assert_eq!(actions.len(), 1);
             // Bind new edges

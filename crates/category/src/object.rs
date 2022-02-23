@@ -21,6 +21,12 @@ pub struct Objects<O> {
 #[derive(Hash, PartialOrd, Ord, PartialEq, Eq, Debug, Clone, Copy)]
 pub struct ObjectId(u64);
 
+impl ObjectId {
+    pub fn raw(&self) -> u64 {
+        self.0
+    }
+}
+
 impl<T> Objects<T> {
     pub fn new() -> Self {
         Self {

@@ -9,10 +9,10 @@ mod object;
 pub mod rule;
 mod tag;
 
+use self::category::*;
 pub use action::*;
 pub use bindings::*;
 pub use builder::*;
-use category::*;
 pub use equalities::*;
 use label::*;
 use morphism::*;

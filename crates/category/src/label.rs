@@ -1,3 +1,3 @@
-pub trait Label: std::hash::Hash + Eq + Clone {}
+pub trait Label: std::fmt::Debug + std::hash::Hash + Eq + Clone + Ord {}
 
-impl<T: std::hash::Hash + Eq + Clone> Label for T {}
+impl<T: std::fmt::Debug + std::hash::Hash + Eq + Clone + Ord> Label for T {}
