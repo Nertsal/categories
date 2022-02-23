@@ -87,7 +87,7 @@ fn check_equality<O, M, L: Label>(
             .filter(|morphism| check_identity(morphism, category).is_none())
             .collect::<Vec<_>>();
         let morphism = morphisms.next().unwrap();
-        if len == 1 || check_identity(&morphism, category).is_none() {
+        if result.is_empty() || check_identity(&morphism, category).is_none() {
             result.push(morphism);
         }
         result
