@@ -8,6 +8,12 @@ pub fn rule_product<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, RuleConst
                 .object("B", vec![]),
         )
         .exists(ConstraintsBuilder::new().object("AxB", vec![ObjectTag::Product("A", "B")]))
+        .exists(ConstraintsBuilder::new().morphism(
+            "id",
+            "AxB",
+            "AxB",
+            vec![MorphismTag::Identity("AxB")],
+        ))
         .exists(
             ConstraintsBuilder::new()
                 .morphism("p1", "AxB", "A", vec![])

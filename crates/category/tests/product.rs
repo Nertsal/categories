@@ -22,9 +22,9 @@ fn test_product() {
     print_category(&category);
 
     // Make sure the build is correct
-    assert_eq!(category.objects.len(), 2);
-    assert_eq!(category.morphisms.len(), 0);
-    assert_eq!(category.equalities.all_equalities().count(), 0);
+    assert_eq!(2, category.objects.len());
+    assert_eq!(0, category.morphisms.len());
+    assert_eq!(0, category.equalities.all_equalities().count());
 
     // Get rules
     let rule_identity = axioms::rule_identity::<&str>().unwrap();
@@ -34,9 +34,9 @@ fn test_product() {
     // Apply product rule
     category.apply_rule(&rule_product, bindings.clone(), |_| (), |_, _| ());
     print_category(&category);
-    assert_eq!(category.objects.len(), 3);
-    assert_eq!(category.morphisms.len(), 3);
-    assert_eq!(category.equalities.all_equalities().count(), 2);
+    assert_eq!(3, category.objects.len());
+    assert_eq!(3, category.morphisms.len());
+    assert_eq!(2, category.equalities.all_equalities().count());
 
     // Find morphisms f: Identity(AxB), g: AxB->A
     let constraints = ConstraintsBuilder::new()
@@ -73,16 +73,16 @@ fn test_product() {
         |_, _| (),
     );
     print_category(&category);
-    assert_eq!(category.objects.len(), 3);
-    assert_eq!(category.morphisms.len(), 4);
-    assert_eq!(category.equalities.all_equalities().count(), 2);
+    assert_eq!(3, category.objects.len());
+    assert_eq!(4, category.morphisms.len());
+    assert_eq!(2, category.equalities.all_equalities().count());
 
     // Apply product rule
     category.apply_rule(&rule_product, bindings, |_| (), |_, _| ());
     print_category(&category);
-    assert_eq!(category.objects.len(), 3);
-    assert_eq!(category.morphisms.len(), 4);
-    assert_eq!(category.equalities.all_equalities().count(), 3);
+    assert_eq!(3, category.objects.len());
+    assert_eq!(4, category.morphisms.len());
+    assert_eq!(2, category.equalities.all_equalities().count());
 }
 
 fn print_category<O: Debug, M: Debug>(category: &Category<O, M>) {
