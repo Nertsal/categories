@@ -79,20 +79,6 @@ fn check_equality<O, M, L: Label>(
     }
     // At this point morphisms are guaranteed to exist and be composable
 
-    let remove_ids = |morphisms: Vec<MorphismId>| {
-        let len = morphisms.len();
-        let mut morphisms = morphisms.into_iter();
-        let mut result = (0..len - 1)
-            .map(|_| morphisms.next().unwrap())
-            .filter(|morphism| check_identity(morphism, category).is_none())
-            .collect::<Vec<_>>();
-        let morphism = morphisms.next().unwrap();
-        if result.is_empty() || check_identity(&morphism, category).is_none() {
-            result.push(morphism);
-        }
-        result
-    };
-
     let decompose = |composition: Vec<MorphismId>| {
         composition
             .into_iter()
@@ -100,19 +86,29 @@ fn check_equality<O, M, L: Label>(
             .collect()
     };
 
-    let left = remove_ids(decompose(left));
-    let right = remove_ids(decompose(right));
+    let left = remove_ids(decompose(left), category);
+    let right = remove_ids(decompose(right), category);
     // At this point there are no identity morphisms
 
-    if left == right
-        || category
-            .equalities
-            .contains_equality(&Equality::new(left, right).unwrap())
-    {
+    if solve_equality(left, right, category) {
         Some(bindings)
     } else {
         None
     }
+}
+
+fn remove_ids<O, M>(morphisms: Vec<MorphismId>, category: &Category<O, M>) -> Vec<MorphismId> {
+    let len = morphisms.len();
+    let mut morphisms = morphisms.into_iter();
+    let mut result = (0..len - 1)
+        .map(|_| morphisms.next().unwrap())
+        .filter(|morphism| check_identity(morphism, category).is_none())
+        .collect::<Vec<_>>();
+    let morphism = morphisms.next().unwrap();
+    if result.is_empty() || check_identity(&morphism, category).is_none() {
+        result.push(morphism);
+    }
+    result
 }
 
 fn check_identity<O, M>(morphism: &MorphismId, category: &Category<O, M>) -> Option<ObjectId> {
@@ -156,4 +152,79 @@ fn check_composability<O, M>(
     }
 
     true
+}
+
+fn solve_equality<O, M>(
+    mut left: Vec<MorphismId>,
+    mut right: Vec<MorphismId>,
+    category: &Category<O, M>,
+) -> bool {
+    if left == right {
+        return true;
+    }
+    if left.len() < right.len() {
+        std::mem::swap(&mut left, &mut right);
+    }
+
+    for equality in category.equalities.all_equalities() {
+        let mut left_eq = equality.left();
+        let mut right_eq = equality.right();
+        if left_eq.len() < right_eq.len() {
+            std::mem::swap(&mut left_eq, &mut right_eq);
+        }
+
+        if let Some(new_left) = apply_equality(&left, left_eq, right_eq) {
+            if solve_equality(remove_ids(new_left, category), right.clone(), category) {
+                return true;
+            }
+        }
+        if let Some(new_right) = apply_equality(&right, left_eq, right_eq) {
+            if solve_equality(left.clone(), remove_ids(new_right, category), category) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn apply_equality(
+    data: &[MorphismId],
+    left_eq: &Vec<MorphismId>,
+    right_eq: &Vec<MorphismId>,
+) -> Option<Vec<MorphismId>> {
+    let mut split = 0;
+    let mut eq_index = 0;
+    let mut current_i = 0;
+    loop {
+        if current_i == data.len() {
+            // Failed to find a match
+            return None;
+        }
+        let morphism = data[current_i];
+        if morphism == left_eq[eq_index] {
+            // Look for a match
+            eq_index += 1;
+            current_i += 1;
+            if eq_index == left_eq.len() {
+                break;
+            }
+        } else {
+            // Start over
+            eq_index = 0;
+            split += 1;
+            current_i = split;
+        }
+    }
+
+    // Found a match in range split..current_i
+    assert_eq!(left_eq.len(), current_i - split);
+    Some(
+        data[..split]
+            .iter()
+            .chain(right_eq)
+            .chain(&data[current_i..])
+            .cloned()
+            .collect(),
+    )
 }

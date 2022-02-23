@@ -25,7 +25,7 @@ impl<T> Equality<T> {
             return Err(());
         }
 
-        if left > right {
+        if left.len() < right.len() || left > right {
             std::mem::swap(&mut left, &mut right);
         }
 
@@ -50,6 +50,10 @@ impl Equalities {
         Self {
             inner: HashSet::new(),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
     }
 
     pub fn new_equality(&mut self, equality: Equality) {
