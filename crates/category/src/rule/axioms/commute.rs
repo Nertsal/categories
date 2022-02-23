@@ -16,18 +16,15 @@ pub fn rule_commutativity<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, Rul
                 .morphism("k", "C", "D", vec![])
                 .morphism("l", "B", "D", vec![]),
         )
-        .exists(
-            ConstraintsBuilder::new()
-                .morphism(
-                    "g o f",
-                    "A",
-                    "C",
-                    vec![MorphismTag::Composition {
-                        first: "f",
-                        second: "g",
-                    }],
-                )
-                .equality(vec!["g o f", "k"], vec!["h"]),
-        )
+        .exists(ConstraintsBuilder::new().morphism(
+            "g o f",
+            "A",
+            "C",
+            vec![MorphismTag::Composition {
+                first: "f",
+                second: "g",
+            }],
+        ))
+        .exists(ConstraintsBuilder::new().equality(vec!["g o f", "k"], vec!["h"]))
         .build()
 }
