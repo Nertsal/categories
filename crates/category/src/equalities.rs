@@ -32,6 +32,10 @@ impl<T> Equality<T> {
         Ok(Self { left, right })
     }
 
+    pub fn destructure(self) -> (Vec<T>, Vec<T>) {
+        (self.left, self.right)
+    }
+
     pub fn left(&self) -> &Vec<T> {
         &self.left
     }

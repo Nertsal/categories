@@ -160,21 +160,24 @@ impl<O, M> Category<O, M> {
         let constrained_equalities = constrained_equalities
             .into_iter()
             .filter_map(|equality| {
-                let mut left = Vec::with_capacity(equality.left().len());
-                for label in equality.left() {
-                    match bindings.get_morphism(label) {
-                        None => return None,
-                        Some(id) => left.push(id),
+                let process = |composition: &Vec<L>| {
+                    let mut result = Vec::with_capacity(composition.len());
+                    for label in composition {
+                        match bindings.get_morphism(label) {
+                            None => return None,
+                            Some(id) => {
+                                let morphism = self.morphisms.get(&id).unwrap();
+                                let decomposed = util::decompose_morphism(id, morphism, self);
+                                result.extend(decomposed);
+                            }
+                        }
                     }
-                }
-                let mut right = Vec::with_capacity(equality.right().len());
-                for label in equality.right() {
-                    match bindings.get_morphism(label) {
-                        None => return None,
-                        Some(id) => right.push(id),
-                    }
-                }
-                Some(Equality::new(left, right).expect("Failed to apply equality"))
+                    Some(result)
+                };
+                process(equality.left()).and_then(|left| {
+                    process(equality.right())
+                        .map(|right| Equality::new(left, right).expect("Failed to apply equality"))
+                })
             })
             .collect::<Vec<_>>();
 
