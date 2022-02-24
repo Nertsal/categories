@@ -77,7 +77,7 @@ impl GameState {
             }
         }
 
-        category.action_history.extend(undo_actions);
+        category.action_history.push(undo_actions);
 
         if applied {
             if selection.inverse().is_some() {

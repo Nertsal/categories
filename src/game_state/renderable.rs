@@ -16,7 +16,7 @@ pub struct RenderableCategory {
     pub camera: Camera2d,
     pub texture: ugli::Texture,
     pub texture_size: Vec2<usize>,
-    pub action_history: Vec<CategoryAction>,
+    pub action_history: Vec<Vec<CategoryAction>>,
 }
 
 impl RenderableRule {
@@ -119,9 +119,11 @@ impl RenderableCategory {
     }
 
     pub fn action_undo(&mut self) {
-        if let Some(action) = self.action_history.pop() {
-            let _actions = self.inner.action_do(action);
-            // TODO: redo actions
+        if let Some(actions) = self.action_history.pop() {
+            for action in actions {
+                let _actions = self.inner.action_do(action);
+                // TODO: redo actions
+            }
         }
     }
 }
