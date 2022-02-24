@@ -88,7 +88,10 @@ fn tags_matches<L: Label>(
     bindings: &Bindings<L>,
 ) -> Option<Bindings<L>> {
     match constraint {
-        MorphismTag::Unique => Some(Bindings::new()),
+        MorphismTag::Unique => tags.iter().find_map(|tag| match tag {
+            MorphismTag::Unique => Some(Bindings::new()),
+            _ => None,
+        }),
         MorphismTag::Identity(constraint) => tags.iter().find_map(|tag| {
             if let &MorphismTag::Identity(object) = tag {
                 bindings.get_object(constraint).map_or_else(
