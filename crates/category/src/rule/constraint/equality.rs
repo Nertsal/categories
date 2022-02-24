@@ -72,6 +72,14 @@ fn check_equality<O, M, L: Label>(
         acc
     });
 
+    if left
+        .iter()
+        .chain(right.iter())
+        .any(|id| is_isomorphism(id, category))
+    {
+        return None;
+    }
+
     if !check_composability(left.iter().copied(), category)
         || !check_composability(right.iter().copied(), category)
     {
@@ -122,6 +130,13 @@ fn check_identity<O, M>(morphism: &MorphismId, category: &Category<O, M>) -> Opt
             &MorphismTag::Identity(object) => Some(object),
             _ => None,
         })
+}
+
+fn is_isomorphism<O, M>(morphism: &MorphismId, category: &Category<O, M>) -> bool {
+    match &category.morphisms.get(morphism).unwrap().connection {
+        MorphismConnection::Isomorphism(_, _) => true,
+        MorphismConnection::Regular { .. } => false,
+    }
 }
 
 fn check_composability<O, M>(

@@ -4,6 +4,7 @@ mod builder;
 pub mod constraint;
 pub mod find;
 mod init;
+mod inverse;
 
 use super::*;
 

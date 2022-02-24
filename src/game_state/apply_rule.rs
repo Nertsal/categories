@@ -8,9 +8,9 @@ impl GameState {
             FocusedCategory::Goal => &mut self.goal_category,
         };
         let rule = &self.rules[selection.rule()];
-        let rule = match selection.inverse() {
-            Some(inverse) => &rule.inverse[inverse],
-            None => &rule.inner,
+        let (rule, rule_input) = match selection.inverse() {
+            Some(inverse) => (&rule.inverse[inverse], &rule.inverse_input),
+            None => (&rule.inner, &rule.input),
         };
 
         let (undo_actions, applied) = category.inner.apply_rule(
@@ -50,6 +50,7 @@ impl GameState {
 
         for action in &undo_actions {
             match action {
+                // Morphisms were actually created
                 category::Action::RemoveMorphisms(morphisms) => {
                     for morphism_id in morphisms {
                         if let Some(morphism) = category.inner.morphisms.get_mut(morphism_id) {
@@ -59,6 +60,7 @@ impl GameState {
                         }
                     }
                 }
+                // Tags were actually extended
                 category::Action::RemoveMorphismTags(extensions) => {
                     for (morphism_id, new_tags) in extensions {
                         if let Some(morphism) = category.inner.morphisms.get_mut(morphism_id) {
@@ -80,8 +82,12 @@ impl GameState {
         if applied {
             if selection.inverse().is_some() {
                 // TODO: smarter removal
-                for morphism in selection.get_bindings().morphisms.values() {
-                    category.inner.morphisms.remove(morphism);
+                let bindings = selection.get_bindings();
+                for morphism in rule_input.iter().filter_map(|input| match input {
+                    RuleInput::Morphism { label, .. } => bindings.get_morphism(label),
+                    _ => None,
+                }) {
+                    category.inner.morphisms.remove(&morphism);
                 }
             }
 
