@@ -197,6 +197,10 @@ fn create_vertices<O, M, L: Label>(
     new_vertices: Vec<Object<O>>,
     new_vertices_names: Vec<L>,
 ) -> Vec<ObjectId> {
+    let new_vertices = new_vertices
+        .into_iter()
+        .map(|object| (None, object))
+        .collect();
     let actions = category.action_do(Action::NewObjects(new_vertices));
     assert_eq!(actions.len(), 1);
     // Bind new vertices

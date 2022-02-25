@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub enum Action<O, M> {
-    NewObjects(Vec<Object<O>>),
+    NewObjects(Vec<(Option<ObjectId>, Object<O>)>),
     ExtendObjectTags(Vec<(ObjectId, Vec<ObjectTag>)>),
     RemoveObjectTags(Vec<(ObjectId, Vec<ObjectTag>)>),
     RemoveObjects(Vec<ObjectId>),
@@ -21,7 +21,18 @@ impl<O, M> Category<O, M> {
             Action::NewObjects(objects) => {
                 let objects = objects
                     .into_iter()
-                    .map(|object| self.new_object(object))
+                    .map(|(id, object)| match id {
+                        Some(id) => {
+                            let replaced = self
+                                .insert_object(object, id)
+                                .expect("Object ids are expected to be valid");
+                            if replaced.is_some() {
+                                panic!("Cannot replace an existing object with another");
+                            }
+                            id
+                        }
+                        None => self.new_object(object),
+                    })
                     .collect();
                 vec![Action::RemoveObjects(objects)]
             }
@@ -41,7 +52,11 @@ impl<O, M> Category<O, M> {
                     let object = self.objects.get_mut(&object_id).unwrap(); // Check was done when retaining
                     object.tags.extend(new_tags);
                 }
-                vec![Action::RemoveObjectTags(extensions)]
+                if extensions.is_empty() {
+                    vec![]
+                } else {
+                    vec![Action::RemoveObjectTags(extensions)]
+                }
             }
             Action::ExtendMorphismTags(mut extensions) => {
                 extensions.retain(|(id, _)| self.morphisms.contains(id));
@@ -49,7 +64,12 @@ impl<O, M> Category<O, M> {
                     let morphism = self.morphisms.get_mut(&morphism_id).unwrap(); // Check was done when retaining
                     morphism.tags.extend(new_tags);
                 }
-                vec![Action::RemoveMorphismTags(extensions)]
+
+                if extensions.is_empty() {
+                    vec![]
+                } else {
+                    vec![Action::RemoveMorphismTags(extensions)]
+                }
             }
             Action::RemoveObjectTags(mut extensions) => {
                 extensions.retain(|(id, _)| self.objects.contains(id));
@@ -57,7 +77,12 @@ impl<O, M> Category<O, M> {
                     let object = self.objects.get_mut(object_id).unwrap(); // Check was done when retaining
                     object.tags.retain(|tag| !new_tags.contains(tag));
                 }
-                vec![Action::ExtendObjectTags(extensions)]
+
+                if extensions.is_empty() {
+                    vec![]
+                } else {
+                    vec![Action::ExtendObjectTags(extensions)]
+                }
             }
             Action::RemoveMorphismTags(mut extensions) => {
                 extensions.retain(|(id, _)| self.morphisms.contains(id));
@@ -65,28 +90,40 @@ impl<O, M> Category<O, M> {
                     let morphism = self.morphisms.get_mut(morphism_id).unwrap(); // Check was done when retaining
                     morphism.tags.retain(|tag| !new_tags.contains(tag));
                 }
-                vec![Action::ExtendMorphismTags(extensions)]
+
+                if extensions.is_empty() {
+                    vec![]
+                } else {
+                    vec![Action::ExtendMorphismTags(extensions)]
+                }
             }
             Action::RemoveObjects(objects) => {
                 let (objects, morphisms) = objects
                     .into_iter()
-                    .filter_map(|id| self.remove_object(id))
-                    .map(|(object, morphisms)| {
+                    .filter_map(|id| {
+                        self.remove_object(id)
+                            .map(|(object, morphisms)| (id, object, morphisms))
+                    })
+                    .map(|(object_id, object, morphisms)| {
                         let morphisms: Vec<_> = morphisms
                             .into_iter()
                             .map(|(_, morphism)| morphism)
                             .collect();
-                        (object, morphisms)
+                        ((object_id, object), morphisms)
                     })
                     .fold(
                         (Vec::new(), Vec::new()),
-                        |(mut acc_objects, mut acc_morphisms), (object, morphisms)| {
-                            acc_objects.push(object);
+                        |(mut acc_objects, mut acc_morphisms), ((object_id, object), morphisms)| {
+                            acc_objects.push((Some(object_id), object));
                             acc_morphisms.extend(morphisms);
                             (acc_objects, acc_morphisms)
                         },
                     );
-                vec![Action::NewMorphisms(morphisms), Action::NewObjects(objects)]
+                let mut undo = vec![Action::NewObjects(objects)];
+                if !morphisms.is_empty() {
+                    undo.push(Action::NewMorphisms(morphisms));
+                };
+                undo
             }
             Action::RemoveMorphisms(morphisms) => {
                 let equalities: Vec<_> = morphisms
@@ -107,10 +144,12 @@ impl<O, M> Category<O, M> {
                     .into_iter()
                     .filter_map(|id| self.remove_morphism(id))
                     .collect();
-                vec![
-                    Action::NewEqualities(equalities),
-                    Action::NewMorphisms(morphisms),
-                ]
+
+                let mut undo = vec![Action::NewMorphisms(morphisms)];
+                if !equalities.is_empty() {
+                    undo.push(Action::NewEqualities(equalities));
+                }
+                undo
             }
             Action::NewEqualities(equals) => {
                 equals.iter().cloned().for_each(|equality| {

@@ -16,7 +16,8 @@ pub struct RenderableCategory {
     pub camera: Camera2d,
     pub texture: ugli::Texture,
     pub texture_size: Vec2<usize>,
-    pub action_history: Vec<Vec<CategoryAction>>,
+    action_history: Vec<Vec<CategoryAction>>,
+    redo_history: Vec<Vec<CategoryAction>>,
 }
 
 impl RenderableRule {
@@ -86,6 +87,7 @@ impl RenderableCategory {
             texture: ugli::Texture::new_with(geng.ugli(), texture_size, |_| Color::BLACK),
             inner: category,
             action_history: vec![],
+            redo_history: vec![],
             texture_size,
         }
     }
@@ -118,12 +120,28 @@ impl RenderableCategory {
         );
     }
 
+    pub fn action_do(&mut self, actions: Vec<CategoryAction>) {
+        self.redo_history.clear();
+        self.action_history.push(actions);
+    }
+
     pub fn action_undo(&mut self) {
         if let Some(actions) = self.action_history.pop() {
+            let mut redo_actions = Vec::new();
             for action in actions {
-                let _actions = self.inner.action_do(action);
-                // TODO: redo actions
+                redo_actions.extend(self.inner.action_do(action));
             }
+            self.redo_history.push(redo_actions);
+        }
+    }
+
+    pub fn action_redo(&mut self) {
+        if let Some(actions) = self.redo_history.pop() {
+            let mut undo_actions = Vec::new();
+            for action in actions {
+                undo_actions.extend(self.inner.action_do(action));
+            }
+            self.action_history.push(undo_actions);
         }
     }
 }

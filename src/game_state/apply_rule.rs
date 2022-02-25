@@ -13,7 +13,7 @@ impl GameState {
             None => (&rule.inner, &rule.input),
         };
 
-        let (undo_actions, applied) = category.inner.apply_rule(
+        let (mut undo_actions, applied) = category.inner.apply_rule(
             rule,
             selection.get_bindings().clone(),
             |tags| {
@@ -77,12 +77,10 @@ impl GameState {
             }
         }
 
-        category.action_history.push(undo_actions);
-
         if applied {
             if selection.inverse().is_some() {
                 let bindings = selection.get_bindings();
-                for morphism in rule_input
+                let remove_morphisms = rule_input
                     .iter()
                     .filter_map(|input| match input {
                         RuleInput::Morphism { label, .. } => bindings.get_morphism(label),
@@ -97,10 +95,12 @@ impl GameState {
                             .next()
                             .is_none()
                     })
-                {
-                    category.inner.morphisms.remove(&morphism);
-                }
+                    .filter_map(|id| category.inner.morphisms.remove(&id))
+                    .collect::<Vec<_>>();
+                undo_actions.push(CategoryAction::NewMorphisms(remove_morphisms));
             }
+
+            category.action_do(undo_actions);
 
             if self.check_goal() {
                 println!("Hooray! Goal reached!");

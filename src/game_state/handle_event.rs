@@ -29,8 +29,17 @@ impl GameState {
                     self.goal_selection = None;
                 }
                 geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
-                    self.fact_category.action_undo();
-                    // TODO: undo actions in the goal category
+                    let active_category = match self.focused_category {
+                        FocusedCategory::Rule { .. } => return,
+                        FocusedCategory::Fact => &mut self.fact_category,
+                        FocusedCategory::Goal => &mut self.goal_category,
+                    };
+
+                    if self.geng.window().is_key_pressed(geng::Key::LShift) {
+                        active_category.action_redo();
+                    } else {
+                        active_category.action_undo();
+                    }
                 }
                 _ => (),
             },
