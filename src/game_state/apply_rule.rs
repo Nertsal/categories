@@ -81,12 +81,23 @@ impl GameState {
 
         if applied {
             if selection.inverse().is_some() {
-                // TODO: smarter removal
                 let bindings = selection.get_bindings();
-                for morphism in rule_input.iter().filter_map(|input| match input {
-                    RuleInput::Morphism { label, .. } => bindings.get_morphism(label),
-                    _ => None,
-                }) {
+                for morphism in rule_input
+                    .iter()
+                    .filter_map(|input| match input {
+                        RuleInput::Morphism { label, .. } => bindings.get_morphism(label),
+                        _ => None,
+                    })
+                    .filter(|&id| {
+                        // Check that there are no equalities with that morphism
+                        category
+                            .inner
+                            .equalities
+                            .get_equalities_with(id)
+                            .next()
+                            .is_none()
+                    })
+                {
                     category.inner.morphisms.remove(&morphism);
                 }
             }

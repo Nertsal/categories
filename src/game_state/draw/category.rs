@@ -68,11 +68,17 @@ pub fn draw_category(
         let pos = framebuffer_size - offset - vec2(0.0, i as f32 * height * 1.5);
 
         let get = |edge| {
-            let label = &category.morphisms.get(edge).unwrap().inner.label;
-            if label.is_empty() {
-                format!("[{}]", edge.raw())
-            } else {
-                label.to_owned()
+            let label = category
+                .morphisms
+                .get(edge)
+                .map(|morphism| &morphism.inner.label);
+            match label {
+                Some(label) if !label.is_empty() => label.to_owned(),
+                Some(_) => format!("[{}]", edge.raw()),
+                None => {
+                    warn!("Morphism {edge:?} does not exist");
+                    format!("[{}]", edge.raw())
+                }
             }
         };
 
