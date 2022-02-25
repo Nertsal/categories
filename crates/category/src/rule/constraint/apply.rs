@@ -88,16 +88,6 @@ impl<O, M> Category<O, M> {
 
         // Constraint edges
         for (label, connection, tags) in constrained_morphisms {
-            let connection = connection.map_borrowed(|label| {
-                get_object_or_new(
-                    label,
-                    self,
-                    &mut bindings,
-                    &mut action_history,
-                    object_constructor,
-                )
-            });
-
             let tags = tags
                 .iter()
                 .map(|tag| {
@@ -111,6 +101,15 @@ impl<O, M> Category<O, M> {
             if let Some(morphism_id) = bindings.get_morphism(label) {
                 extend_morphisms.push((morphism_id, tags));
             } else {
+                let connection = connection.map_borrowed(|label| {
+                    get_object_or_new(
+                        label,
+                        self,
+                        &mut bindings,
+                        &mut action_history,
+                        object_constructor,
+                    )
+                });
                 let label_connection = connection.map_borrowed(|id| self.objects.get(id).unwrap()); // TODO: better error handling
 
                 let label_tags = tags
