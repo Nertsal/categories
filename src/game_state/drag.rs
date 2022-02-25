@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug, Clone)]
 pub struct Dragging {
     pub mouse_start_position: Vec2<f64>,
     pub world_start_position: Vec2<f32>,
@@ -8,6 +9,7 @@ pub struct Dragging {
     pub current_mouse_position: Vec2<f64>,
 }
 
+#[derive(Debug, Clone)]
 pub enum DragAction {
     Move {
         target: DragTarget,
@@ -20,6 +22,7 @@ pub enum DragAction {
     },
 }
 
+#[derive(Debug, Clone)]
 pub enum DragTarget {
     Camera {
         category: FocusedCategory,

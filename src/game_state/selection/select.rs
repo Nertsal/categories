@@ -7,7 +7,7 @@ pub fn objects_under_point(
     category
         .objects
         .iter()
-        .filter(move |(_, object)| (object.position - position).len() <= object.radius)
+        .filter(move |(_, object)| (object.inner.position - position).len() <= object.inner.radius)
 }
 
 pub fn morphisms_under_point(
@@ -38,7 +38,7 @@ fn morphisms_points(
         object_a
             .and_then(|object_a| {
                 object_b
-                    .map(|object_b| (object_a.position, object_b.position))
+                    .map(|object_b| (object_a.inner.position, object_b.inner.position))
                     .map(|(pos_a, pos_b)| {
                         let mut points = Vec::with_capacity(morphism.inner.positions.len() + 2);
                         points.push(pos_a);

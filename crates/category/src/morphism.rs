@@ -2,9 +2,19 @@ use std::collections::HashMap;
 
 use super::*;
 
+#[derive(Debug, Clone)]
 pub struct Morphism<T> {
     pub connection: MorphismConnection,
+    pub tags: Vec<MorphismTag>,
     pub inner: T,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MorphismTag<O = ObjectId, M = MorphismId> {
+    Identity(O),
+    Unique,
+    Composition { first: M, second: M },
+    Isomorphism(M, M),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -13,17 +23,41 @@ pub enum MorphismConnection<T = ObjectId> {
     Isomorphism(T, T),
 }
 
-impl MorphismConnection {
-    /// Returns the ids of the connected object in an arbitrary order.
-    pub fn end_points(&self) -> [&ObjectId; 2] {
+impl<T> MorphismConnection<T> {
+    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> MorphismConnection<U> {
         match self {
-            MorphismConnection::Regular { from, to } => [from, to],
-            MorphismConnection::Isomorphism(a, b) => [a, b],
+            Self::Regular { from, to } => MorphismConnection::Regular {
+                from: f(from),
+                to: f(to),
+            },
+            Self::Isomorphism(a, b) => MorphismConnection::Isomorphism(f(a), f(b)),
         }
     }
 
-    pub fn is_object_connected(&self, id: ObjectId) -> bool {
-        self.end_points().iter().any(|&&object| object == id)
+    pub fn map_borrowed<U>(&self, mut f: impl FnMut(&T) -> U) -> MorphismConnection<U> {
+        match self {
+            Self::Regular { from, to } => MorphismConnection::Regular {
+                from: f(from),
+                to: f(to),
+            },
+            Self::Isomorphism(a, b) => MorphismConnection::Isomorphism(f(a), f(b)),
+        }
+    }
+
+    /// Returns the ids of the connected object.
+    /// If the morphism is regular, then the order is **from**, **to**.
+    pub fn end_points(&self) -> [&T; 2] {
+        match self {
+            Self::Regular { from, to } => [from, to],
+            Self::Isomorphism(a, b) => [a, b],
+        }
+    }
+
+    pub fn is_object_connected(&self, id: T) -> bool
+    where
+        T: PartialEq,
+    {
+        self.end_points().iter().any(|object| **object == id)
     }
 }
 

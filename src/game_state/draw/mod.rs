@@ -1,7 +1,7 @@
 use super::*;
 
-mod dashed;
 pub mod category;
+mod dashed;
 
 use dashed::*;
 use geng::Draw2d;
@@ -18,27 +18,29 @@ impl GameState {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
 
         let mut selected_rule = match self.focused_category {
-            FocusedCategory::Rule { .. } | FocusedCategory::Fact => self.main_selection.as_ref(),
+            FocusedCategory::Rule { .. } | FocusedCategory::Fact => self.fact_selection.as_ref(),
             FocusedCategory::Goal => self.goal_selection.as_ref(),
         }
         .and_then(|selection| {
             selection
                 .current()
-                .map(|&current| (selection.rule(), vec![current]))
+                .map(|current| (selection.rule(), current.clone()))
         });
 
         // Render graphs
-        for (focused_graph, graph_aabb) in
+        for (current_category, graph_aabb) in
             self.state.graphs_layout.iter().copied().collect::<Vec<_>>()
         {
             // Choose selected objects
-            let selection = match (&selected_rule, focused_graph) {
-                (Some((rule_index, _)), FocusedCategory::Rule { index }) if index == *rule_index => {
-                    let (_, selection) = selected_rule.take().unwrap();
-                    Some(selection)
+            let selection = match (&selected_rule, current_category) {
+                (Some((rule_index, _)), FocusedCategory::Rule { index })
+                    if index == *rule_index =>
+                {
+                    let (_, input) = selected_rule.take().unwrap();
+                    Some(vec![input])
                 }
-                (_, focused_graph) => match focused_graph {
-                    FocusedCategory::Fact => self.main_selection.as_ref(),
+                (_, category) => match category {
+                    FocusedCategory::Fact => self.fact_selection.as_ref(),
                     FocusedCategory::Goal => self.goal_selection.as_ref(),
                     _ => None,
                 }
@@ -46,9 +48,9 @@ impl GameState {
             };
 
             // Render graph to a texture
-            let graph = self.get_renderable_graph_mut(&focused_graph).unwrap();
+            let graph = self.get_renderable_graph_mut(&current_category).unwrap();
             graph.update_texture(Color::BLACK, selection.as_ref());
-            let graph = self.get_renderable_graph(&focused_graph).unwrap();
+            let graph = self.get_renderable_graph(&current_category).unwrap();
 
             // Render texture to the dedicated part on the screen
             self.geng.draw_2d(
@@ -58,7 +60,7 @@ impl GameState {
             );
 
             // Draw graph outline
-            let outline_color = if focused_graph == self.focused_category {
+            let outline_color = if current_category == self.focused_category {
                 GRAPH_FOCUSED_OUTLINE_COLOR
             } else {
                 GRAPH_OUTLINE_COLOR

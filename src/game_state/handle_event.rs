@@ -16,21 +16,21 @@ impl GameState {
                             let object = self
                                 .get_category_mut(&category)
                                 .unwrap()
-                                .inner
                                 .objects
                                 .get_mut(&id)
                                 .unwrap();
-                            object.is_anchor = !object.is_anchor;
+                            object.inner.is_anchor = !object.inner.is_anchor;
                         }
                     }
                 }
                 geng::Key::Escape => {
                     // Clear selection
-                    self.main_selection = None;
+                    self.fact_selection = None;
                     self.goal_selection = None;
                 }
                 geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
-                    self.action_undo();
+                    self.fact_category.action_undo();
+                    // TODO: undo actions in the goal category
                 }
                 _ => (),
             },
@@ -169,7 +169,7 @@ impl GameState {
                 let focused_category = self.focused_category;
                 self.world_to_category(&focused_category, world_pos).map(
                     |(category, local_pos, _)| {
-                        selection::objects_under_point(&category.inner, local_pos)
+                        selection::objects_under_point(category, local_pos)
                             .next()
                             .map(|(&id, _)| DragAction::Move {
                                 target: DragTarget::Vertex {
@@ -179,7 +179,7 @@ impl GameState {
                             })
                             .or_else(|| {
                                 // Drag edge
-                                selection::morphisms_under_point(&category.inner, local_pos)
+                                selection::morphisms_under_point(&category, local_pos)
                                     .next()
                                     .map(|(&id, _)| DragAction::Move {
                                         target: DragTarget::Edge {
@@ -246,15 +246,15 @@ impl GameState {
                         &mut DragTarget::Vertex { category, id } => self
                             .world_to_category(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
-                                category.inner.objects.get_mut(&id).map(|object| {
-                                    object.position = local_pos.clamp_aabb(local_aabb);
+                                category.objects.get_mut(&id).map(|object| {
+                                    object.inner.position = local_pos.clamp_aabb(local_aabb);
                                 })
                             })
                             .is_some(),
                         &mut DragTarget::Edge { category, id } => self
                             .world_to_category(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
-                                category.inner.morphisms.get_mut(&id).map(|morphism| {
+                                category.morphisms.get_mut(&id).map(|morphism| {
                                     let positions = &mut morphism.inner.positions;
                                     let center = positions.len() / 2;
                                     if let Some(pos) = positions.get_mut(center) {
@@ -274,107 +274,158 @@ impl GameState {
     }
 
     fn drag_stop(&mut self, mouse_position: Vec2<f64>, _mouse_button: geng::MouseButton) {
-        if let Some(dragging) = self.dragging.take() {
-            let world_pos = self.ui_camera.screen_to_world(
-                self.state.framebuffer_size,
-                mouse_position.map(|x| x as f32),
-            );
-            match &dragging.action {
-                DragAction::Selection { .. } => {
-                    let dragged_delta = mouse_position - dragging.mouse_start_position;
-                    if dragged_delta.len().approx_eq(&0.0) {
-                        // Select rule
-                        if let &FocusedCategory::Rule { index } = &self.focused_category {
-                            let main_selection = RuleSelection::new(
-                                &self.fact_category.inner,
-                                &self.fact_category.equalities,
-                                index,
-                                &self.rules,
-                                false,
-                            );
-                            let goal_selection = RuleSelection::new(
-                                &self.goal_category.inner,
-                                &self.goal_category.equalities,
-                                index,
-                                &self.rules,
-                                true,
-                            );
-                            match main_selection.current() {
-                                Some(_) => {
-                                    self.main_selection = Some(main_selection);
-                                }
-                                None => {
-                                    self.apply_rule(FocusedCategory::Fact, main_selection);
-                                }
-                            }
-                            match goal_selection.current() {
-                                Some(_) => {
-                                    self.goal_selection = Some(goal_selection);
-                                }
-                                None => {
-                                    self.apply_rule(FocusedCategory::Goal, goal_selection);
-                                }
-                            }
-                        }
-                    }
-                }
-                DragAction::Move { target } => {
-                    let delta = world_pos - dragging.world_start_position;
-                    if delta.len().approx_eq(&0.0) {
-                        // Select vertex or edge
-                        let selected = match target {
-                            &DragTarget::Vertex {
-                                category: graph,
-                                id,
-                            } => Some((graph, CategoryThing::Object { id })),
-                            &DragTarget::Edge {
-                                category: graph,
-                                id,
-                            } => Some((graph, CategoryThing::Morphism { id })),
-                            _ => None,
-                        };
+        let dragging = match self.dragging.take() {
+            Some(x) => x,
+            None => return,
+        };
 
-                        if let Some((focused_graph, selected)) = selected {
-                            let selection = match focused_graph {
-                                FocusedCategory::Rule { .. } => None,
-                                FocusedCategory::Fact => Some((
-                                    &self.fact_category.inner,
-                                    &self.fact_category.equalities,
-                                    &mut self.main_selection,
-                                )),
-                                FocusedCategory::Goal => Some((
-                                    &self.goal_category.inner,
-                                    &self.goal_category.equalities,
-                                    &mut self.goal_selection,
-                                )),
-                            };
+        let mouse_world_pos = self.ui_camera.screen_to_world(
+            self.state.framebuffer_size,
+            mouse_position.map(|x| x as f32),
+        );
 
-                            if let Some((graph, equalities, selection)) = selection {
-                                match selection
-                                    .as_ref()
-                                    .and_then(|selection| selection.inferred_options().as_ref())
-                                {
-                                    Some(options) => {
-                                        if options.contains(&selected)
-                                            && selection
-                                                .as_mut()
-                                                .unwrap()
-                                                .select(graph, equalities, selected, &self.rules)
-                                                .is_none()
-                                        {
-                                            let selection = selection.take().unwrap();
-                                            self.apply_rule(focused_graph, selection);
-                                        }
-                                    }
-                                    None => {
-                                        *selection = None;
-                                    }
-                                }
-                            }
-                        }
-                    }
+        match &dragging.action {
+            DragAction::Selection { .. } => {
+                self.drag_selection_stop(mouse_position, dragging.mouse_start_position);
+            }
+            DragAction::Move { target } => {
+                self.drag_move_stop(mouse_world_pos, dragging.world_start_position, target);
+            }
+            _ => (),
+        }
+    }
+
+    fn drag_selection_stop(&mut self, mouse_position: Vec2<f64>, mouse_start_position: Vec2<f64>) {
+        let dragged_delta = mouse_position - mouse_start_position;
+        if !dragged_delta.len().approx_eq(&0.0) {
+            return;
+        }
+
+        // Select rule
+        if let &FocusedCategory::Rule { index } = &self.focused_category {
+            let main_selection =
+                RuleSelection::new(&self.fact_category.inner, index, &self.rules, None);
+            let goal_selection =
+                RuleSelection::new(&self.goal_category.inner, index, &self.rules, Some(0));
+            match main_selection.current() {
+                Some(_) => {
+                    self.fact_selection = Some(main_selection);
                 }
-                _ => (),
+                None => {
+                    self.apply_rule(FocusedCategory::Fact, main_selection);
+                }
+            }
+            match goal_selection.current() {
+                Some(_) => {
+                    self.goal_selection = Some(goal_selection);
+                }
+                None => {
+                    self.apply_rule(FocusedCategory::Goal, goal_selection);
+                }
+            }
+        }
+    }
+
+    fn drag_move_stop(
+        &mut self,
+        world_pos: Vec2<f32>,
+        world_start_position: Vec2<f32>,
+        target: &DragTarget,
+    ) {
+        let delta = world_pos - world_start_position;
+        if !delta.len().approx_eq(&0.0) {
+            return;
+        }
+
+        // Select vertex or edge
+        let selected = match target {
+            &DragTarget::Vertex {
+                category: graph,
+                id,
+            } => Some((graph, RuleInput::Object { label: (), id })),
+            &DragTarget::Edge {
+                category: graph,
+                id,
+            } => Some((graph, RuleInput::Morphism { label: (), id })),
+            _ => None,
+        };
+
+        let (focused_category, selected) = match selected {
+            Some(x) => x,
+            None => return,
+        };
+
+        let selection = match focused_category {
+            FocusedCategory::Rule { .. } => None,
+            FocusedCategory::Fact => {
+                Some((&mut self.fact_category.inner, &mut self.fact_selection))
+            }
+            FocusedCategory::Goal => {
+                Some((&mut self.goal_category.inner, &mut self.goal_selection))
+            }
+        };
+
+        let (category, selection) = match selection {
+            Some(x) => x,
+            None => return,
+        };
+
+        let selected = selection
+            .as_ref()
+            .and_then(|selection| {
+                selection.current().and_then(|current| {
+                    selection
+                        .inferred_options()
+                        .as_ref()
+                        .map(|options| (current.clone(), options))
+                })
+            })
+            .and_then(|(current, options)| {
+                let selected = match (current, selected) {
+                    (RuleInput::Object { label, .. }, RuleInput::Object { id, .. }) => {
+                        Some(RuleInput::Object { label, id })
+                    }
+                    (RuleInput::Object { .. }, _) => None,
+                    (RuleInput::Morphism { label, .. }, RuleInput::Morphism { id, .. }) => {
+                        Some(RuleInput::Morphism { label, id })
+                    }
+                    (RuleInput::Morphism { .. }, _) => None,
+                    (
+                        RuleInput::Equality { left, right },
+                        RuleInput::Equality {
+                            left: id_left,
+                            right: id_right,
+                        },
+                    ) => Some(RuleInput::Equality {
+                        left: left
+                            .into_iter()
+                            .map(|(label, _)| label)
+                            .zip(id_left.into_iter().map(|(_, id)| id))
+                            .collect(),
+                        right: right
+                            .into_iter()
+                            .map(|(label, _)| label)
+                            .zip(id_right.into_iter().map(|(_, id)| id))
+                            .collect(),
+                    }),
+                    (RuleInput::Equality { .. }, _) => None,
+                };
+                selected.filter(|selected| options.contains(selected))
+            });
+
+        match selected {
+            Some(selected) => {
+                let next = selection
+                    .as_mut()
+                    .unwrap()
+                    .select(category, selected, &self.rules);
+                if next.is_none() {
+                    let selection = selection.take().unwrap();
+                    self.apply_rule(focused_category, selection);
+                }
+            }
+            None => {
+                *selection = None;
             }
         }
     }
