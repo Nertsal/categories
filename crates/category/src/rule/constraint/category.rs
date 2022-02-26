@@ -1,6 +1,6 @@
 use super::*;
 
-impl<O, M> Category<O, M> {
+impl<O, M, E> Category<O, M, E> {
     pub fn to_constraints(&self) -> Constraints<CategoryThing> {
         let get_object_label = |id: ObjectId| CategoryThing::Object { id };
         let get_morphism_label = |id: MorphismId| CategoryThing::Morphism { id };

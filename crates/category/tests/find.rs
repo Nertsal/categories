@@ -4,7 +4,7 @@ use category::{Bindings, CategoryBuilder};
 
 #[test]
 fn test_find() {
-    let category = CategoryBuilder::<(), (), &str>::new()
+    let category = CategoryBuilder::<(), (), (), &str>::new()
         .object("A", vec![], ())
         .object("B", vec![], ())
         .object("AxB", vec![ObjectTag::Product("A", "B")], ())

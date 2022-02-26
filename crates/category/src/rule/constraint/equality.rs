@@ -2,10 +2,10 @@ use std::collections::VecDeque;
 
 use super::*;
 
-pub fn constraint_equality<'a, O, M, L: Label>(
+pub fn constraint_equality<'a, O, M, E, L: Label>(
     equality: &'a Equality<L>,
     bindings: &'a Bindings<L>,
-    category: &'a Category<O, M>,
+    category: &'a Category<O, M, E>,
 ) -> Box<dyn Iterator<Item = Bindings<L>> + 'a> {
     let [left_constraints, right_constraints] =
         [equality.left(), equality.right()].map(|eq_side| {
@@ -24,9 +24,9 @@ pub fn constraint_equality<'a, O, M, L: Label>(
     )
 }
 
-fn find_possibilities<'a, O, M, L: 'a + Clone>(
+fn find_possibilities<'a, O, M, E, L: 'a + Clone>(
     mut constraints: impl Iterator<Item = (L, Option<MorphismId>)> + 'a,
-    category: &'a Category<O, M>,
+    category: &'a Category<O, M, E>,
 ) -> Box<dyn Iterator<Item = VecDeque<(L, MorphismId)>> + 'a> {
     match constraints.next() {
         None => Box::new(std::iter::once(VecDeque::new())),
@@ -55,10 +55,10 @@ fn find_possibilities<'a, O, M, L: 'a + Clone>(
     }
 }
 
-fn check_equality<O, M, L: Label>(
+fn check_equality<O, M, E, L: Label>(
     left: impl IntoIterator<Item = (L, MorphismId)>,
     right: impl IntoIterator<Item = (L, MorphismId)>,
-    category: &Category<O, M>,
+    category: &Category<O, M, E>,
 ) -> Option<Bindings<L>> {
     let mut bindings = Bindings::new();
     let left = left.into_iter().fold(Vec::new(), |mut acc, (label, id)| {
@@ -105,7 +105,7 @@ fn check_equality<O, M, L: Label>(
     }
 }
 
-fn remove_ids<O, M>(morphisms: Vec<MorphismId>, category: &Category<O, M>) -> Vec<MorphismId> {
+fn remove_ids<O, M, E>(morphisms: Vec<MorphismId>, category: &Category<O, M, E>) -> Vec<MorphismId> {
     let len = morphisms.len();
     let mut morphisms = morphisms.into_iter();
     let mut result = (0..len - 1)
@@ -119,7 +119,7 @@ fn remove_ids<O, M>(morphisms: Vec<MorphismId>, category: &Category<O, M>) -> Ve
     result
 }
 
-fn check_identity<O, M>(morphism: &MorphismId, category: &Category<O, M>) -> Option<ObjectId> {
+fn check_identity<O, M, E>(morphism: &MorphismId, category: &Category<O, M, E>) -> Option<ObjectId> {
     category
         .morphisms
         .get(morphism)
@@ -132,16 +132,16 @@ fn check_identity<O, M>(morphism: &MorphismId, category: &Category<O, M>) -> Opt
         })
 }
 
-fn is_isomorphism<O, M>(morphism: &MorphismId, category: &Category<O, M>) -> bool {
+fn is_isomorphism<O, M, E>(morphism: &MorphismId, category: &Category<O, M, E>) -> bool {
     match &category.morphisms.get(morphism).unwrap().connection {
         MorphismConnection::Isomorphism(_, _) => true,
         MorphismConnection::Regular { .. } => false,
     }
 }
 
-fn check_composability<O, M>(
+fn check_composability<O, M, E>(
     morphisms: impl IntoIterator<Item = MorphismId>,
-    category: &Category<O, M>,
+    category: &Category<O, M, E>,
 ) -> bool {
     let mut morphisms = morphisms.into_iter();
 
@@ -169,10 +169,10 @@ fn check_composability<O, M>(
     true
 }
 
-fn solve_equality<O, M>(
+fn solve_equality<O, M, E>(
     mut left: Vec<MorphismId>,
     mut right: Vec<MorphismId>,
-    category: &Category<O, M>,
+    category: &Category<O, M, E>,
 ) -> bool {
     if left == right {
         return true;
@@ -181,7 +181,7 @@ fn solve_equality<O, M>(
         std::mem::swap(&mut left, &mut right);
     }
 
-    for equality in category.equalities.all_equalities() {
+    for equality in category.equalities.iter_equalities() {
         let mut left_eq = equality.left();
         let mut right_eq = equality.right();
         if left_eq.len() < right_eq.len() {

@@ -1,24 +1,24 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use super::*;
 
-pub struct Equalities {
-    inner: HashSet<Equality>,
+pub struct Equalities<T> {
+    inner: HashMap<Equality, T>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Equality<T = MorphismId> {
-    left: Vec<T>,
-    right: Vec<T>,
+pub struct Equality<M = MorphismId> {
+    left: Vec<M>,
+    right: Vec<M>,
 }
 
-impl<T> Equality<T> {
+impl<M> Equality<M> {
     /// Constructs a new equality and check its validity.
     /// May change the order (i.e. right may become left)
     /// to preserve equality uniqueness
-    pub fn new(mut left: Vec<T>, mut right: Vec<T>) -> Result<Self, ()>
+    pub fn new(mut left: Vec<M>, mut right: Vec<M>) -> Result<Self, ()>
     where
-        T: Ord,
+        M: Ord,
     {
         // TODO: check validity
         if left.len() == 0 || right.len() == 0 {
@@ -32,23 +32,23 @@ impl<T> Equality<T> {
         Ok(Self { left, right })
     }
 
-    pub fn destructure(self) -> (Vec<T>, Vec<T>) {
+    pub fn destructure(self) -> (Vec<M>, Vec<M>) {
         (self.left, self.right)
     }
 
-    pub fn left(&self) -> &Vec<T> {
+    pub fn left(&self) -> &Vec<M> {
         &self.left
     }
 
-    pub fn right(&self) -> &Vec<T> {
+    pub fn right(&self) -> &Vec<M> {
         &self.right
     }
 }
 
-impl Equalities {
+impl<T> Equalities<T> {
     pub fn new() -> Self {
         Self {
-            inner: HashSet::new(),
+            inner: HashMap::new(),
         }
     }
 
@@ -56,27 +56,35 @@ impl Equalities {
         self.inner.len()
     }
 
-    pub fn new_equality(&mut self, equality: Equality) {
-        self.inner.insert(equality);
+    pub fn new_equality(&mut self, equality: Equality, inner: T) {
+        self.inner.insert(equality, inner);
     }
 
     pub fn contains_equality(&self, equality: &Equality) -> bool {
-        self.inner.contains(equality)
+        self.inner.contains_key(equality)
     }
 
-    pub fn remove_equality(&mut self, equality: &Equality) -> bool {
+    pub fn remove_equality(&mut self, equality: &Equality) -> Option<T> {
         self.inner.remove(equality)
     }
 
-    pub fn all_equalities<'a>(&'a self) -> impl Iterator<Item = &'a Equality> + 'a {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a Equality, &'a T)> + 'a {
         self.inner.iter()
+    }
+
+    pub fn iter_equalities<'a>(&'a self) -> impl Iterator<Item = &'a Equality> + 'a {
+        self.inner.keys()
+    }
+
+    pub fn iter_inners<'a>(&'a self) -> impl Iterator<Item = &'a T> + 'a {
+        self.inner.values()
     }
 
     pub fn get_equalities<'a>(
         &'a self,
         morphism: MorphismId,
     ) -> impl Iterator<Item = &'a Vec<MorphismId>> + 'a {
-        self.inner.iter().filter_map(move |equality| {
+        self.inner.keys().filter_map(move |equality| {
             if equality.left.len() == 1 && equality.left[0] == morphism {
                 Some(&equality.right)
             } else if equality.right.len() == 1 && equality.right[0] == morphism {
@@ -91,7 +99,7 @@ impl Equalities {
         &'a self,
         morphism: MorphismId,
     ) -> impl Iterator<Item = &'a Equality> + 'a {
-        self.inner.iter().filter(move |equality| {
+        self.inner.keys().filter(move |equality| {
             equality.left.contains(&morphism) || equality.right.contains(&morphism)
         })
     }

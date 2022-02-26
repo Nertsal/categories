@@ -36,11 +36,12 @@ pub enum RuleInput<L> {
     },
 }
 
-impl<O, M> Category<O, M> {
+impl<O, M, E> Category<O, M, E> {
     pub fn from_rule<L: Label>(
         rule: &Rule<L>,
         object_constructor: impl Fn(RulePart, &L, &Vec<ObjectTag<L>>) -> O,
         morphism_constructor: impl Fn(RulePart, &L, &Vec<MorphismTag<L, L>>) -> M,
+        equality_constructor: impl Fn(RulePart, &Equality<L>) -> E,
     ) -> (Self, Vec<RuleInput<L>>, Bindings<L>) {
         let statement = rule.get_statement();
         let statement_len = statement.len();
@@ -61,6 +62,7 @@ impl<O, M> Category<O, M> {
                         &mut category,
                         &object_constructor,
                         &morphism_constructor,
+                        &equality_constructor,
                     )
                 }
             })
@@ -84,6 +86,7 @@ impl<O, M> Category<O, M> {
                         &mut category,
                         &object_constructor,
                         &morphism_constructor,
+                        &equality_constructor,
                     );
                 }
             }
@@ -100,6 +103,7 @@ impl<O, M> Category<O, M> {
                         &mut category,
                         &object_constructor,
                         &morphism_constructor,
+                        &equality_constructor,
                     );
                 }
             }
@@ -109,22 +113,23 @@ impl<O, M> Category<O, M> {
     }
 }
 
-fn add_constraints<'a, O, M, L: 'a + Label>(
+fn add_constraints<'a, O, M, E, L: 'a + Label>(
     rule_part: RulePart,
     constraints: impl IntoIterator<Item = &'a Constraint<L>>,
     statement: &[RuleConstruction<L>],
     bindings: &mut Bindings<L>,
-    category: &mut Category<O, M>,
+    category: &mut Category<O, M, E>,
     object_constructor: impl Fn(RulePart, &L, &Vec<ObjectTag<L>>) -> O,
     morphism_constructor: impl Fn(RulePart, &L, &Vec<MorphismTag<L, L>>) -> M,
+    equality_constructor: impl Fn(RulePart, &Equality<L>) -> E,
 ) -> Vec<RuleInput<L>> {
     let object_constructor = &object_constructor;
 
-    fn get_object<O, M, L: Label>(
+    fn get_object<O, M, E, L: Label>(
         label: &L,
         rule_part: RulePart,
         objects: &mut HashMap<L, ObjectId>,
-        category: &mut Category<O, M>,
+        category: &mut Category<O, M, E>,
         statement: &[RuleConstruction<L>],
         object_constructor: &impl Fn(RulePart, &L, &Vec<ObjectTag<L>>) -> O,
     ) -> ObjectId {
@@ -164,7 +169,7 @@ fn add_constraints<'a, O, M, L: 'a + Label>(
         })
     }
 
-    let get_morphism = |label: &L, bindings: &mut Bindings<L>, category: &mut Category<O, M>| {
+    let get_morphism = |label: &L, bindings: &mut Bindings<L>, category: &mut Category<O, M, E>| {
         bindings.morphisms.get(label).copied().unwrap_or_else(|| {
             let (connection, tags) = statement
                 .iter()
@@ -251,6 +256,7 @@ fn add_constraints<'a, O, M, L: 'a + Label>(
                 })
             }
             Constraint::Equality(equality) => {
+                let inner = equality_constructor(rule_part, equality);
                 let (left_input, left_eq) = equality
                     .left()
                     .iter()
@@ -270,7 +276,7 @@ fn add_constraints<'a, O, M, L: 'a + Label>(
                 let equality =
                     Equality::new(left_eq, right_eq).expect("Failed to construct equality");
 
-                category.equalities.new_equality(equality);
+                category.equalities.new_equality(equality, inner);
                 Some(RuleInput::Equality {
                     left: left_input,
                     right: right_input,

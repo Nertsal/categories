@@ -112,6 +112,7 @@ fn test_bug() {
             vec![morphism_ax1_1],
         )
         .unwrap(),
+        (),
     );
     category.equalities.new_equality(
         Equality::new(
@@ -119,12 +120,15 @@ fn test_bug() {
             vec![morphism_ax1_a, morphism_a_ax1, morphism_ax1_a],
         )
         .unwrap(),
+        (),
     );
     category.equalities.new_equality(
         Equality::new(vec![morphism_id_a], vec![morphism_a_ax1, morphism_ax1_a]).unwrap(),
+        (),
     );
     category.equalities.new_equality(
         Equality::new(vec![morphism_a_1], vec![morphism_a_ax1, morphism_ax1_1]).unwrap(),
+        (),
     );
 
     print_category(&category);
@@ -137,7 +141,7 @@ fn test_bug() {
 
     // Test bug
     let bindings = Bindings::from_objects([("A", object_a), ("B", object_1)]);
-    let result = category.apply_rule(&rule_product, bindings, |_| (), |_, _| ());
+    let result = category.apply_rule(&rule_product, bindings, |_| (), |_, _| (), |_| ());
     assert!(result.1);
 
     print_category(&category);
@@ -147,7 +151,7 @@ fn test_bug() {
     assert_eq!(5, category.equalities.len());
 }
 
-fn print_category<O: Debug, M: Debug>(category: &Category<O, M>) {
+fn print_category<O: Debug, M: Debug, E: Debug>(category: &Category<O, M, E>) {
     println!("\n----- Category -----");
     println!("Objects:");
     for (id, object) in category.objects.iter() {
@@ -158,8 +162,12 @@ fn print_category<O: Debug, M: Debug>(category: &Category<O, M>) {
         println!("{:4} - {:?}", id.raw(), morphism)
     }
     println!("Equalities:");
-    for equality in category.equalities.all_equalities() {
-        println!("  {:?} = {:?}", equality.left(), equality.right());
+    for (equality, inner) in category.equalities.iter() {
+        println!(
+            "  {:?} = {:?}: {inner:?}",
+            equality.left(),
+            equality.right()
+        );
     }
     println!("");
 }

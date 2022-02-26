@@ -52,14 +52,35 @@ impl RenderableRule {
             )
         }
 
-        let (category, input, bindings) =
-            Category::from_rule(&rule, object_constructor, morphism_constructor);
+        fn equality_constructor(
+            part: category::RulePart,
+            _equality: &category::Equality<Label>,
+        ) -> Equality {
+            Equality {
+                color: part_color(part),
+            }
+        }
+
+        let (category, input, bindings) = Category::from_rule(
+            &rule,
+            object_constructor,
+            morphism_constructor,
+            equality_constructor,
+        );
 
         let inverse = rule.invert();
 
         let inverse_input = inverse
             .last()
-            .map(|rule| Category::from_rule(rule, object_constructor, morphism_constructor).1)
+            .map(|rule| {
+                Category::from_rule(
+                    rule,
+                    object_constructor,
+                    morphism_constructor,
+                    equality_constructor,
+                )
+                .1
+            })
             .unwrap_or_default();
 
         Self {

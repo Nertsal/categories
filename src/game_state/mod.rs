@@ -28,10 +28,10 @@ use renderable::*;
 use selection::RuleSelection;
 use state::*;
 
-type Category = category::types::Category<Point, Arrow>;
+type Category = category::types::Category<Point, Arrow, Equality>;
 type Morphism = category::types::Morphism<Arrow>;
 type Object = category::types::Object<Point>;
-type CategoryAction = category::Action<Point, Arrow>;
+type CategoryAction = category::Action<Point, Arrow, Equality>;
 type Label = String;
 type Rule = category::Rule<Label>;
 type Bindings = category::Bindings<Label>;

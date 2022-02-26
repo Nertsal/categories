@@ -1,11 +1,11 @@
 use super::*;
 
-pub fn constraint_morphism<'a, O, M, L: Label>(
+pub fn constraint_morphism<'a, O, M, E, L: Label>(
     label: &'a L,
     connection: &'a MorphismConnection<L>,
     tags: &'a [MorphismTag<L, L>],
     bindings: &'a Bindings<L>,
-    category: &'a Category<O, M>,
+    category: &'a Category<O, M, E>,
 ) -> Box<dyn Iterator<Item = Bindings<L>> + 'a> {
     match bindings.get_morphism(label) {
         Some(morphism) => {

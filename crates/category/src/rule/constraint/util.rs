@@ -50,10 +50,10 @@ pub fn constraint_ordered<L: Hash + Eq, T: PartialEq>(
     Some(binds.into_iter())
 }
 
-pub(super) fn decompose_morphism<O, M>(
+pub(super) fn decompose_morphism<O, M, E>(
     morphism_id: MorphismId,
     morphism: &Morphism<M>,
-    category: &Category<O, M>,
+    category: &Category<O, M, E>,
 ) -> Vec<MorphismId> {
     morphism
         .tags

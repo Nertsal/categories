@@ -1,6 +1,6 @@
 use super::*;
 
-impl<O, M> Category<O, M> {
+impl<O, M, E> Category<O, M, E> {
     pub fn apply_rule<L: Label>(
         &mut self,
         rule: &Rule<L>,
@@ -10,12 +10,14 @@ impl<O, M> Category<O, M> {
             MorphismConnection<&Object<O>>,
             Vec<MorphismTag<&Object<O>, &Morphism<M>>>,
         ) -> M,
-    ) -> (Vec<Action<O, M>>, bool) {
+        equality_constructor: impl Fn(&Equality) -> E,
+    ) -> (Vec<Action<O, M, E>>, bool) {
         self.apply_impl(
             rule.get_statement(),
             bindings,
             &object_constructor,
             &morphism_constructor,
+            &equality_constructor,
         )
     }
 
@@ -28,7 +30,8 @@ impl<O, M> Category<O, M> {
             MorphismConnection<&Object<O>>,
             Vec<MorphismTag<&Object<O>, &Morphism<M>>>,
         ) -> M,
-    ) -> (Vec<Action<O, M>>, bool) {
+        equality_constructor: &impl Fn(&Equality) -> E,
+    ) -> (Vec<Action<O, M, E>>, bool) {
         let construction = match statement.first() {
             Some(construction) => construction,
             None => return (Vec::new(), false),
@@ -43,7 +46,13 @@ impl<O, M> Category<O, M> {
                 .into_iter()
                 .map(|mut binds| {
                     binds.extend(bindings.clone());
-                    self.apply_impl(statement, binds, object_constructor, morphism_constructor)
+                    self.apply_impl(
+                        statement,
+                        binds,
+                        object_constructor,
+                        morphism_constructor,
+                        equality_constructor,
+                    )
                 })
                 .fold(
                     (Vec::new(), false),
@@ -64,6 +73,7 @@ impl<O, M> Category<O, M> {
                         &bindings,
                         object_constructor,
                         morphism_constructor,
+                        equality_constructor,
                     );
                     actions.extend(
                         self.apply_impl(
@@ -71,6 +81,7 @@ impl<O, M> Category<O, M> {
                             new_binds,
                             object_constructor,
                             morphism_constructor,
+                            equality_constructor,
                         )
                         .0,
                     );
@@ -91,12 +102,14 @@ impl<O, M> Category<O, M> {
                                 &binds,
                                 object_constructor,
                                 morphism_constructor,
+                                equality_constructor,
                             );
                             let (new_actions, _) = self.apply_impl(
                                 statement,
                                 binds,
                                 object_constructor,
                                 morphism_constructor,
+                                equality_constructor,
                             );
                             actions.extend(new_actions);
                             (actions, true)

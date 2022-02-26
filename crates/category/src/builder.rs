@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use super::*;
 
-pub struct CategoryBuilder<O, M, L: Label> {
-    category: Category<O, M>,
+pub struct CategoryBuilder<O, M, E, L: Label> {
+    category: Category<O, M, E>,
     objects: HashMap<L, ObjectId>,
     morphisms: HashMap<L, MorphismId>,
 }
 
-impl<O, M, L: Label> CategoryBuilder<O, M, L> {
+impl<O, M, E, L: Label> CategoryBuilder<O, M, E, L> {
     pub fn new() -> Self {
         Self {
             category: Category::new(),
@@ -17,7 +17,7 @@ impl<O, M, L: Label> CategoryBuilder<O, M, L> {
         }
     }
 
-    pub fn build(self) -> Category<O, M> {
+    pub fn build(self) -> Category<O, M, E> {
         self.category
     }
 
@@ -25,6 +25,7 @@ impl<O, M, L: Label> CategoryBuilder<O, M, L> {
         mut self,
         left: impl IntoIterator<Item = T>,
         right: impl IntoIterator<Item = T>,
+        inner: E,
     ) -> Self {
         let left = left
             .into_iter()
@@ -37,7 +38,7 @@ impl<O, M, L: Label> CategoryBuilder<O, M, L> {
 
         self.category
             .equalities
-            .new_equality(Equality::new(left, right).unwrap());
+            .new_equality(Equality::new(left, right).unwrap(), inner);
 
         self
     }

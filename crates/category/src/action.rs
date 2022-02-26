@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Debug, Clone)]
-pub enum Action<O, M> {
+pub enum Action<O, M, E> {
     NewObjects(Vec<(Option<ObjectId>, Object<O>)>),
     ExtendObjectTags(Vec<(ObjectId, Vec<ObjectTag>)>),
     RemoveObjectTags(Vec<(ObjectId, Vec<ObjectTag>)>),
@@ -10,13 +10,13 @@ pub enum Action<O, M> {
     ExtendMorphismTags(Vec<(MorphismId, Vec<MorphismTag>)>),
     RemoveMorphismTags(Vec<(MorphismId, Vec<MorphismTag>)>),
     RemoveMorphisms(Vec<MorphismId>),
-    NewEqualities(Vec<Equality>),
+    NewEqualities(Vec<(Equality, E)>),
     RemoveEqualities(Vec<Equality>),
 }
 
-impl<O, M> Category<O, M> {
+impl<O, M, E> Category<O, M, E> {
     /// Perform the action and returns the inverse action that can be used to undo the action.
-    pub fn action_do(&mut self, action_do: Action<O, M>) -> Vec<Action<O, M>> {
+    pub fn action_do(&mut self, action_do: Action<O, M, E>) -> Vec<Action<O, M, E>> {
         match action_do {
             Action::NewObjects(objects) => {
                 let objects = objects
@@ -134,9 +134,13 @@ impl<O, M> Category<O, M> {
                             .get_equalities_with(morphism)
                             .cloned()
                             .collect();
-                        equals.iter().for_each(|equality| {
-                            self.equalities.remove_equality(equality);
-                        });
+                        let equals: Vec<_> = equals
+                            .into_iter()
+                            .map(|equality| {
+                                let inner = self.equalities.remove_equality(&equality).unwrap();
+                                (equality, inner)
+                            })
+                            .collect();
                         equals
                     })
                     .collect();
@@ -152,15 +156,24 @@ impl<O, M> Category<O, M> {
                 undo
             }
             Action::NewEqualities(equals) => {
-                equals.iter().cloned().for_each(|equality| {
-                    self.equalities.new_equality(equality);
-                });
+                let equals = equals
+                    .into_iter()
+                    .map(|(equality, inner)| {
+                        self.equalities.new_equality(equality.clone(), inner);
+                        equality
+                    })
+                    .collect();
                 vec![Action::RemoveEqualities(equals)]
             }
             Action::RemoveEqualities(equals) => {
-                equals.iter().for_each(|equality| {
-                    self.equalities.remove_equality(equality);
-                });
+                let equals = equals
+                    .into_iter()
+                    .filter_map(|equality| {
+                        self.equalities
+                            .remove_equality(&equality)
+                            .map(|inner| (equality, inner))
+                    })
+                    .collect();
                 vec![Action::NewEqualities(equals)]
             }
         }

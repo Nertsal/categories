@@ -1,6 +1,6 @@
 use super::*;
 
-impl<O, M> Category<O, M> {
+impl<O, M, E> Category<O, M, E> {
     /// Returns `None` if there are no constraints.
     pub fn find_candidates<'a, L: Label>(
         &'a self,
@@ -42,11 +42,11 @@ impl<O, M> Category<O, M> {
     }
 }
 
-fn process<'a, O, M, L: Label>(
+fn process<'a, O, M, E, L: Label>(
     new_binds: impl Iterator<Item = Bindings<L>> + 'a,
     constraints: &'a [Constraint<L>],
     bindings: &'a Bindings<L>,
-    category: &'a Category<O, M>,
+    category: &'a Category<O, M, E>,
 ) -> impl Iterator<Item = Bindings<L>> + 'a {
     new_binds.flat_map(|binds| {
         let mut old_binds = binds.clone();

@@ -50,3 +50,7 @@ impl Arrow {
         }
     }
 }
+
+pub struct Equality {
+    pub color: Color<f32>,
+}

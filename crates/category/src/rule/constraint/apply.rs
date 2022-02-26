@@ -1,6 +1,6 @@
 use super::*;
 
-impl<O, M> Category<O, M> {
+impl<O, M, E> Category<O, M, E> {
     /// Applies the rule constraints to the graph.
     pub fn apply_constraints<'a, L: 'a + Label>(
         &mut self,
@@ -11,7 +11,8 @@ impl<O, M> Category<O, M> {
             MorphismConnection<&Object<O>>,
             Vec<MorphismTag<&Object<O>, &Morphism<M>>>,
         ) -> M,
-    ) -> (Vec<Action<O, M>>, Bindings<L>) {
+        equality_constructor: impl Fn(&Equality) -> E,
+    ) -> (Vec<Action<O, M, E>>, Bindings<L>) {
         let mut bindings = bindings.clone();
 
         let mut constrained_objects = Vec::new();
@@ -174,8 +175,12 @@ impl<O, M> Category<O, M> {
                     Some(result)
                 };
                 process(equality.left()).and_then(|left| {
-                    process(equality.right())
-                        .map(|right| Equality::new(left, right).expect("Failed to apply equality"))
+                    process(equality.right()).map(|right| {
+                        let equality =
+                            Equality::new(left, right).expect("Failed to apply equality");
+                        let inner = equality_constructor(&equality);
+                        (equality, inner)
+                    })
                 })
             })
             .collect::<Vec<_>>();
@@ -190,10 +195,10 @@ impl<O, M> Category<O, M> {
     }
 }
 
-fn create_vertices<O, M, L: Label>(
-    category: &mut Category<O, M>,
+fn create_vertices<O, M, E, L: Label>(
+    category: &mut Category<O, M, E>,
     bindings: &mut Bindings<L>,
-    action_history: &mut Vec<Action<O, M>>,
+    action_history: &mut Vec<Action<O, M, E>>,
     new_vertices: Vec<Object<O>>,
     new_vertices_names: Vec<L>,
 ) -> Vec<ObjectId> {
@@ -218,11 +223,11 @@ fn create_vertices<O, M, L: Label>(
     new_vertices
 }
 
-fn get_object_or_new<O, M, L: Label>(
+fn get_object_or_new<O, M, E, L: Label>(
     label: &L,
-    category: &mut Category<O, M>,
+    category: &mut Category<O, M, E>,
     bindings: &mut Bindings<L>,
-    action_history: &mut Vec<Action<O, M>>,
+    action_history: &mut Vec<Action<O, M, E>>,
     object_constructor: impl Fn(Vec<ObjectTag<&Object<O>>>) -> O,
 ) -> ObjectId {
     bindings.get_object(label).unwrap_or_else(|| {

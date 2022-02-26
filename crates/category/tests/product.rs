@@ -31,7 +31,7 @@ fn test_product() {
     let rule_composition = axioms::rule_composition::<&str>().unwrap();
 
     // Apply product rule
-    category.apply_rule(&rule_product, bindings.clone(), |_| (), |_, _| ());
+    category.apply_rule(&rule_product, bindings.clone(), |_| (), |_, _| (), |_| ());
     print_category(&category);
     assert_eq!(3, category.objects.len());
     assert_eq!(3, category.morphisms.len());
@@ -70,6 +70,7 @@ fn test_product() {
         Bindings::from_morphisms(vec![("f", morphism_f), ("g", morphism_g)]),
         |_| (),
         |_, _| (),
+        |_| (),
     );
     print_category(&category);
     assert_eq!(3, category.objects.len());
@@ -77,14 +78,14 @@ fn test_product() {
     assert_eq!(0, category.equalities.len());
 
     // Apply product rule
-    category.apply_rule(&rule_product, bindings, |_| (), |_, _| ());
+    category.apply_rule(&rule_product, bindings, |_| (), |_, _| (), |_| ());
     print_category(&category);
     assert_eq!(3, category.objects.len());
     assert_eq!(4, category.morphisms.len());
     assert_eq!(0, category.equalities.len());
 }
 
-fn print_category<O: Debug, M: Debug>(category: &Category<O, M>) {
+fn print_category<O: Debug, M: Debug, E: Debug>(category: &Category<O, M, E>) {
     println!("\n----- Category -----");
     println!("Objects:");
     for (id, object) in category.objects.iter() {
@@ -95,8 +96,12 @@ fn print_category<O: Debug, M: Debug>(category: &Category<O, M>) {
         println!("{:4} - {:?}", id.raw(), morphism)
     }
     println!("Equalities:");
-    for equality in category.equalities.all_equalities() {
-        println!("  {:?} = {:?}", equality.left(), equality.right());
+    for (equality, inner) in category.equalities.iter() {
+        println!(
+            "  {:?} = {:?}: {inner:?}",
+            equality.left(),
+            equality.right()
+        );
     }
     println!("");
 }

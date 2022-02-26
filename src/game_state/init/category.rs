@@ -23,14 +23,14 @@ fn isomorphism(label: impl Into<Label>) -> Arrow {
 }
 
 pub fn fact_category() -> Category {
-    CategoryBuilder::<_, _, Label>::new()
+    CategoryBuilder::<_, _, _, Label>::new()
         .object("A", vec![], point("A"))
         .object("1", vec![ObjectTag::Terminal], point("1"))
         .build()
 }
 
 pub fn goal_category() -> Category {
-    CategoryBuilder::<_, _, Label>::new()
+    CategoryBuilder::<_, _, _, Label>::new()
         .object("A", vec![], point("A"))
         .object("1", vec![ObjectTag::Terminal], point("1"))
         .object("Ax1", vec![ObjectTag::Product("A", "1")], point("Ax1"))

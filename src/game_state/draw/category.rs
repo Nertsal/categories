@@ -64,7 +64,7 @@ pub fn draw_category(
     let offset = vec2(height / 2.0, height / 2.0);
 
     // Equalities
-    for (i, equality) in category.equalities.all_equalities().enumerate() {
+    for (i, (equality, inner)) in category.equalities.iter().enumerate() {
         let pos = framebuffer_size - offset - vec2(0.0, i as f32 * height * 1.5);
 
         let get = |edge| {
@@ -99,7 +99,7 @@ pub fn draw_category(
             text.push_str(&get(id));
         }
 
-        draw_2d::Text::unit(font.clone(), text, constants::EQUALITY_FONT_COLOR)
+        draw_2d::Text::unit(font.clone(), text, inner.color)
             .fit_into(AABB::ZERO.extend_positive(vec2(framebuffer_size.x, height)))
             .align_bounding_box(vec2(1.0, 1.0))
             .translate(pos)

@@ -6,13 +6,13 @@ pub enum CategoryThing {
     Morphism { id: MorphismId },
 }
 
-pub struct Category<O, M> {
+pub struct Category<O, M, E> {
     pub objects: Objects<O>,
     pub morphisms: Morphisms<M>,
-    pub equalities: Equalities,
+    pub equalities: Equalities<E>,
 }
 
-impl<O, M> Category<O, M> {
+impl<O, M, E> Category<O, M, E> {
     pub fn new() -> Self {
         Self {
             objects: Objects::new(),

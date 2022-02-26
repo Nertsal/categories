@@ -46,6 +46,9 @@ impl GameState {
                     .unwrap_or_default();
                 Arrow::new(label, color, util::random_shift(), util::random_shift())
             },
+            |_equality| Equality {
+                color: constants::EQUALITY_FONT_COLOR,
+            },
         );
 
         for action in &undo_actions {
