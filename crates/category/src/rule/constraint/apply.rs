@@ -72,8 +72,9 @@ impl<O, M, E> Category<O, M, E> {
         // Extend vertices
         if extend_objects.len() > 0 {
             let actions = self.action_do(Action::ExtendObjectTags(extend_objects));
-            assert_eq!(actions.len(), 1);
-            action_history.extend(actions);
+            if !actions.is_empty() {
+                action_history.extend(actions);
+            }
         }
 
         // Create new vertices
@@ -135,8 +136,9 @@ impl<O, M, E> Category<O, M, E> {
         // Extend edges
         if extend_morphisms.len() > 0 {
             let actions = self.action_do(Action::ExtendMorphismTags(extend_morphisms));
-            assert_eq!(actions.len(), 1);
-            action_history.extend(actions);
+            if !actions.is_empty() {
+                action_history.extend(actions);
+            }
         }
 
         // Create new edges

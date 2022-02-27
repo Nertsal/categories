@@ -46,24 +46,51 @@ impl<O, M, E> Category<O, M, E> {
                     .collect();
                 vec![Action::RemoveMorphisms(morphisms)]
             }
-            Action::ExtendObjectTags(mut extensions) => {
-                extensions.retain(|(id, _)| self.objects.contains(id));
-                for (object_id, new_tags) in extensions.clone() {
-                    let object = self.objects.get_mut(&object_id).unwrap(); // Check was done when retaining
-                    object.tags.extend(new_tags);
-                }
+            Action::ExtendObjectTags(extensions) => {
+                // Avoid duplicating tags
+                let extensions = extensions
+                    .into_iter()
+                    .filter_map(|(id, tags)| {
+                        self.objects
+                            .get_mut(&id)
+                            .map(|object| (object, tags))
+                            .map(|(object, tags)| {
+                                let tags = tags
+                                    .into_iter()
+                                    .filter(|tag| !object.tags.contains(tag))
+                                    .collect::<Vec<_>>();
+                                object.tags.extend(tags.clone());
+                                (id, tags)
+                            })
+                            .filter(|(_, tags)| !tags.is_empty())
+                    })
+                    .collect::<Vec<_>>();
+
                 if extensions.is_empty() {
                     vec![]
                 } else {
                     vec![Action::RemoveObjectTags(extensions)]
                 }
             }
-            Action::ExtendMorphismTags(mut extensions) => {
-                extensions.retain(|(id, _)| self.morphisms.contains(id));
-                for (morphism_id, new_tags) in extensions.clone() {
-                    let morphism = self.morphisms.get_mut(&morphism_id).unwrap(); // Check was done when retaining
-                    morphism.tags.extend(new_tags);
-                }
+            Action::ExtendMorphismTags(extensions) => {
+                // Avoid duplicating tags
+                let extensions = extensions
+                    .into_iter()
+                    .filter_map(|(id, tags)| {
+                        self.morphisms
+                            .get_mut(&id)
+                            .map(|morphism| (morphism, tags))
+                            .map(|(morphism, tags)| {
+                                let tags = tags
+                                    .into_iter()
+                                    .filter(|tag| !morphism.tags.contains(tag))
+                                    .collect::<Vec<_>>();
+                                morphism.tags.extend(tags.clone());
+                                (id, tags)
+                            })
+                            .filter(|(_, tags)| !tags.is_empty())
+                    })
+                    .collect::<Vec<_>>();
 
                 if extensions.is_empty() {
                     vec![]
@@ -73,9 +100,9 @@ impl<O, M, E> Category<O, M, E> {
             }
             Action::RemoveObjectTags(mut extensions) => {
                 extensions.retain(|(id, _)| self.objects.contains(id));
-                for (object_id, new_tags) in &extensions {
+                for (object_id, remove_tags) in &extensions {
                     let object = self.objects.get_mut(object_id).unwrap(); // Check was done when retaining
-                    object.tags.retain(|tag| !new_tags.contains(tag));
+                    object.tags.retain(|tag| !remove_tags.contains(tag));
                 }
 
                 if extensions.is_empty() {
@@ -86,9 +113,9 @@ impl<O, M, E> Category<O, M, E> {
             }
             Action::RemoveMorphismTags(mut extensions) => {
                 extensions.retain(|(id, _)| self.morphisms.contains(id));
-                for (morphism_id, new_tags) in &extensions {
+                for (morphism_id, remove_tags) in &extensions {
                     let morphism = self.morphisms.get_mut(morphism_id).unwrap(); // Check was done when retaining
-                    morphism.tags.retain(|tag| !new_tags.contains(tag));
+                    morphism.tags.retain(|tag| !remove_tags.contains(tag));
                 }
 
                 if extensions.is_empty() {

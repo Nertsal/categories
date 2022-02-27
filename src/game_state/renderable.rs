@@ -142,6 +142,10 @@ impl RenderableCategory {
     }
 
     pub fn action_do(&mut self, actions: Vec<CategoryAction>) {
+        if actions.is_empty() {
+            return;
+        }
+
         self.redo_history.clear();
         self.action_history.push(actions);
     }

@@ -100,7 +100,9 @@ impl GameState {
                     })
                     .filter_map(|id| category.inner.morphisms.remove(&id))
                     .collect::<Vec<_>>();
-                undo_actions.push(CategoryAction::NewMorphisms(remove_morphisms));
+                if !remove_morphisms.is_empty() {
+                    undo_actions.push(CategoryAction::NewMorphisms(remove_morphisms));
+                }
             }
 
             category.action_do(undo_actions);
