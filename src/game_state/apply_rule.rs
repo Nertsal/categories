@@ -98,7 +98,13 @@ impl GameState {
                             .next()
                             .is_none()
                     })
-                    .filter_map(|id| category.inner.morphisms.remove(&id))
+                    .filter_map(|id| {
+                        category
+                            .inner
+                            .morphisms
+                            .remove(&id)
+                            .map(|morphism| (Some(id), morphism))
+                    })
                     .collect::<Vec<_>>();
                 if !remove_morphisms.is_empty() {
                     undo_actions.push(CategoryAction::NewMorphisms(remove_morphisms));

@@ -124,11 +124,14 @@ impl<O, M, E> Category<O, M, E> {
                     })
                     .collect();
 
-                new_morphisms.push(Morphism {
-                    inner: morphism_constructor(label_connection, label_tags),
-                    connection,
-                    tags,
-                });
+                new_morphisms.push((
+                    None,
+                    Morphism {
+                        inner: morphism_constructor(label_connection, label_tags),
+                        connection,
+                        tags,
+                    },
+                ));
                 new_morphism_names.push(label.clone());
             }
         }

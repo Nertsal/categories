@@ -6,7 +6,7 @@ pub enum Action<O, M, E> {
     ExtendObjectTags(Vec<(ObjectId, Vec<ObjectTag>)>),
     RemoveObjectTags(Vec<(ObjectId, Vec<ObjectTag>)>),
     RemoveObjects(Vec<ObjectId>),
-    NewMorphisms(Vec<Morphism<M>>),
+    NewMorphisms(Vec<(Option<MorphismId>, Morphism<M>)>),
     ExtendMorphismTags(Vec<(MorphismId, Vec<MorphismTag>)>),
     RemoveMorphismTags(Vec<(MorphismId, Vec<MorphismTag>)>),
     RemoveMorphisms(Vec<MorphismId>),
@@ -39,9 +39,21 @@ impl<O, M, E> Category<O, M, E> {
             Action::NewMorphisms(morphisms) => {
                 let morphisms = morphisms
                     .into_iter()
-                    .map(|morphism| {
-                        self.new_morphism(morphism)
-                            .expect("Objects are expected to exist") // TODO: do proper handling
+                    .map(|(id, morphism)| {
+                        match id {
+                            Some(id) => {
+                                let replaced = self
+                                    .insert_morphism(morphism, id)
+                                    .expect("Morphism ids are expected to be valid");
+                                if replaced.is_some() {
+                                    panic!("Cannot replace an existing morphism with another");
+                                }
+                                id
+                            }
+                            None => self
+                                .new_morphism(morphism)
+                                .expect("Objects are expected to exist"), // TODO: do proper handling
+                        }
                     })
                     .collect();
                 vec![Action::RemoveMorphisms(morphisms)]
@@ -134,7 +146,7 @@ impl<O, M, E> Category<O, M, E> {
                     .map(|(object_id, object, morphisms)| {
                         let morphisms: Vec<_> = morphisms
                             .into_iter()
-                            .map(|(_, morphism)| morphism)
+                            .map(|(id, morphism)| (Some(id), morphism))
                             .collect();
                         ((object_id, object), morphisms)
                     })
@@ -173,7 +185,10 @@ impl<O, M, E> Category<O, M, E> {
                     .collect();
                 let morphisms: Vec<_> = morphisms
                     .into_iter()
-                    .filter_map(|id| self.remove_morphism(id))
+                    .filter_map(|id| {
+                        self.remove_morphism(id)
+                            .map(|morphism| (Some(id), morphism))
+                    })
                     .collect();
 
                 let mut undo = vec![Action::NewMorphisms(morphisms)];

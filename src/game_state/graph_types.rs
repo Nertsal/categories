@@ -51,6 +51,7 @@ impl Arrow {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Equality {
     pub color: Color<f32>,
 }
