@@ -3,46 +3,7 @@ use super::*;
 impl GameState {
     pub fn handle_event_impl(&mut self, event: geng::Event) {
         match event {
-            geng::Event::KeyDown { key } => match key {
-                geng::Key::Space => {
-                    // Anchor vertex
-                    if let Some(dragging) = &self.dragging {
-                        if let DragAction::Move {
-                            target: DragTarget::Vertex { category, id },
-                        } = &dragging.action
-                        {
-                            let category = *category;
-                            let id = *id;
-                            let object = self
-                                .get_category_mut(&category)
-                                .unwrap()
-                                .objects
-                                .get_mut(&id)
-                                .unwrap();
-                            object.inner.is_anchor = !object.inner.is_anchor;
-                        }
-                    }
-                }
-                geng::Key::Escape => {
-                    // Clear selection
-                    self.fact_selection = None;
-                    self.goal_selection = None;
-                }
-                geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
-                    let active_category = match self.focused_category {
-                        FocusedCategory::Rule { .. } => return,
-                        FocusedCategory::Fact => &mut self.fact_category,
-                        FocusedCategory::Goal => &mut self.goal_category,
-                    };
-
-                    if self.geng.window().is_key_pressed(geng::Key::LShift) {
-                        active_category.action_redo();
-                    } else {
-                        active_category.action_undo();
-                    }
-                }
-                _ => (),
-            },
+            geng::Event::KeyDown { key } => self.handle_key_down(key),
             geng::Event::MouseDown { position, button } => {
                 self.drag_start(position, button);
             }
@@ -53,95 +14,152 @@ impl GameState {
                 self.drag_stop(position, button);
             }
             geng::Event::Wheel { delta } => {
-                if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
-                    // Zoom
-                    let delta = -delta as f32 * ZOOM_SPEED;
-                    let camera = self.focused_camera_mut();
-                    camera.fov = (camera.fov + delta).clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
-                } else {
-                    // Scroll
-                    let delta = -delta as f32 * SCROLL_SPEED;
-                    self.state.scroll_rules(delta, self.rules.len());
+                self.handle_wheel(delta as f32);
+            }
+            geng::Event::TouchStart { touches } => self.handle_touch_start(touches),
+            geng::Event::TouchMove { touches } => self.handle_touch_move(touches),
+            geng::Event::TouchEnd => self.handle_touch_end(),
+            _ => (),
+        }
+    }
+
+    fn handle_key_down(&mut self, key: geng::Key) {
+        match key {
+            geng::Key::Space => {
+                // Anchor vertex
+                if let Some(dragging) = &self.dragging {
+                    if let DragAction::Move {
+                        target: DragTarget::Vertex { category, id },
+                    } = &dragging.action
+                    {
+                        let category = *category;
+                        let id = *id;
+                        let object = self
+                            .get_category_mut(&category)
+                            .unwrap()
+                            .objects
+                            .get_mut(&id)
+                            .unwrap();
+                        object.inner.is_anchor = !object.inner.is_anchor;
+                    }
                 }
             }
-            geng::Event::TouchStart { touches } => match &touches[..] {
-                [touch] => {
-                    self.drag_start(touch.position, geng::MouseButton::Left);
-                }
-                [touch0, touch1] => {
-                    self.focus(touch0.position);
-                    let camera = self.focused_camera();
-                    let world_pos = camera.screen_to_world(
-                        self.state.framebuffer_size,
-                        touch0.position.map(|x| x as f32),
-                    );
-                    self.dragging = Some(Dragging {
-                        mouse_start_position: touch0.position,
-                        current_mouse_position: touch0.position,
-                        started_drag: false,
-                        world_start_position: world_pos,
-                        action: DragAction::TwoTouchMove {
-                            initial_camera_fov: camera.fov,
-                            // initial_camera_rotation: camera.rotation,
-                            initial_touch: touch0.position,
-                            initial_touch_other: touch1.position,
-                        },
-                    })
-                }
-                _ => (),
-            },
-            geng::Event::TouchMove { touches } => match &touches[..] {
-                [touch] => {
-                    self.drag_move(touch.position);
-                }
-                [touch0, touch1] => {
-                    if let Some(dragging) = &self.dragging {
-                        if let &DragAction::TwoTouchMove {
-                            // initial_camera_rotation,
-                            initial_camera_fov,
-                            initial_touch,
-                            initial_touch_other,
-                        } = &dragging.action
-                        {
-                            let framebuffer_size = self.state.framebuffer_size;
-                            let camera = self.focused_camera_mut();
+            geng::Key::Escape => {
+                // Clear selection
+                self.fact_selection = None;
+                self.goal_selection = None;
+            }
+            geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
+                let active_category = match self.focused_category {
+                    FocusedCategory::Rule { .. } => return,
+                    FocusedCategory::Fact => &mut self.fact_category,
+                    FocusedCategory::Goal => &mut self.goal_category,
+                };
 
-                            let initial_delta = camera
-                                .screen_to_world(framebuffer_size, initial_touch.map(|x| x as f32))
-                                - camera.screen_to_world(
-                                    framebuffer_size,
-                                    initial_touch_other.map(|x| x as f32),
-                                );
+                if self.geng.window().is_key_pressed(geng::Key::LShift) {
+                    active_category.action_redo();
+                } else {
+                    active_category.action_undo();
+                }
+            }
+            _ => (),
+        }
+    }
 
-                            let initial_distance = initial_delta.len();
-                            // let initial_angle = initial_delta.arg();
+    fn handle_wheel(&mut self, wheel_delta: f32) {
+        if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+            // Zoom
+            let delta = -wheel_delta * ZOOM_SPEED;
+            let camera = self.focused_camera_mut();
+            camera.fov = (camera.fov + delta).clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+        } else {
+            // Scroll
+            let delta = -wheel_delta * SCROLL_SPEED;
+            self.state.scroll_rules(delta, self.rules.len());
+        }
+    }
 
-                            let delta = camera.screen_to_world(
+    fn handle_touch_start(&mut self, touches: Vec<geng::TouchPoint>) {
+        match &touches[..] {
+            [touch] => {
+                self.drag_start(touch.position, geng::MouseButton::Left);
+            }
+            [touch0, touch1] => {
+                self.focus(touch0.position);
+                let camera = self.focused_camera();
+                let world_pos = camera.screen_to_world(
+                    self.state.framebuffer_size,
+                    touch0.position.map(|x| x as f32),
+                );
+                self.dragging = Some(Dragging {
+                    mouse_start_position: touch0.position,
+                    current_mouse_position: touch0.position,
+                    started_drag: false,
+                    world_start_position: world_pos,
+                    action: DragAction::TwoTouchMove {
+                        initial_camera_fov: camera.fov,
+                        // initial_camera_rotation: camera.rotation,
+                        initial_touch: touch0.position,
+                        initial_touch_other: touch1.position,
+                    },
+                })
+            }
+            _ => (),
+        }
+    }
+
+    fn handle_touch_move(&mut self, touches: Vec<geng::TouchPoint>) {
+        match &touches[..] {
+            [touch] => {
+                self.drag_move(touch.position);
+            }
+            [touch0, touch1] => {
+                if let Some(dragging) = &self.dragging {
+                    if let &DragAction::TwoTouchMove {
+                        // initial_camera_rotation,
+                        initial_camera_fov,
+                        initial_touch,
+                        initial_touch_other,
+                    } = &dragging.action
+                    {
+                        // Scale camera
+                        let framebuffer_size = self.state.framebuffer_size;
+                        let camera = self.focused_camera_mut();
+
+                        let initial_delta = camera
+                            .screen_to_world(framebuffer_size, initial_touch.map(|x| x as f32))
+                            - camera.screen_to_world(
                                 framebuffer_size,
-                                touch0.position.map(|x| x as f32),
-                            ) - camera.screen_to_world(
+                                initial_touch_other.map(|x| x as f32),
+                            );
+
+                        let initial_distance = initial_delta.len();
+                        // let initial_angle = initial_delta.arg();
+
+                        let delta = camera
+                            .screen_to_world(framebuffer_size, touch0.position.map(|x| x as f32))
+                            - camera.screen_to_world(
                                 framebuffer_size,
                                 touch1.position.map(|x| x as f32),
                             );
 
-                            let distance = delta.len();
-                            // let angle = delta.arg();
+                        let distance = delta.len();
+                        // let angle = delta.arg();
 
-                            camera.fov = (initial_camera_fov / distance * initial_distance)
-                                .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
-                            // camera.rotation = initial_camera_rotation + angle - initial_angle;
-                        }
+                        camera.fov = (initial_camera_fov / distance * initial_distance)
+                            .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+                        // camera.rotation = initial_camera_rotation + angle - initial_angle;
                     }
                 }
-                _ => (),
-            },
-            geng::Event::TouchEnd => {
-                // TODO: Detect short and long taps
-                self.dragging = None;
-                self.focused_category = FocusedCategory::Fact;
             }
             _ => (),
         }
+    }
+
+    fn handle_touch_end(&mut self) {
+        // TODO: Detect short and long taps
+        self.dragging = None;
+        self.focused_category = FocusedCategory::Fact;
     }
 
     fn drag_start(&mut self, mouse_position: Vec2<f64>, mouse_button: geng::MouseButton) {
