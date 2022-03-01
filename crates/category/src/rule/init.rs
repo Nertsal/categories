@@ -17,6 +17,7 @@ pub enum RulePart {
     Input,
     Forall,
     Exists,
+    Inferred,
     Output,
 }
 
@@ -189,7 +190,7 @@ fn add_constraints<'a, O, M, E, L: 'a + Label>(
             let connection = connection.map_borrowed(|label| {
                 get_object(
                     label,
-                    rule_part,
+                    RulePart::Inferred,
                     &mut bindings.objects,
                     category,
                     statement,
@@ -205,7 +206,7 @@ fn add_constraints<'a, O, M, E, L: 'a + Label>(
                         |label| {
                             get_object(
                                 label,
-                                rule_part,
+                                RulePart::Inferred,
                                 &mut bindings.objects,
                                 category,
                                 statement,

@@ -27,6 +27,7 @@ impl RenderableRule {
                 category::RulePart::Input => RULE_INPUT_COLOR,
                 category::RulePart::Forall => RULE_FORALL_COLOR,
                 category::RulePart::Exists => RULE_EXISTS_COLOR,
+                category::RulePart::Inferred => RULE_INFER_COLOR,
                 category::RulePart::Output => RULE_OUTPUT_COLOR,
             }
         }
