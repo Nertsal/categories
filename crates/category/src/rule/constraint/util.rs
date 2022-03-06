@@ -1,20 +1,21 @@
 use super::*;
-use std::{collections::HashSet, hash::Hash};
+use std::hash::Hash;
 
-pub fn constraint_unordered<L: Hash + Eq, T: Hash + Eq>(
+pub fn constraint_unordered<L: PartialEq, T: PartialEq>(
     constraints: impl IntoIterator<Item = (L, Option<T>)>,
     actual: impl IntoIterator<Item = T>,
 ) -> Option<impl Iterator<Item = (L, T)>> {
     let mut unknowns = Vec::new();
-    let mut actual = actual.into_iter().collect::<HashSet<_>>();
+    let mut actual = actual.into_iter().collect::<Vec<_>>();
 
     for (constraint, value) in constraints {
         match value {
-            Some(value) => {
-                if !actual.remove(&value) {
-                    return None;
+            Some(value) => match actual.iter().position(|actual| *actual == value) {
+                Some(i) => {
+                    actual.remove(i);
                 }
-            }
+                None => return None,
+            },
             None => {
                 unknowns.push(constraint);
             }
@@ -71,4 +72,12 @@ pub(super) fn decompose_morphism<O, M, E>(
             _ => None,
         })
         .unwrap_or_else(|| vec![morphism_id])
+}
+
+#[test]
+fn test_unordered() {
+    let result: Vec<_> = constraint_unordered(vec![("A", Some(0)), ("B", Some(0))], vec![0, 0])
+        .unwrap()
+        .collect();
+    assert!(result.is_empty());
 }
