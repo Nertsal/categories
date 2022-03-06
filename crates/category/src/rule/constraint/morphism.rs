@@ -92,6 +92,14 @@ fn tags_matches<L: Label>(
             MorphismTag::Unique => Some(Bindings::new()),
             _ => None,
         }),
+        MorphismTag::ProductP1 => tags.iter().find_map(|tag| match tag {
+            MorphismTag::ProductP1 => Some(Bindings::new()),
+            _ => None,
+        }),
+        MorphismTag::ProductP2 => tags.iter().find_map(|tag| match tag {
+            MorphismTag::ProductP2 => Some(Bindings::new()),
+            _ => None,
+        }),
         MorphismTag::Identity(constraint) => tags.iter().find_map(|tag| {
             if let &MorphismTag::Identity(object) = tag {
                 bindings.get_object(constraint).map_or_else(

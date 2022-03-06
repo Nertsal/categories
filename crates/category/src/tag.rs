@@ -47,6 +47,8 @@ impl<O, M> MorphismTag<O, M> {
     ) -> MorphismTag<V, E> {
         match self {
             Self::Unique => MorphismTag::Unique,
+            Self::ProductP1 => MorphismTag::ProductP1,
+            Self::ProductP2 => MorphismTag::ProductP2,
             Self::Identity(v) => MorphismTag::Identity(fv(v)),
             Self::Composition { first, second } => MorphismTag::Composition {
                 first: fe(first),
@@ -63,6 +65,8 @@ impl<O, M> MorphismTag<O, M> {
     ) -> MorphismTag<V, E> {
         match self {
             Self::Unique => MorphismTag::Unique,
+            Self::ProductP1 => MorphismTag::ProductP1,
+            Self::ProductP2 => MorphismTag::ProductP2,
             Self::Identity(v) => MorphismTag::Identity(fv(v)),
             Self::Composition { first, second } => MorphismTag::Composition {
                 first: fe(first),

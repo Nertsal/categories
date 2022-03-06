@@ -15,6 +15,8 @@ pub enum MorphismTag<O = ObjectId, M = MorphismId> {
     Unique,
     Composition { first: M, second: M },
     Isomorphism(M, M),
+    ProductP1,
+    ProductP2,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

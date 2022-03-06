@@ -16,8 +16,8 @@ pub fn rule_product<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, RuleConst
         ))
         .exists(
             ConstraintsBuilder::new()
-                .morphism("p1", "AxB", "A", vec![])
-                .morphism("p2", "AxB", "B", vec![]),
+                .morphism("p1", "AxB", "A", vec![MorphismTag::ProductP1])
+                .morphism("p2", "AxB", "B", vec![MorphismTag::ProductP2]),
         )
         .forall(
             ConstraintsBuilder::new()
