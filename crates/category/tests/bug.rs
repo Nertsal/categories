@@ -5,6 +5,9 @@ use std::fmt::Debug;
 
 #[test]
 fn test_bug() {
+    // Get rules
+    let rule_product = axioms::rule_product::<&str>().unwrap();
+
     // Build the initial category
     let mut category = Category::new();
 
@@ -12,6 +15,23 @@ fn test_bug() {
         tags: vec![],
         inner: (),
     });
+
+    // Test product AxA
+    let result = category.apply_rule(&rule_product, Bindings::new(), |_| (), |_, _| (), |_| ());
+    assert!(result.1);
+    print_category(&category);
+    assert_eq!(2, category.objects.len());
+    assert_eq!(3, category.morphisms.len());
+    assert_eq!(0, category.equalities.len());
+
+    // Undo
+    for action in result.0 {
+        category.action_do(action);
+    }
+    assert_eq!(1, category.objects.len());
+    assert_eq!(0, category.morphisms.len());
+    assert_eq!(0, category.equalities.len());
+
     let object_1 = category.new_object(Object {
         tags: vec![ObjectTag::Terminal],
         inner: (),
@@ -135,9 +155,6 @@ fn test_bug() {
     assert_eq!(3, category.objects.len());
     assert_eq!(8, category.morphisms.len());
     assert_eq!(4, category.equalities.len());
-
-    // Get rules
-    let rule_product = axioms::rule_product::<&str>().unwrap();
 
     // Test bug
     let bindings = Bindings::from_objects([("A", object_a), ("B", object_1)]);
