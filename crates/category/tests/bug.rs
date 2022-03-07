@@ -21,8 +21,8 @@ fn test_bug() {
     assert!(result.1);
     print_category(&category);
     assert_eq!(2, category.objects.len());
-    assert_eq!(3, category.morphisms.len());
-    assert_eq!(0, category.equalities.len());
+    assert_eq!(6, category.morphisms.len());
+    assert_eq!(6, category.equalities.len());
 
     // Undo
     for action in result.0 {
@@ -76,7 +76,7 @@ fn test_bug() {
                 from: object_ax1,
                 to: object_1,
             },
-            tags: vec![MorphismTag::Unique],
+            tags: vec![MorphismTag::Unique, MorphismTag::ProductP2],
             inner: (),
         })
         .unwrap();
@@ -96,7 +96,7 @@ fn test_bug() {
                 from: object_ax1,
                 to: object_a,
             },
-            tags: vec![],
+            tags: vec![MorphismTag::ProductP1],
             inner: (),
         })
         .unwrap();
@@ -150,6 +150,16 @@ fn test_bug() {
         Equality::new(vec![morphism_a_1], vec![morphism_a_ax1, morphism_ax1_1]).unwrap(),
         (),
     );
+
+    // Objects
+    //  A, 1, Ax1
+    // Morphisms
+    //  f: IDa, IDax1, g: A->1, p2: Ax1->1, m: A->Ax1, p1: Ax1->A, m . p1: Ax1->A->Ax1, p2 . m . p1: Ax1->A->Ax1->1
+    // Equalities
+    //  Ax1->A->Ax1->1 = Ax1->1 (p2 . m . p1 = p2)
+    //  Ax1->A->Ax1->A = Ax1->A (p1 . m . p1 = p1)
+    //  IDa = A->Ax1->A (f = p1 . m)
+    //  A->1 = A->Ax1->1 (g = p2 . m)
 
     print_category(&category);
     assert_eq!(3, category.objects.len());

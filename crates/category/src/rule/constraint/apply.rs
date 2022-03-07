@@ -68,12 +68,16 @@ impl<O, M, E> Category<O, M, E> {
         }
 
         let mut action_history = Vec::new();
+        let mut extend_history = |mut actions: Vec<_>| {
+            actions.extend(std::mem::take(&mut action_history));
+            action_history = actions;
+        };
 
         // Extend vertices
         if extend_objects.len() > 0 {
             let actions = self.action_do(Action::ExtendObjectTags(extend_objects));
             if !actions.is_empty() {
-                action_history.extend(actions);
+                extend_history(actions);
             }
         }
 
@@ -82,7 +86,7 @@ impl<O, M, E> Category<O, M, E> {
             create_vertices(
                 self,
                 &mut bindings,
-                &mut action_history,
+                &mut extend_history,
                 new_objects,
                 new_object_names,
             );
@@ -108,7 +112,7 @@ impl<O, M, E> Category<O, M, E> {
                         label,
                         self,
                         &mut bindings,
-                        &mut action_history,
+                        &mut extend_history,
                         object_constructor,
                     )
                 });
@@ -140,7 +144,7 @@ impl<O, M, E> Category<O, M, E> {
         if extend_morphisms.len() > 0 {
             let actions = self.action_do(Action::ExtendMorphismTags(extend_morphisms));
             if !actions.is_empty() {
-                action_history.extend(actions);
+                extend_history(actions);
             }
         }
 
@@ -158,7 +162,7 @@ impl<O, M, E> Category<O, M, E> {
                 }
                 _ => unreachable!(),
             }
-            action_history.extend(actions);
+            extend_history(actions);
         }
 
         // Constraint equalities
@@ -192,8 +196,7 @@ impl<O, M, E> Category<O, M, E> {
 
         if constrained_equalities.len() > 0 {
             let actions = self.action_do(Action::NewEqualities(constrained_equalities));
-            assert_eq!(actions.len(), 1);
-            action_history.extend(actions);
+            extend_history(actions);
         }
 
         (action_history, bindings)
@@ -203,7 +206,7 @@ impl<O, M, E> Category<O, M, E> {
 fn create_vertices<O, M, E, L: Label>(
     category: &mut Category<O, M, E>,
     bindings: &mut Bindings<L>,
-    action_history: &mut Vec<Action<O, M, E>>,
+    mut actions_handler: impl FnMut(Vec<Action<O, M, E>>),
     new_vertices: Vec<Object<O>>,
     new_vertices_names: Vec<L>,
 ) -> Vec<ObjectId> {
@@ -224,7 +227,7 @@ fn create_vertices<O, M, E, L: Label>(
         }
         _ => unreachable!(),
     };
-    action_history.extend(actions);
+    actions_handler(actions);
     new_vertices
 }
 
@@ -232,14 +235,14 @@ fn get_object_or_new<O, M, E, L: Label>(
     label: &L,
     category: &mut Category<O, M, E>,
     bindings: &mut Bindings<L>,
-    action_history: &mut Vec<Action<O, M, E>>,
+    actions_handler: impl FnMut(Vec<Action<O, M, E>>),
     object_constructor: impl Fn(Vec<ObjectTag<&Object<O>>>) -> O,
 ) -> ObjectId {
     bindings.get_object(label).unwrap_or_else(|| {
         create_vertices(
             category,
             bindings,
-            action_history,
+            actions_handler,
             vec![Object {
                 tags: vec![],
                 inner: object_constructor(vec![]),

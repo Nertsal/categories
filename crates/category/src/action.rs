@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::*;
 
 #[derive(Debug, Clone)]
@@ -197,15 +199,60 @@ impl<O, M, E> Category<O, M, E> {
                 }
                 undo
             }
-            Action::NewEqualities(equals) => {
-                let equals = equals
+            Action::NewEqualities(equalities) => {
+                let mut actions = Vec::new();
+
+                let mut substitutes = HashMap::new();
+                // Check substitable equalities
+                let equalities = equalities
                     .into_iter()
+                    .filter(|(equality, _)| {
+                        match (equality.left().as_slice(), equality.right().as_slice()) {
+                            (&[f], &[g]) => {
+                                let g = substitutes.get(&g).copied().unwrap_or(g);
+                                substitutes.insert(f, g);
+                                false
+                            }
+                            _ => true,
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                // Move tags
+                let extend = substitutes
+                    .iter()
+                    .filter_map(|(from, to)| {
+                        self.morphisms
+                            .get(from)
+                            .map(|morphism| (*to, morphism.tags.clone()))
+                    })
+                    .collect();
+                let extended = self.action_do(Action::ExtendMorphismTags(extend));
+                actions.extend(extended);
+
+                // Remove substituted morphisms
+                let remove = substitutes.iter().map(|(from, _)| *from).collect();
+                let removed = self.action_do(Action::RemoveMorphisms(remove));
+                actions.extend(removed);
+
+                // Apply substitutions
+                let equalities = equalities
+                    .into_iter()
+                    .map(|(equality, inner)| {
+                        let (mut left, mut right) = equality.destructure();
+                        for morphism in left.iter_mut().chain(&mut right) {
+                            *morphism = substitutes.get(morphism).copied().unwrap_or(*morphism);
+                        }
+                        (Equality::new(left, right).unwrap(), inner)
+                    })
                     .map(|(equality, inner)| {
                         self.equalities.new_equality(equality.clone(), inner);
                         equality
                     })
                     .collect();
-                vec![Action::RemoveEqualities(equals)]
+                actions.push(Action::RemoveEqualities(equalities));
+
+                actions
             }
             Action::RemoveEqualities(equals) => {
                 let equals = equals
