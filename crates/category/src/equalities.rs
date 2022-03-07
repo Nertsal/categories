@@ -68,6 +68,10 @@ impl<T> Equalities<T> {
         self.inner.remove(equality)
     }
 
+    pub fn drain<'a>(&'a mut self) -> impl Iterator<Item = (Equality, T)> + 'a {
+        self.inner.drain()
+    }
+
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a Equality, &'a T)> + 'a {
         self.inner.iter()
     }
