@@ -25,7 +25,7 @@ impl<M> Equality<M> {
             return Err(());
         }
 
-        if left.len() < right.len() || left > right {
+        if left.len() < right.len() || left.len() == right.len() && left > right {
             std::mem::swap(&mut left, &mut right);
         }
 
