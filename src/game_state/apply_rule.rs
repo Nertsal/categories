@@ -19,7 +19,9 @@ impl GameState {
             |tags| {
                 let label = tags
                     .into_iter()
-                    .find_map(|tag| tag.map(|object| &object.inner.label).infer_name())
+                    .find_map(|tag| {
+                        object_name_from_tag_label(&tag.map(|object| object.inner.label.as_str()))
+                    })
                     .unwrap_or_default();
                 Point::new(label, Color::WHITE)
             },
@@ -34,17 +36,7 @@ impl GameState {
                         })
                         .unwrap_or(ARROW_REGULAR_COLOR),
                 };
-                let label = tags
-                    .into_iter()
-                    .find_map(|tag| {
-                        tag.map(
-                            |object| &object.inner.label,
-                            |morphism| &morphism.inner.label,
-                        )
-                        .infer_name()
-                    })
-                    .unwrap_or_default();
-                Arrow::new(label, color, util::random_shift(), util::random_shift())
+                Arrow::new::<Label>(None, color, util::random_shift(), util::random_shift())
             },
             |_equality| Equality {
                 color: constants::EQUALITY_FONT_COLOR,
@@ -53,16 +45,6 @@ impl GameState {
 
         for action in &undo_actions {
             match action {
-                // Morphisms were actually created
-                category::Action::RemoveMorphisms(morphisms) => {
-                    for morphism_id in morphisms {
-                        if let Some(morphism) = category.inner.morphisms.get_mut(morphism_id) {
-                            if morphism.inner.label.is_empty() {
-                                morphism.inner.label = format!("{:?}", morphism_id.raw());
-                            }
-                        }
-                    }
-                }
                 // Tags were actually extended
                 category::Action::RemoveMorphismTags(extensions) => {
                     for (morphism_id, new_tags) in extensions {
@@ -76,6 +58,7 @@ impl GameState {
                         }
                     }
                 }
+                // TODO: Check removal of unique tag
                 _ => (),
             }
         }

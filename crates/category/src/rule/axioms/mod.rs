@@ -24,8 +24,8 @@ fn get_axioms<'a, T: Label + From<&'a str>>() -> Result<Vec<Rule<T>>, RuleConstr
     Ok(vec![
         rule_identity()?,
         rule_composition()?,
-        rule_terminal()?,
-        // rule_initial()?,
+        // rule_terminal()?,
+        rule_initial()?,
         rule_product()?,
         rule_unique()?,
         rule_isomorphism()?,

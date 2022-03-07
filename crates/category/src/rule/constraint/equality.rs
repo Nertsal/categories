@@ -90,7 +90,7 @@ fn check_equality<O, M, E, L: Label>(
     let decompose = |composition: Vec<MorphismId>| {
         composition
             .into_iter()
-            .flat_map(|id| decompose_morphism(id, category.morphisms.get(&id).unwrap(), category))
+            .flat_map(|id| decompose_morphism(id, category))
             .collect()
     };
 
@@ -105,7 +105,10 @@ fn check_equality<O, M, E, L: Label>(
     }
 }
 
-fn remove_ids<O, M, E>(morphisms: Vec<MorphismId>, category: &Category<O, M, E>) -> Vec<MorphismId> {
+fn remove_ids<O, M, E>(
+    morphisms: Vec<MorphismId>,
+    category: &Category<O, M, E>,
+) -> Vec<MorphismId> {
     let len = morphisms.len();
     let mut morphisms = morphisms.into_iter();
     let mut result = (0..len - 1)
@@ -119,7 +122,10 @@ fn remove_ids<O, M, E>(morphisms: Vec<MorphismId>, category: &Category<O, M, E>)
     result
 }
 
-fn check_identity<O, M, E>(morphism: &MorphismId, category: &Category<O, M, E>) -> Option<ObjectId> {
+fn check_identity<O, M, E>(
+    morphism: &MorphismId,
+    category: &Category<O, M, E>,
+) -> Option<ObjectId> {
     category
         .morphisms
         .get(morphism)

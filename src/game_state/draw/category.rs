@@ -41,6 +41,7 @@ pub fn draw_category(
             camera,
             background_color,
             category,
+            *id,
             morphism,
             selected_edges.contains(id),
         );
@@ -71,10 +72,11 @@ pub fn draw_category(
             let label = category
                 .morphisms
                 .get(edge)
-                .map(|morphism| &morphism.inner.label);
+                .map(|morphism| (morphism, &morphism.inner.label));
             match label {
-                Some(label) if !label.is_empty() => label.to_owned(),
-                Some(_) => format!("[{}]", edge.raw()),
+                Some((_, Some(label))) => label.to_owned(),
+                Some((morphism, None)) => infer_morphism_name(morphism, category)
+                    .unwrap_or_else(|| format!("{}", edge.raw())),
                 None => {
                     warn!("Morphism {edge:?} does not exist");
                     format!("[{}]", edge.raw())
@@ -164,6 +166,7 @@ fn draw_morphism(
     camera: &Camera2d,
     background_color: Color<f32>,
     category: &Category,
+    morphism_id: MorphismId,
     morphism: &Morphism,
     is_selected: bool,
 ) {
@@ -296,7 +299,9 @@ fn draw_morphism(
         .get(morphism.inner.positions.len() / 2)
     {
         // Label
-        draw_2d::Text::unit(font.clone(), morphism.inner.label.to_owned(), Color::GRAY)
+        let label = infer_morphism_name(morphism, category)
+            .unwrap_or_else(|| format!("{}", morphism_id.raw()));
+        draw_2d::Text::unit(font.clone(), label, Color::GRAY)
             .fit_into(AABB::point(center).extend_uniform(ARROW_LABEL_FONT_SIZE))
             .draw_2d(geng, framebuffer, camera);
 

@@ -6,7 +6,7 @@ mod category;
 mod equality;
 mod morphism;
 mod object;
-mod util;
+pub mod util;
 
 pub use self::category::*;
 pub use builder::*;
