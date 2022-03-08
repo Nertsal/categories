@@ -68,7 +68,7 @@ fn tag_matches<L: Label>(
         }),
         ObjectTag::Product(constraint_a, constraint_b) => tags.iter().find_map(|tag| {
             if let &ObjectTag::Product(object_a, object_b) = tag {
-                constraint_unordered(
+                constraint_ordered(
                     vec![constraint_a, constraint_b]
                         .into_iter()
                         .map(|label| (label.clone(), bindings.get_object(label))),
