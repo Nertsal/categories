@@ -231,11 +231,6 @@ impl<O, M, E> Category<O, M, E> {
                 let extended = self.action_do(Action::ExtendMorphismTags(extend));
                 actions.extend(extended);
 
-                // Remove substituted morphisms
-                let remove = substitutes.iter().map(|(from, _)| *from).collect();
-                let removed = self.action_do(Action::RemoveMorphisms(remove));
-                actions.extend(removed);
-
                 // Substitute into existing equalities
                 let mut kept = Vec::new();
                 let mut changed = Vec::new();
@@ -261,6 +256,11 @@ impl<O, M, E> Category<O, M, E> {
                     self.equalities.new_equality(equality, inner);
                 }
                 actions.push(Action::SubstituteEqualities(changed));
+
+                // Remove substituted morphisms
+                let remove = substitutes.iter().map(|(from, _)| *from).collect();
+                let removed = self.action_do(Action::RemoveMorphisms(remove));
+                actions.extend(removed);
 
                 // Apply substitutions
                 let equalities = equalities
