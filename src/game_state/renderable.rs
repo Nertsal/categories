@@ -46,7 +46,7 @@ impl RenderableRule {
             _tags: &Vec<MorphismTag<Label, Label>>,
         ) -> Arrow {
             Arrow::new(
-                label,
+                Some(label),
                 part_color(part),
                 util::random_shift(),
                 util::random_shift(),

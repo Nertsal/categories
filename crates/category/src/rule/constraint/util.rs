@@ -51,27 +51,38 @@ pub fn constraint_ordered<L: Hash + Eq, T: PartialEq>(
     Some(binds.into_iter())
 }
 
-pub(super) fn decompose_morphism<O, M, E>(
+pub fn decompose_morphism<O, M, E>(
     morphism_id: MorphismId,
-    morphism: &Morphism<M>,
     category: &Category<O, M, E>,
 ) -> Vec<MorphismId> {
-    morphism
-        .tags
-        .iter()
-        .find_map(|tag| match tag {
-            &MorphismTag::Composition { first, second } => {
-                category.morphisms.get(&first).and_then(|morphism_f| {
-                    category.morphisms.get(&second).map(|morphism_g| {
-                        let mut composition = decompose_morphism(first, morphism_f, category);
-                        composition.extend(decompose_morphism(second, morphism_g, category));
-                        composition
+    fn decompose<O, M, E>(
+        morphism_id: MorphismId,
+        morphism: &Morphism<M>,
+        category: &Category<O, M, E>,
+    ) -> Vec<MorphismId> {
+        morphism
+            .tags
+            .iter()
+            .find_map(|tag| match tag {
+                &MorphismTag::Composition { first, second } => {
+                    category.morphisms.get(&first).and_then(|morphism_f| {
+                        category.morphisms.get(&second).map(|morphism_g| {
+                            let mut composition = decompose(first, morphism_f, category);
+                            composition.extend(decompose(second, morphism_g, category));
+                            composition
+                        })
                     })
-                })
-            }
-            _ => None,
-        })
-        .unwrap_or_else(|| vec![morphism_id])
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| vec![morphism_id])
+    }
+
+    category
+        .morphisms
+        .get(&morphism_id)
+        .map(|morphism| decompose(morphism_id, morphism, category))
+        .expect("Morphism does not exist in the category")
 }
 
 #[test]
