@@ -25,15 +25,15 @@ fn isomorphism(label: impl Into<Label>) -> Arrow {
 pub fn fact_category() -> Category {
     CategoryBuilder::<_, _, _, Label>::new()
         .object("A", vec![], point("A"))
-        .object("0", vec![ObjectTag::Initial], point("0"))
+        .object("1", vec![ObjectTag::Terminal], point("1"))
         .build()
 }
 
 pub fn goal_category() -> Category {
     CategoryBuilder::<_, _, _, Label>::new()
         .object("A", vec![], point("A"))
-        .object("0", vec![ObjectTag::Initial], point("0"))
-        .object("Ax0", vec![ObjectTag::Product("A", "0")], point("Ax0"))
-        .isomorphism("", "0", "Ax0", vec![], isomorphism(""))
+        .object("1", vec![ObjectTag::Terminal], point("1"))
+        .object("Ax1", vec![ObjectTag::Product("A", "1")], point("Ax1"))
+        .isomorphism("", "1", "Ax1", vec![], isomorphism(""))
         .build()
 }
