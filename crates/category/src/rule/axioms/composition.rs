@@ -8,7 +8,7 @@ pub fn rule_composition<'a, T: Label + From<&'a str>>() -> Result<Rule<T>, RuleC
                 .morphism("g", "B", "C", vec![]),
         )
         .exists(ConstraintsBuilder::new().morphism(
-            "g.f",
+            "g o f",
             "A",
             "C",
             vec![MorphismTag::Composition {
