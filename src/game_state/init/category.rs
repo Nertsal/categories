@@ -34,6 +34,6 @@ pub fn goal_category() -> Category {
         .object("A", vec![], point("A"))
         .object("1", vec![ObjectTag::Terminal], point("1"))
         .object("Ax1", vec![ObjectTag::Product("A", "1")], point("Ax1"))
-        .isomorphism("", "1", "Ax1", vec![], isomorphism(""))
+        .isomorphism("", "A", "Ax1", vec![], isomorphism(""))
         .build()
 }
