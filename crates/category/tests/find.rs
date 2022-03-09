@@ -38,5 +38,5 @@ fn test_find() {
         println!("{i:4}) {candidate:?}");
     }
 
-    assert_eq!(candidates.len(), 2);
+    assert_eq!(candidates.len(), 1);
 }
