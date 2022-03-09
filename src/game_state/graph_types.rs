@@ -96,7 +96,7 @@ pub fn morphism_name_from_tag(tag: &MorphismTag, category: &Category) -> Option<
                     .unwrap_or_else(|| format!("{}", id.raw()))
             };
 
-            let mut decomposed = decomposed.into_iter();
+            let mut decomposed = decomposed.into_iter().rev();
             result += &to_label(decomposed.next().unwrap());
             for id in decomposed {
                 result += " o "; // TODO: use better symbol
