@@ -1,18 +1,40 @@
 use super::*;
 
+pub fn targets_under_point(
+    category: &Category,
+    focused_category: FocusedCategory,
+    local_pos: Vec2<f32>,
+) -> Option<DragTarget> {
+    selection::objects_under_point(category, local_pos)
+        .next()
+        .map(|(&id, _)| DragTarget::Object {
+            id,
+            category: focused_category,
+        })
+        .or_else(|| {
+            // Drag edge
+            selection::morphisms_under_point(&category, local_pos)
+                .next()
+                .map(|(&id, _)| DragTarget::Morphism {
+                    id,
+                    category: focused_category,
+                })
+        })
+}
+
 pub fn objects_under_point(
     category: &Category,
-    position: Vec2<f32>,
+    local_pos: Vec2<f32>,
 ) -> impl Iterator<Item = (&ObjectId, &Object)> {
     category
         .objects
         .iter()
-        .filter(move |(_, object)| (object.inner.position - position).len() <= object.inner.radius)
+        .filter(move |(_, object)| (object.inner.position - local_pos).len() <= object.inner.radius)
 }
 
 pub fn morphisms_under_point(
     category: &Category,
-    position: Vec2<f32>,
+    local_pos: Vec2<f32>,
 ) -> impl Iterator<Item = (&MorphismId, &Morphism)> {
     morphisms_points(category)
         .filter(move |(_, _, points)| {
@@ -20,7 +42,7 @@ pub fn morphisms_under_point(
                 .iter()
                 .zip(points.iter().skip(1))
                 .any(|(&start, &end)| {
-                    distance_point_segment(position, start, end) <= ARROW_WIDTH + SELECTION_RADIUS
+                    distance_point_segment(local_pos, start, end) <= ARROW_WIDTH + SELECTION_RADIUS
                 })
         })
         .map(|(id, edge, _)| (id, edge))

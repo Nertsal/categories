@@ -29,11 +29,11 @@ pub enum DragTarget {
         initial_mouse_pos: Vec2<f32>,
         initial_camera_pos: Vec2<f32>,
     },
-    Vertex {
+    Object {
         category: FocusedCategory,
         id: ObjectId,
     },
-    Edge {
+    Morphism {
         category: FocusedCategory,
         id: MorphismId,
     },

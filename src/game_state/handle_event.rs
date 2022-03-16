@@ -5,13 +5,13 @@ impl GameState {
         match event {
             geng::Event::KeyDown { key } => self.handle_key_down(key),
             geng::Event::MouseDown { position, button } => {
-                self.drag_start(position, button);
+                self.handle_mouse_down(position, button);
             }
             geng::Event::MouseMove { position, .. } => {
-                self.drag_move(position);
+                self.handle_mouse_move(position);
             }
             geng::Event::MouseUp { position, button } => {
-                self.drag_stop(position, button);
+                self.handle_mouse_up(position, button);
             }
             geng::Event::Wheel { delta } => {
                 self.handle_wheel(delta as f32);
@@ -26,10 +26,10 @@ impl GameState {
     fn handle_key_down(&mut self, key: geng::Key) {
         match key {
             geng::Key::Space => {
-                // Anchor vertex
+                // Anchor object
                 if let Some(dragging) = &self.dragging {
                     if let DragAction::Move {
-                        target: DragTarget::Vertex { category, id },
+                        target: DragTarget::Object { category, id },
                     } = &dragging.action
                     {
                         let category = *category;
@@ -82,7 +82,27 @@ impl GameState {
     fn handle_touch_start(&mut self, touches: Vec<geng::TouchPoint>) {
         match &touches[..] {
             [touch] => {
-                self.drag_start(touch.position, geng::MouseButton::Left);
+                let mouse_position = touch.position;
+                self.focus(mouse_position);
+
+                let world_pos = self.screen_to_ui(mouse_position);
+
+                // Drag target or camera
+                let action =
+                    self.drag_target(self.focused_category, world_pos)
+                        .and_then(|target| {
+                            target
+                                .map(|target| DragAction::Move { target })
+                                .or_else(|| self.drag_camera(self.focused_category, world_pos))
+                        });
+
+                self.dragging = action.map(|action| Dragging {
+                    mouse_start_position: mouse_position,
+                    world_start_position: world_pos,
+                    started_drag: false,
+                    current_mouse_position: mouse_position,
+                    action,
+                });
             }
             [touch0, touch1] => {
                 self.focus(touch0.position);
@@ -111,7 +131,7 @@ impl GameState {
     fn handle_touch_move(&mut self, touches: Vec<geng::TouchPoint>) {
         match &touches[..] {
             [touch] => {
-                self.drag_move(touch.position);
+                self.handle_mouse_move(touch.position);
             }
             [touch0, touch1] => {
                 if let Some(dragging) = &self.dragging {
@@ -162,62 +182,24 @@ impl GameState {
         self.focused_category = FocusedCategory::Fact;
     }
 
-    fn drag_start(&mut self, mouse_position: Vec2<f64>, mouse_button: geng::MouseButton) {
-        // Focus
+    fn handle_mouse_down(&mut self, mouse_position: Vec2<f64>, mouse_button: geng::MouseButton) {
         self.focus(mouse_position);
 
-        let world_pos = self.ui_camera.screen_to_world(
-            self.state.framebuffer_size,
-            mouse_position.map(|x| x as f32),
-        );
+        let world_pos = self.screen_to_ui(mouse_position);
 
+        let drag_camera = mouse_button == geng::MouseButton::Left
+            && self.geng.window().is_key_pressed(geng::Key::LCtrl)
+            || mouse_button == geng::MouseButton::Right;
         let action = match mouse_button {
-            mouse
-                if mouse == geng::MouseButton::Left
-                    && self.geng.window().is_key_pressed(geng::Key::LCtrl)
-                    || mouse == geng::MouseButton::Right =>
-            {
-                // Drag camera
-                let focused_category = self.focused_category;
-                self.world_to_category_pos(&focused_category, world_pos)
-                    .and_then(|(screen_pos, _, _)| {
-                        self.get_category_camera_mut(&focused_category)
-                            .map(|(camera, _)| DragAction::Move {
-                                target: DragTarget::Camera {
-                                    category: focused_category,
-                                    initial_mouse_pos: screen_pos,
-                                    initial_camera_pos: camera.center,
-                                },
-                            })
-                    })
-            }
+            _ if drag_camera => self.drag_camera(self.focused_category, world_pos),
             geng::MouseButton::Left => {
-                // Drag vertex
-                let focused_category = self.focused_category;
-                self.world_to_category(&focused_category, world_pos).map(
-                    |(category, local_pos, _)| {
-                        selection::objects_under_point(category, local_pos)
-                            .next()
-                            .map(|(&id, _)| DragAction::Move {
-                                target: DragTarget::Vertex {
-                                    id,
-                                    category: focused_category,
-                                },
-                            })
-                            .or_else(|| {
-                                // Drag edge
-                                selection::morphisms_under_point(&category, local_pos)
-                                    .next()
-                                    .map(|(&id, _)| DragAction::Move {
-                                        target: DragTarget::Edge {
-                                            id,
-                                            category: focused_category,
-                                        },
-                                    })
-                            })
-                            .unwrap_or_else(|| DragAction::Selection {})
-                    },
-                )
+                // Drag target or select
+                self.drag_target(self.focused_category, world_pos)
+                    .map(|target| {
+                        target
+                            .map(|target| DragAction::Move { target })
+                            .unwrap_or(DragAction::Selection {})
+                    })
             }
             _ => None,
         };
@@ -231,7 +213,7 @@ impl GameState {
         });
     }
 
-    fn drag_move(&mut self, mouse_position: Vec2<f64>) {
+    fn handle_mouse_move(&mut self, mouse_position: Vec2<f64>) {
         // Focus
         self.focus(mouse_position);
         if let Some(dragging) = &mut self.dragging {
@@ -242,20 +224,17 @@ impl GameState {
 
     pub fn drag_update(&mut self) {
         // Drag
-        if let Some(dragging) = &mut self.dragging {
+        if let Some(mut dragging) = self.dragging.take() {
             match &mut dragging.action {
                 DragAction::Move { target } if dragging.started_drag => {
-                    let world_pos = self.ui_camera.screen_to_world(
-                        self.state.framebuffer_size,
-                        dragging.current_mouse_position.map(|x| x as f32),
-                    );
+                    let world_pos = self.screen_to_ui(dragging.current_mouse_position);
                     let updated = match target {
                         &mut DragTarget::Camera {
                             category,
                             initial_camera_pos,
                             initial_mouse_pos,
                         } => self
-                            .world_to_category(&category, world_pos)
+                            .world_to_category_mut(&category, world_pos)
                             .map(|(_, local, local_aabb)| (local, local_aabb))
                             .and_then(|(local_pos, local_aabb)| {
                                 self.get_category_camera_mut(&category).map(
@@ -270,16 +249,16 @@ impl GameState {
                                 )
                             })
                             .is_some(),
-                        &mut DragTarget::Vertex { category, id } => self
-                            .world_to_category(&category, world_pos)
+                        &mut DragTarget::Object { category, id } => self
+                            .world_to_category_mut(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
                                 category.objects.get_mut(&id).map(|object| {
                                     object.inner.position = local_pos.clamp_aabb(local_aabb);
                                 })
                             })
                             .is_some(),
-                        &mut DragTarget::Edge { category, id } => self
-                            .world_to_category(&category, world_pos)
+                        &mut DragTarget::Morphism { category, id } => self
+                            .world_to_category_mut(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
                                 category.morphisms.get_mut(&id).map(|morphism| {
                                     let positions = &mut morphism.inner.positions;
@@ -292,15 +271,17 @@ impl GameState {
                             .is_some(),
                     };
                     if !updated {
-                        self.dragging = None;
+                        // Ensure self.dragging is None
+                        return;
                     }
                 }
                 _ => (),
             }
+            self.dragging = Some(dragging);
         }
     }
 
-    fn drag_stop(&mut self, mouse_position: Vec2<f64>, _mouse_button: geng::MouseButton) {
+    fn handle_mouse_up(&mut self, mouse_position: Vec2<f64>, _mouse_button: geng::MouseButton) {
         let dragging = match self.dragging.take() {
             Some(x) => x,
             None => return,
@@ -366,11 +347,11 @@ impl GameState {
 
         // Select vertex or edge
         let selected = match target {
-            &DragTarget::Vertex {
+            &DragTarget::Object {
                 category: graph,
                 id,
             } => Some((graph, RuleInput::Object { label: (), id })),
-            &DragTarget::Edge {
+            &DragTarget::Morphism {
                 category: graph,
                 id,
             } => Some((graph, RuleInput::Morphism { label: (), id })),
@@ -455,5 +436,47 @@ impl GameState {
                 *selection = None;
             }
         }
+    }
+
+    /// Returns `None` if the category does not exist,
+    /// `Some(None)` if there is no target at the position,
+    /// and the target otherwise
+    fn drag_target(
+        &self,
+        focused_category: FocusedCategory,
+        world_pos: Vec2<f32>,
+    ) -> Option<Option<DragTarget>> {
+        self.world_to_category(&focused_category, world_pos)
+            .map(|(category, local_pos, _)| {
+                selection::targets_under_point(category, focused_category, local_pos)
+            })
+    }
+
+    /// Returns `None` if the category does not exist,
+    /// and camera drag action otherwise
+    fn drag_camera(
+        &self,
+        focused_category: FocusedCategory,
+        world_pos: Vec2<f32>,
+    ) -> Option<DragAction> {
+        self.world_to_category_pos(&focused_category, world_pos)
+            .and_then(|(screen_pos, _, _)| {
+                self.get_category_camera(&focused_category)
+                    .map(|(camera, _)| DragAction::Move {
+                        target: DragTarget::Camera {
+                            category: focused_category,
+                            initial_mouse_pos: screen_pos,
+                            initial_camera_pos: camera.center,
+                        },
+                    })
+            })
+    }
+
+    /// Transform a position in screen coordinates to ui coordinates
+    fn screen_to_ui(&self, mouse_position: Vec2<f64>) -> Vec2<f32> {
+        self.ui_camera.screen_to_world(
+            self.state.framebuffer_size,
+            mouse_position.map(|x| x as f32),
+        )
     }
 }
