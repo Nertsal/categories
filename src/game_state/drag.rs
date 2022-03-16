@@ -16,6 +16,7 @@ pub enum DragAction {
     },
     Selection {},
     TwoTouchMove {
+        initial_camera_pos: Vec2<f32>,
         initial_camera_fov: f32,
         initial_touch: Vec2<f64>,
         initial_touch_other: Vec2<f64>,

@@ -117,6 +117,7 @@ impl GameState {
                     started_drag: false,
                     world_start_position: world_pos,
                     action: DragAction::TwoTouchMove {
+                        initial_camera_pos: camera.center,
                         initial_camera_fov: camera.fov,
                         // initial_camera_rotation: camera.rotation,
                         initial_touch: touch0.position,
@@ -139,6 +140,7 @@ impl GameState {
                     action:
                         DragAction::TwoTouchMove {
                             // initial_camera_rotation,
+                            initial_camera_pos,
                             initial_camera_fov,
                             initial_touch,
                             initial_touch_other,
@@ -147,7 +149,6 @@ impl GameState {
                 }) = self.dragging
                 {
                     // Scale camera
-
                     let initial_delta = initial_touch - initial_touch_other;
                     let initial_distance = initial_delta.len() as f32;
                     // let initial_angle = initial_delta.arg();
@@ -156,11 +157,21 @@ impl GameState {
                     let distance = delta.len() as f32;
                     // let angle = delta.arg();
 
+                    let framebuffer_size = self.state.framebuffer_size;
                     let camera = self.focused_camera_mut();
                     camera.fov = (initial_camera_fov / distance * initial_distance)
                         .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
-                    // camera.fov = 200.0; // initial_distance / distance * 10.0;
                     // camera.rotation = initial_camera_rotation + angle - initial_angle;
+
+                    // Shift towards touch
+                    let to_world = |pos: Vec2<f64>| {
+                        camera.screen_to_world(framebuffer_size, pos.map(|x| x as f32))
+                    };
+                    let initial_center =
+                        (to_world(initial_touch) + to_world(initial_touch_other)) / 2.0;
+                    let center = (to_world(touch0.position) + to_world(touch1.position)) / 2.0;
+                    let delta = initial_center - center;
+                    camera.center = initial_camera_pos + delta;
                 }
             }
             _ => (),
