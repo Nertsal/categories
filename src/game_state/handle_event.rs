@@ -134,42 +134,33 @@ impl GameState {
                 self.handle_mouse_move(touch.position);
             }
             [touch0, touch1] => {
-                if let Some(dragging) = &self.dragging {
-                    if let &DragAction::TwoTouchMove {
-                        // initial_camera_rotation,
-                        initial_camera_fov,
-                        initial_touch,
-                        initial_touch_other,
-                    } = &dragging.action
-                    {
-                        // Scale camera
-                        let framebuffer_size = self.state.framebuffer_size;
-                        let camera = self.focused_camera_mut();
+                self.focus(touch0.position);
+                if let Some(Dragging {
+                    action:
+                        DragAction::TwoTouchMove {
+                            // initial_camera_rotation,
+                            initial_camera_fov,
+                            initial_touch,
+                            initial_touch_other,
+                        },
+                    ..
+                }) = self.dragging
+                {
+                    // Scale camera
 
-                        let initial_delta = camera
-                            .screen_to_world(framebuffer_size, initial_touch.map(|x| x as f32))
-                            - camera.screen_to_world(
-                                framebuffer_size,
-                                initial_touch_other.map(|x| x as f32),
-                            );
+                    let initial_delta = initial_touch - initial_touch_other;
+                    let initial_distance = initial_delta.len() as f32;
+                    // let initial_angle = initial_delta.arg();
 
-                        let initial_distance = initial_delta.len();
-                        // let initial_angle = initial_delta.arg();
+                    let delta = touch0.position - touch1.position;
+                    let distance = delta.len() as f32;
+                    // let angle = delta.arg();
 
-                        let delta = camera
-                            .screen_to_world(framebuffer_size, touch0.position.map(|x| x as f32))
-                            - camera.screen_to_world(
-                                framebuffer_size,
-                                touch1.position.map(|x| x as f32),
-                            );
-
-                        let distance = delta.len();
-                        // let angle = delta.arg();
-
-                        camera.fov = (initial_camera_fov / distance * initial_distance)
-                            .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
-                        // camera.rotation = initial_camera_rotation + angle - initial_angle;
-                    }
+                    let camera = self.focused_camera_mut();
+                    camera.fov = (initial_camera_fov / distance * initial_distance)
+                        .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+                    // camera.fov = 200.0; // initial_distance / distance * 10.0;
+                    // camera.rotation = initial_camera_rotation + angle - initial_angle;
                 }
             }
             _ => (),
@@ -223,7 +214,6 @@ impl GameState {
     }
 
     pub fn drag_update(&mut self) {
-        // Drag
         if let Some(mut dragging) = self.dragging.take() {
             match &mut dragging.action {
                 DragAction::Move { target } if dragging.started_drag => {
