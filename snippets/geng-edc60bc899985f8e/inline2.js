@@ -1,7 +1,6 @@
 
-        export function setup_audio(audio, handler) {
-            audio.oncanplaythrough = function() { handler(true); };
-            audio.onerror = function() { handler(false); };
-            audio.load();
+        export function setup_image(image, handler) {
+            image.onload = function() { handler(true); };
+            image.onerror = function() { handler(false); };
         }
         
