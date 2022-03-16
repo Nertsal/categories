@@ -56,10 +56,6 @@ pub struct Equality {
     pub color: Color<f32>,
 }
 
-pub fn infer_object_name(object: &Object, _category: &Category) -> Option<String> {
-    Some(object.inner.label.clone())
-}
-
 pub fn object_name_from_tag_label(tag: &ObjectTag<&str>) -> Option<String> {
     match &tag {
         ObjectTag::Product(a, b) => label_operation(a, b, "x"),
