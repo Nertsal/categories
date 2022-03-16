@@ -135,7 +135,7 @@ impl GameState {
                 self.handle_mouse_move(touch.position);
             }
             [touch0, touch1] => {
-                self.focus(touch0.position);
+                // self.focus(touch0.position);
                 if let Some(Dragging {
                     action:
                         DragAction::TwoTouchMove {
@@ -157,21 +157,24 @@ impl GameState {
                     let distance = delta.len() as f32;
                     // let angle = delta.arg();
 
-                    let framebuffer_size = self.state.framebuffer_size;
-                    let camera = self.focused_camera_mut();
-                    camera.fov = (initial_camera_fov / distance * initial_distance)
-                        .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
-                    // camera.rotation = initial_camera_rotation + angle - initial_angle;
-
                     // Shift towards touch
-                    let to_world = |pos: Vec2<f64>| {
-                        camera.screen_to_world(framebuffer_size, pos.map(|x| x as f32))
+                    let to_world = |screen_pos: Vec2<f64>| {
+                        let world_pos = self.screen_to_ui(screen_pos);
+                        self.world_to_category_pos(&self.focused_category, world_pos)
+                            .expect("Failed to find focused category")
+                            .1
                     };
                     let initial_center =
                         (to_world(initial_touch) + to_world(initial_touch_other)) / 2.0;
                     let center = (to_world(touch0.position) + to_world(touch1.position)) / 2.0;
-                    let delta = initial_center - center;
-                    camera.center = initial_camera_pos + delta;
+                    let shift = initial_center - center;
+
+                    // Apply transformations
+                    let camera = self.focused_camera_mut();
+                    camera.fov = (initial_camera_fov / distance * initial_distance)
+                        .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+                    camera.center = initial_camera_pos + shift;
+                    // camera.rotation = initial_camera_rotation + angle - initial_angle;
                 }
             }
             _ => (),
@@ -216,7 +219,6 @@ impl GameState {
     }
 
     fn handle_mouse_move(&mut self, mouse_position: Vec2<f64>) {
-        // Focus
         self.focus(mouse_position);
         if let Some(dragging) = &mut self.dragging {
             dragging.started_drag = true;

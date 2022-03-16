@@ -2,9 +2,6 @@ use super::*;
 
 impl GameState {
     pub fn update_impl(&mut self, delta_time: f32) {
-        // Update focus
-        self.focus(self.geng.window().cursor_position());
-
         // Apply forces to objects/morphisms
         for category in vec![&mut self.fact_category.inner, &mut self.goal_category.inner]
             .into_iter()
