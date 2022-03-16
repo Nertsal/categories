@@ -1,9 +1,6 @@
 
-        export function run(main_loop) {
-            function main_loop_wrapper() {
-                main_loop();
-                window.requestAnimationFrame(main_loop_wrapper);
-            }
-            main_loop_wrapper();
+        export function setup_image(image, handler) {
+            image.onload = function() { handler(true); };
+            image.onerror = function() { handler(false); };
         }
         
