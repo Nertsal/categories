@@ -75,7 +75,7 @@ impl GameState {
         } else {
             // Scroll
             let delta = -wheel_delta * SCROLL_SPEED;
-            self.state.scroll_rules(delta, self.rules.len());
+            self.state.scroll_rules(delta);
         }
     }
 
@@ -93,7 +93,13 @@ impl GameState {
                         .and_then(|target| {
                             target
                                 .map(|target| DragAction::Move { target })
-                                .or_else(|| self.drag_camera(self.focused_category, world_pos))
+                                .or_else(|| match self.focused_category {
+                                    FocusedCategory::Rule { .. } => Some(DragAction::RuleScroll {
+                                        initial_scroll: self.state.rules_scroll,
+                                        initial_ui_pos: world_pos,
+                                    }),
+                                    _ => self.drag_camera(self.focused_category, world_pos),
+                                })
                         });
 
                 self.dragging = action.map(|action| Dragging {
@@ -203,7 +209,13 @@ impl GameState {
                     .map(|target| {
                         target
                             .map(|target| DragAction::Move { target })
-                            .unwrap_or(DragAction::Selection {})
+                            .unwrap_or_else(|| match self.focused_category {
+                                FocusedCategory::Rule { .. } => DragAction::RuleScroll {
+                                    initial_scroll: self.state.rules_scroll,
+                                    initial_ui_pos: world_pos,
+                                },
+                                _ => DragAction::Selection {},
+                            })
                     })
             }
             _ => None,
@@ -228,9 +240,9 @@ impl GameState {
 
     pub fn drag_update(&mut self) {
         if let Some(mut dragging) = self.dragging.take() {
+            let world_pos = self.screen_to_ui(dragging.current_mouse_position);
             match &mut dragging.action {
                 DragAction::Move { target } if dragging.started_drag => {
-                    let world_pos = self.screen_to_ui(dragging.current_mouse_position);
                     let updated = match target {
                         &mut DragTarget::Camera {
                             category,
@@ -277,6 +289,14 @@ impl GameState {
                         // Ensure self.dragging is None
                         return;
                     }
+                }
+                &mut DragAction::RuleScroll {
+                    initial_scroll: initial_shift,
+                    initial_ui_pos,
+                } => {
+                    let delta = world_pos.y - initial_ui_pos.y;
+                    let delta = initial_shift + delta - self.state.rules_scroll;
+                    self.state.scroll_rules(delta);
                 }
                 _ => (),
             }

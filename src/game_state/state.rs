@@ -5,6 +5,7 @@ pub struct State {
     pub rule_aspect_ratio: f32,
     pub rules_width: f32,
     pub rules_scroll: f32,
+    max_scroll: f32,
     pub graphs_layout: Vec<(FocusedCategory, AABB<f32>)>,
 }
 
@@ -15,6 +16,7 @@ impl Default for State {
             rule_aspect_ratio: 16.0 / 9.0,
             rules_width: 1.0,
             rules_scroll: 0.0,
+            max_scroll: 0.0,
             graphs_layout: vec![],
         }
     }
@@ -22,14 +24,19 @@ impl Default for State {
 
 impl State {
     pub fn update(&mut self, framebuffer_size: Vec2<f32>, rules: usize) {
+        // Layout
         self.framebuffer_size = framebuffer_size;
         self.rules_width = self.framebuffer_size.x * RULES_WIDTH_FRAC;
         self.graphs_layout = self.layout_graphs(rules, self.rules_scroll).collect();
+
+        // Update max_scroll
+        let camera_view = util::ui_view(self.framebuffer_size);
+        let rule_height = self.rules_width / self.rule_aspect_ratio;
+        self.max_scroll = (rule_height * rules as f32 - camera_view.height()).max(0.0);
     }
 
-    pub fn scroll_rules(&mut self, delta: f32, rules: usize) {
-        let rule_height = self.rules_width / self.rule_aspect_ratio;
-        self.rules_scroll = (self.rules_scroll + delta).clamp(0.0, rule_height * rules as f32);
+    pub fn scroll_rules(&mut self, delta: f32) {
+        self.rules_scroll = (self.rules_scroll + delta).clamp(0.0, self.max_scroll);
     }
 
     fn layout_graphs(

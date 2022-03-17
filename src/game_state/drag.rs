@@ -21,6 +21,10 @@ pub enum DragAction {
         initial_touch: Vec2<f64>,
         initial_touch_other: Vec2<f64>,
     },
+    RuleScroll {
+        initial_scroll: f32,
+        initial_ui_pos: Vec2<f32>,
+    },
 }
 
 #[derive(Debug, Clone)]
