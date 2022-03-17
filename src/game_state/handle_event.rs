@@ -193,7 +193,6 @@ impl GameState {
     fn handle_touch_end(&mut self) {
         // TODO: Detect short and long taps
         self.handle_mouse_up();
-        self.focused_category = FocusedCategory::Fact;
     }
 
     fn handle_mouse_down(&mut self, mouse_position: Vec2<f64>, mouse_button: geng::MouseButton) {
