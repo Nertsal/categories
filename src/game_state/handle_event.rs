@@ -10,8 +10,8 @@ impl GameState {
             geng::Event::MouseMove { position, .. } => {
                 self.handle_mouse_move(position);
             }
-            geng::Event::MouseUp { position, button } => {
-                self.handle_mouse_up(position, button);
+            geng::Event::MouseUp { .. } => {
+                self.handle_mouse_up();
             }
             geng::Event::Wheel { delta } => {
                 self.handle_wheel(delta as f32);
@@ -151,9 +151,12 @@ impl GameState {
                             initial_touch,
                             initial_touch_other,
                         },
+                    ref mut current_mouse_position,
                     ..
                 }) = self.dragging
                 {
+                    *current_mouse_position = touch0.position;
+
                     // Scale camera
                     let initial_delta = initial_touch - initial_touch_other;
                     let initial_distance = initial_delta.len() as f32;
@@ -189,7 +192,7 @@ impl GameState {
 
     fn handle_touch_end(&mut self) {
         // TODO: Detect short and long taps
-        self.dragging = None;
+        self.handle_mouse_up();
         self.focused_category = FocusedCategory::Fact;
     }
 
@@ -304,12 +307,13 @@ impl GameState {
         }
     }
 
-    fn handle_mouse_up(&mut self, mouse_position: Vec2<f64>, _mouse_button: geng::MouseButton) {
+    fn handle_mouse_up(&mut self) {
         let dragging = match self.dragging.take() {
             Some(x) => x,
             None => return,
         };
 
+        let mouse_position = dragging.current_mouse_position;
         let mouse_world_pos = self.ui_camera.screen_to_world(
             self.state.framebuffer_size,
             mouse_position.map(|x| x as f32),
@@ -322,6 +326,9 @@ impl GameState {
             DragAction::Move { target } => {
                 self.drag_move_stop(mouse_world_pos, dragging.world_start_position, target);
             }
+            &DragAction::RuleScroll { initial_ui_pos, .. } => {
+                self.drag_scroll_stop(mouse_world_pos, initial_ui_pos);
+            }
             _ => (),
         }
     }
@@ -332,43 +339,34 @@ impl GameState {
             return;
         }
 
-        // Select rule
         if let &FocusedCategory::Rule { index } = &self.focused_category {
-            let main_selection =
-                RuleSelection::new(&self.fact_category.inner, index, &self.rules, None);
-            let goal_selection =
-                RuleSelection::new(&self.goal_category.inner, index, &self.rules, Some(0));
-            match main_selection.current() {
-                Some(_) => {
-                    self.fact_selection = Some(main_selection);
-                }
-                None => {
-                    self.apply_rule(FocusedCategory::Fact, main_selection);
-                }
-            }
-            match goal_selection.current() {
-                Some(_) => {
-                    self.goal_selection = Some(goal_selection);
-                }
-                None => {
-                    self.apply_rule(FocusedCategory::Goal, goal_selection);
-                }
-            }
+            self.select_rule(index);
+        }
+    }
+
+    fn drag_scroll_stop(&mut self, world_pos: Vec2<f32>, world_start_pos: Vec2<f32>) {
+        let delta = world_pos - world_start_pos;
+        if !delta.len().approx_eq(&0.0) {
+            return;
+        }
+
+        if let FocusedCategory::Rule { index } = self.focused_category {
+            self.select_rule(index);
         }
     }
 
     fn drag_move_stop(
         &mut self,
         world_pos: Vec2<f32>,
-        world_start_position: Vec2<f32>,
+        world_start_pos: Vec2<f32>,
         target: &DragTarget,
     ) {
-        let delta = world_pos - world_start_position;
+        let delta = world_pos - world_start_pos;
         if !delta.len().approx_eq(&0.0) {
             return;
         }
 
-        // Select vertex or edge
+        // Select object or morphism
         let selected = match target {
             &DragTarget::Object {
                 category: graph,
@@ -385,6 +383,11 @@ impl GameState {
             Some(x) => x,
             None => return,
         };
+
+        if let FocusedCategory::Rule { index } = focused_category {
+            self.select_rule(index);
+            return;
+        }
 
         let selection = match focused_category {
             FocusedCategory::Rule { .. } => None,
@@ -444,6 +447,7 @@ impl GameState {
                 selected.filter(|selected| options.contains(selected))
             });
 
+        // Add to selection
         match selected {
             Some(selected) => {
                 let next = selection
@@ -501,5 +505,28 @@ impl GameState {
             self.state.framebuffer_size,
             mouse_position.map(|x| x as f32),
         )
+    }
+
+    fn select_rule(&mut self, index: usize) {
+        let main_selection =
+            RuleSelection::new(&self.fact_category.inner, index, &self.rules, None);
+        let goal_selection =
+            RuleSelection::new(&self.goal_category.inner, index, &self.rules, Some(0));
+        match main_selection.current() {
+            Some(_) => {
+                self.fact_selection = Some(main_selection);
+            }
+            None => {
+                self.apply_rule(FocusedCategory::Fact, main_selection);
+            }
+        }
+        match goal_selection.current() {
+            Some(_) => {
+                self.goal_selection = Some(goal_selection);
+            }
+            None => {
+                self.apply_rule(FocusedCategory::Goal, goal_selection);
+            }
+        }
     }
 }
