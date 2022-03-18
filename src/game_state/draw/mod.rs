@@ -90,5 +90,6 @@ impl GameState {
             let texture_height = texture_width / graph_aabb.width() * graph_aabb.height();
             graph.resize_texture(vec2(texture_width, texture_height).map(|x| x.ceil() as usize));
         }
+        self.state.scroll_rules(0.0);
     }
 }
