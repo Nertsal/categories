@@ -71,7 +71,7 @@ impl GameState {
             // Zoom
             let delta = -wheel_delta * ZOOM_SPEED;
             let camera = self.focused_camera_mut();
-            camera.fov = (camera.fov + delta).clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+            camera.zoom_out(delta);
         } else {
             // Scroll
             let delta = -wheel_delta * SCROLL_SPEED;
@@ -113,7 +113,7 @@ impl GameState {
             [touch0, touch1] => {
                 self.focus(touch0.position);
                 let camera = self.focused_camera();
-                let world_pos = camera.screen_to_world(
+                let world_pos = camera.inner().screen_to_world(
                     self.state.framebuffer_size,
                     touch0.position.map(|x| x as f32),
                 );
@@ -123,8 +123,8 @@ impl GameState {
                     started_drag: false,
                     world_start_position: world_pos,
                     action: DragAction::TwoTouchMove {
-                        initial_camera_pos: camera.center,
-                        initial_camera_fov: camera.fov,
+                        initial_camera_pos: camera.inner().center,
+                        initial_camera_fov: camera.inner().fov,
                         // initial_camera_rotation: camera.rotation,
                         initial_touch: touch0.position,
                         initial_touch_other: touch1.position,
@@ -173,8 +173,7 @@ impl GameState {
 
                     // Apply transformations
                     let camera = self.focused_camera_mut();
-                    camera.fov = (initial_camera_fov / distance * initial_distance)
-                        .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+                    camera.set_zoom(initial_camera_fov / distance * initial_distance);
                     self.shift_camera(
                         self.focused_category,
                         initial_camera_pos,
@@ -481,7 +480,7 @@ impl GameState {
                 target: DragTarget::Camera {
                     category: focused_category,
                     initial_world_pos: world_pos,
-                    initial_camera_pos: camera.center,
+                    initial_camera_pos: camera.inner().center,
                 },
             })
     }
@@ -538,6 +537,6 @@ impl GameState {
             .get_category_camera_mut(&category)
             .expect("Failed to find camera")
             .0;
-        camera.center = initial_camera_pos + delta;
+        camera.set_center(initial_camera_pos + delta);
     }
 }

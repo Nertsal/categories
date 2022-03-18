@@ -73,6 +73,7 @@ impl GameState {
                     &self.goal_category.camera,
                 ),
             };
+            let camera = camera.inner();
             let screen_pos = (world_pos - aabb.bottom_left()) / vec2(aabb.width(), aabb.height())
                 * framebuffer_size;
             (
@@ -108,7 +109,7 @@ impl GameState {
     pub fn get_category_camera(
         &self,
         category: &FocusedCategory,
-    ) -> Option<(&Camera2d, Vec2<usize>)> {
+    ) -> Option<(&BoundedCamera, Vec2<usize>)> {
         match category {
             FocusedCategory::Rule { index } => self.rules.get(*index).map(|rule| {
                 let category = &rule.category;
@@ -127,7 +128,7 @@ impl GameState {
     pub fn get_category_camera_mut(
         &mut self,
         category: &FocusedCategory,
-    ) -> Option<(&mut Camera2d, Vec2<usize>)> {
+    ) -> Option<(&mut BoundedCamera, Vec2<usize>)> {
         match category {
             FocusedCategory::Rule { index } => self.rules.get_mut(*index).map(|rule| {
                 let category = &mut rule.category;

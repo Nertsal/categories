@@ -3,15 +3,55 @@ use super::*;
 impl GameState {
     pub fn update_impl(&mut self, delta_time: f32) {
         // Apply forces to objects/morphisms
-        for category in vec![&mut self.fact_category.inner, &mut self.goal_category.inner]
+        for category in [&mut self.fact_category.inner, &mut self.goal_category.inner]
             .into_iter()
             .chain(self.rules.iter_mut().map(|rule| &mut rule.category.inner))
         {
             update_category(category, delta_time);
         }
 
+        self.update_cameras_bounds();
+
         // Mouse update
         self.drag_update();
+    }
+
+    fn update_cameras_bounds(&mut self) {
+        for (category, camera, framebuffer_size) in [
+            (
+                &self.fact_category.inner,
+                &mut self.fact_category.camera,
+                self.fact_category.texture_size,
+            ),
+            (
+                &self.goal_category.inner,
+                &mut self.goal_category.camera,
+                self.goal_category.texture_size,
+            ),
+        ]
+        .into_iter()
+        .chain(self.rules.iter_mut().map(|rule| {
+            (
+                &rule.category.inner,
+                &mut rule.category.camera,
+                rule.category.texture_size,
+            )
+        })) {
+            let mut positions = category
+                .objects
+                .iter()
+                .map(|(_, object)| object.inner.position)
+                .chain(
+                    category
+                        .morphisms
+                        .iter()
+                        .flat_map(|(_, morphism)| morphism.inner.positions.iter().copied()),
+                );
+            if let Some(pos) = positions.next() {
+                let bounds = AABB::points_bounding_box(std::iter::once(pos).chain(positions));
+                camera.update_bounds(bounds, framebuffer_size.map(|x| x as f32));
+            }
+        }
     }
 }
 

@@ -15,7 +15,7 @@ impl GameState {
     }
 
     /// Returns the focused camera.
-    pub fn focused_camera(&self) -> &Camera2d {
+    pub fn focused_camera(&self) -> &BoundedCamera {
         match &self.focused_category {
             FocusedCategory::Rule { index } => &self.rules[*index].category.camera,
             FocusedCategory::Fact => &self.fact_category.camera,
@@ -24,7 +24,7 @@ impl GameState {
     }
 
     /// Returns the focused camera.
-    pub fn focused_camera_mut(&mut self) -> &mut Camera2d {
+    pub fn focused_camera_mut(&mut self) -> &mut BoundedCamera {
         match &self.focused_category {
             FocusedCategory::Rule { index } => &mut self.rules[*index].category.camera,
             FocusedCategory::Fact => &mut self.fact_category.camera,
