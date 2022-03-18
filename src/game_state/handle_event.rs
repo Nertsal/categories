@@ -167,22 +167,20 @@ impl GameState {
                     // let angle = delta.arg();
 
                     // Shift towards touch
-                    let to_world = |screen_pos: Vec2<f64>| {
-                        let world_pos = self.screen_to_ui(screen_pos);
-                        self.world_to_category_pos(&self.focused_category, world_pos)
-                            .expect("Failed to find focused category")
-                            .1
-                    };
                     let initial_center =
-                        (to_world(initial_touch) + to_world(initial_touch_other)) / 2.0;
-                    let center = (to_world(touch0.position) + to_world(touch1.position)) / 2.0;
-                    let shift = initial_center - center;
+                        self.screen_to_ui((initial_touch + initial_touch_other) / 2.0);
+                    let center = self.screen_to_ui((touch0.position + touch1.position) / 2.0);
 
                     // Apply transformations
                     let camera = self.focused_camera_mut();
                     camera.fov = (initial_camera_fov / distance * initial_distance)
                         .clamp(CAMERA_FOV_MIN, CAMERA_FOV_MAX);
-                    camera.center = initial_camera_pos + shift;
+                    self.shift_camera(
+                        self.focused_category,
+                        initial_camera_pos,
+                        initial_center,
+                        center,
+                    );
                     // camera.rotation = initial_camera_rotation + angle - initial_angle;
                 }
             }
@@ -249,23 +247,16 @@ impl GameState {
                         &mut DragTarget::Camera {
                             category,
                             initial_camera_pos,
-                            initial_mouse_pos,
-                        } => self
-                            .world_to_category_mut(&category, world_pos)
-                            .map(|(_, local, local_aabb)| (local, local_aabb))
-                            .and_then(|(local_pos, local_aabb)| {
-                                self.get_category_camera_mut(&category).map(
-                                    |(camera, framebuffer_size)| {
-                                        let initial = camera.screen_to_world(
-                                            framebuffer_size.map(|x| x as f32),
-                                            initial_mouse_pos,
-                                        );
-                                        let delta = initial - local_pos.clamp_aabb(local_aabb);
-                                        camera.center = initial_camera_pos + delta;
-                                    },
-                                )
-                            })
-                            .is_some(),
+                            initial_world_pos,
+                        } => {
+                            self.shift_camera(
+                                category,
+                                initial_camera_pos,
+                                initial_world_pos,
+                                world_pos,
+                            );
+                            true
+                        }
                         &mut DragTarget::Object { category, id } => self
                             .world_to_category_mut(&category, world_pos)
                             .and_then(|(category, local_pos, local_aabb)| {
@@ -485,16 +476,13 @@ impl GameState {
         focused_category: FocusedCategory,
         world_pos: Vec2<f32>,
     ) -> Option<DragAction> {
-        self.world_to_category_pos(&focused_category, world_pos)
-            .and_then(|(screen_pos, _, _)| {
-                self.get_category_camera(&focused_category)
-                    .map(|(camera, _)| DragAction::Move {
-                        target: DragTarget::Camera {
-                            category: focused_category,
-                            initial_mouse_pos: screen_pos,
-                            initial_camera_pos: camera.center,
-                        },
-                    })
+        self.get_category_camera(&focused_category)
+            .map(|(camera, _)| DragAction::Move {
+                target: DragTarget::Camera {
+                    category: focused_category,
+                    initial_world_pos: world_pos,
+                    initial_camera_pos: camera.center,
+                },
             })
     }
 
@@ -527,5 +515,29 @@ impl GameState {
                 self.apply_rule(FocusedCategory::Goal, goal_selection);
             }
         }
+    }
+
+    fn shift_camera(
+        &mut self,
+        category: FocusedCategory,
+        initial_camera_pos: Vec2<f32>,
+        initial_world_pos: Vec2<f32>,
+        current_world_pos: Vec2<f32>,
+    ) {
+        let initial = self
+            .world_to_category_pos(&category, initial_world_pos)
+            .expect("Failed to find category")
+            .1;
+        let current = self
+            .world_to_category_pos(&category, current_world_pos)
+            .expect("Failed to find category")
+            .1;
+        let delta = initial - current;
+
+        let camera = self
+            .get_category_camera_mut(&category)
+            .expect("Failed to find camera")
+            .0;
+        camera.center = initial_camera_pos + delta;
     }
 }

@@ -31,7 +31,7 @@ pub enum DragAction {
 pub enum DragTarget {
     Camera {
         category: FocusedCategory,
-        initial_mouse_pos: Vec2<f32>,
+        initial_world_pos: Vec2<f32>,
         initial_camera_pos: Vec2<f32>,
     },
     Object {
