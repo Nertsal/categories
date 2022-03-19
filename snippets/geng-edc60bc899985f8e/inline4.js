@@ -1,7 +1,9 @@
 
-    export function show_error(text) {
-        document.getElementById("geng-canvas").style.display = "none";
-        document.getElementById("error-message").textContent = text;
-        document.getElementById("geng-error-screen").style.display = "block";
-    }
-    
+        export function setup_string(request, handler) {
+            request.onreadystatechange = function () {
+                if (request.readyState == 4) {
+                    handler(request.status == 200);
+                }
+            };
+        }
+        
