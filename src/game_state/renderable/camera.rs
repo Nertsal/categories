@@ -39,10 +39,10 @@ impl BoundedCamera {
     pub fn update_bounds(&mut self, view_bounds: AABB<f32>, framebuffer_size: Vec2<f32>) {
         let camera_view = util::camera_view(&self.camera, framebuffer_size);
         let view_size = camera_view.size() / 2.0;
-        let view_bounds = view_bounds.extend_uniform(constants::CAMERA_EXTRA_SPACE);
+        let view_bounds = view_bounds.extend_uniform(-constants::CAMERA_EXTRA_SPACE);
         self.target_bounds = AABB::from_corners(
-            view_bounds.bottom_left() + view_size,
-            view_bounds.top_right() - view_size,
+            view_bounds.bottom_left() - view_size,
+            view_bounds.top_right() + view_size,
         );
         self.tighten_bounds();
     }
