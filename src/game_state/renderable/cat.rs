@@ -1,3 +1,5 @@
+use geng::Draw2d;
+
 use super::*;
 
 pub struct RenderableCategory {
@@ -9,19 +11,23 @@ pub struct RenderableCategory {
     pub texture_size: Vec2<usize>,
     action_history: Vec<Vec<CategoryAction>>,
     redo_history: Vec<Vec<CategoryAction>>,
+    pub undo_button: Option<AABB<f32>>,
+    pub redo_button: Option<AABB<f32>>,
 }
 
 impl RenderableCategory {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, category: Category) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>, category: Category, buttons: bool) -> Self {
         let texture_size = vec2(1, 1);
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
             camera: BoundedCamera::new(50.0),
             texture: ugli::Texture::new_with(geng.ugli(), texture_size, |_| Color::BLACK),
-            inner: category,
             action_history: vec![],
             redo_history: vec![],
+            undo_button: if buttons { Some(AABB::ZERO) } else { None },
+            redo_button: if buttons { Some(AABB::ZERO) } else { None },
+            inner: category,
             texture_size,
         }
     }
@@ -29,6 +35,27 @@ impl RenderableCategory {
     pub fn resize_texture(&mut self, new_size: Vec2<usize>) {
         self.texture_size = new_size;
         self.texture = ugli::Texture::new_with(self.geng.ugli(), new_size, |_| Color::BLACK);
+
+        if let Some(button) = &mut self.undo_button {
+            *button = AABB::ZERO
+                .extend_symmetric(constants::BUTTON_SIZE / 2.0)
+                .translate(vec2(
+                    self.texture_size.x as f32 / 2.0
+                        - constants::BUTTON_SIZE.x / 2.0
+                        - constants::BUTTON_EXTRA_SPACE,
+                    constants::BUTTON_SIZE.y / 2.0 + constants::BUTTON_EXTRA_SPACE,
+                ))
+        }
+        if let Some(button) = &mut self.redo_button {
+            *button = AABB::ZERO
+                .extend_symmetric(constants::BUTTON_SIZE / 2.0)
+                .translate(vec2(
+                    self.texture_size.x as f32 / 2.0
+                        + constants::BUTTON_SIZE.x / 2.0
+                        + constants::BUTTON_EXTRA_SPACE,
+                    constants::BUTTON_SIZE.y / 2.0 + constants::BUTTON_EXTRA_SPACE,
+                ))
+        }
     }
 
     pub fn update_texture(
@@ -52,6 +79,16 @@ impl RenderableCategory {
             background_color,
             selection,
         );
+
+        // Undo/redo buttons
+        if let Some(button) = self.undo_button {
+            draw_2d::TexturedQuad::colored(button, &self.assets.undo, constants::BUTTON_COLOR)
+                .draw_2d(&self.geng, &mut temp_framebuffer, &geng::PixelPerfectCamera);
+        }
+        if let Some(button) = self.redo_button {
+            draw_2d::TexturedQuad::colored(button, &self.assets.redo, constants::BUTTON_COLOR)
+                .draw_2d(&self.geng, &mut temp_framebuffer, &geng::PixelPerfectCamera);
+        }
     }
 
     pub fn action_do(&mut self, actions: Vec<CategoryAction>) {

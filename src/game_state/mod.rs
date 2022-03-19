@@ -54,8 +54,10 @@ pub struct GameState {
 impl GameState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         let state = State::default();
-        let fact_category = RenderableCategory::new(geng, assets, init::category::fact_category());
-        let goal_category = RenderableCategory::new(geng, assets, init::category::goal_category());
+        let fact_category =
+            RenderableCategory::new(geng, assets, init::category::fact_category(), true);
+        let goal_category =
+            RenderableCategory::new(geng, assets, init::category::goal_category(), true);
         let rules = init::rules::default_rules()
             .into_iter()
             .map(|rule| RenderableRule::from_rule(geng, assets, rule))

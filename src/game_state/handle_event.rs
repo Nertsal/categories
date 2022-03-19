@@ -308,6 +308,43 @@ impl GameState {
             mouse_position.map(|x| x as f32),
         );
 
+        // Check buttons
+        if let Some((local_pos, _, _)) =
+            self.world_to_category_pos(&self.focused_category, mouse_world_pos)
+        {
+            match self.focused_category {
+                FocusedCategory::Fact => {
+                    if let Some(button) = self.fact_category.undo_button {
+                        if button.contains(local_pos) {
+                            self.fact_category.action_undo();
+                            return;
+                        }
+                    }
+                    if let Some(button) = self.fact_category.redo_button {
+                        if button.contains(local_pos) {
+                            self.fact_category.action_redo();
+                            return;
+                        }
+                    }
+                }
+                FocusedCategory::Goal => {
+                    if let Some(button) = self.goal_category.undo_button {
+                        if button.contains(local_pos) {
+                            self.goal_category.action_undo();
+                            return;
+                        }
+                    }
+                    if let Some(button) = self.goal_category.redo_button {
+                        if button.contains(local_pos) {
+                            self.goal_category.action_redo();
+                            return;
+                        }
+                    }
+                }
+                FocusedCategory::Rule { .. } => {}
+            }
+        }
+
         match &dragging.action {
             DragAction::Selection { .. } => {
                 self.drag_selection_stop(mouse_position, dragging.mouse_start_position);

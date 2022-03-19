@@ -74,7 +74,7 @@ impl RenderableRule {
             .unwrap_or_default();
 
         Self {
-            category: RenderableCategory::new(geng, assets, category),
+            category: RenderableCategory::new(geng, assets, category, false),
             inner: rule,
             inverse,
             input,
