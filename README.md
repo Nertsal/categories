@@ -53,7 +53,7 @@ A product **AxB** of two objects **A** and **B** has two morphisms: `π₁: AxB 
 
 ![image](https://user-images.githubusercontent.com/12630585/159645099-7cf8fef7-f6e8-4205-88ce-620811c8879e.png)
 
-# Interface
+# User Interface
 
 The window is split into three areas (left to right): rules, facts, and goal.
 
