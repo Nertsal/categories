@@ -12,7 +12,7 @@ An interactable version of the tool is available [here](https://nertsal.github.i
 
 A category consists of a collection of objects, and a collection of morphisms. 
 
-Each morphism has a domain and a codomain. For example, a morphism **f** with domain **A** and codomain **B** is denoted as: `f: A -> B`.
+Each morphism has a domain and a codomain. A morphism **f** with domain **A** and codomain **B** is denoted as: `f: A -> B`.
 
 Each object **A** has a corresponding identity morphism **idₐ** (sometimes denoted simply **id** or **1**).
 
