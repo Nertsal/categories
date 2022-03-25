@@ -10,7 +10,7 @@ An interactable version of the tool is available [here](https://nertsal.github.i
 
 ## Definition of a category
 
-A category consists of a collection of objects, and a collection of morphisms. 
+A category consists of a collection of objects (visualized as circles), and a collection of morphisms (visualized as arrows from one object to another).
 
 Each morphism has a domain and a codomain. A morphism **f** with domain **A** and codomain **B** is denoted as: `f: A -> B`.
 
@@ -18,7 +18,7 @@ Each object **A** has a corresponding identity morphism **idₐ** (sometimes den
 
 ![image](https://user-images.githubusercontent.com/12630585/159643722-5566bac3-3449-4aba-bbd5-ae2af57a6d25.png)
 
-Morphisms **f** and **g** can be composed together if the codomain of **f** is the same as the domain of **g** (i.e. `f: A -> B`, `g: B -> C`). Their composition is `g ∘ f: A -> C`. The category is closed under composition.
+Morphisms **f** and **g** can be composed together if the codomain of **f** is the same as the domain of **g** (i.e. `f: A -> B`, `g: B -> C`). Their composition is `g ∘ f: A -> C`. The category is closed under composition (i.e. composing two morphisms yields another morphism in the same category).
 
 ![image](https://user-images.githubusercontent.com/12630585/159643777-d608d1f1-503a-475f-a636-df1a16aa42f9.png)
 
@@ -26,9 +26,15 @@ Axioms:
   1. Identity: `f ∘ id = f`, `id ∘ f = f`
   2. Associativity: `f ∘ (g ∘ h)` = `(f ∘ g) ∘ h` = `f ∘ g ∘ h`
 
+## Unique morphisms
+
+Some morphisms are unique (visualized by a red dashed arrow) (see terminal/initial objects for an example), which means that any morphism with the same domain and codomain is equal to the unique morphism (i.e. is the same morphism), and it can be removed/merged with the unique morphism.
+
+Some morphisms are unique only under an extra constraint (see product for an example). That means if a morphism has the same domain and codomain and at the same time satisfies the constraint, then it is equal to the unique morphism, and it can be removed/merged with the unique morphism.
+
 ## Terminal object
 
-A terminal object (denoted as `1`) is such an object that for all objects in the category there exists a unique morphism from that object to the terminal object.
+A terminal object (denoted as `1`) is such an object that for all objects in the category there exists a unique morphism from that object to the terminal object (i.e. any morphism from that object to the terminal object is the same).
 
 ![image](https://user-images.githubusercontent.com/12630585/159642907-06e1b52c-6522-4f71-9559-ba0b78104f34.png)
 
