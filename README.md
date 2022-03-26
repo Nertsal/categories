@@ -1,7 +1,5 @@
 # Category theory diagram
 
-# About
-
 This tool implements some basic Category theory in the form of a diagram with the intention to help to visualize and understand the concepts in Category theory. In the current state it is possible to prove some simple facts, such as AxB≃BxA, Ax1≃A.
 
 An interactable version of the tool is available [here](https://nertsal.github.io/categories/).
@@ -46,9 +44,11 @@ An initial object (denoted as `0`) is such an object that for all objects in the
 
 ## Isomorphism
 
-Two object are called isomorphic if and only if there exists a morphism from both objects to the other and the morphisms are inverse, i.e. their composition in any order equals identity.
+Two object are called isomorphic if and only if there exists a morphism from both objects to each other and the morphisms are inverse, i.e. their composition in any order equals identity.
 
-![image](https://user-images.githubusercontent.com/12630585/159643552-32d7a052-8914-4a58-b03b-f34dbde1957c.png)
+Isomorphism is represented as a red connection (not an arrow) with a special symbol in the middle between two objects:
+
+![image](https://user-images.githubusercontent.com/12630585/160231505-dc00326a-393a-46ca-b9d9-e9f0e0718fcf.png)
 
 ## Product
 
