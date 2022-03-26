@@ -11,6 +11,7 @@ pub fn draw_category(
     category: &Category,
     background_color: Color<f32>,
     selection: Option<&Vec<RuleInput<Label>>>,
+    hide_morphisms: bool,
 ) {
     // Selection
     let mut selected_vertices = HashSet::new();
@@ -32,7 +33,16 @@ pub fn draw_category(
     }
 
     // Morphisms
-    for (id, morphism) in category.morphisms.iter() {
+    let hidden_morphisms = if hide_morphisms {
+        update::get_hidden_morphisms(&category.equalities)
+    } else {
+        Default::default()
+    };
+    for (id, morphism) in category
+        .morphisms
+        .iter()
+        .filter(|(id, _)| !hidden_morphisms.contains(id))
+    {
         draw_morphism(
             geng,
             font,

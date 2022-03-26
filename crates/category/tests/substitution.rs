@@ -1,55 +1,41 @@
-use category::prelude::*;
-use category::{axioms, Bindings, CategoryBuilder};
+use category::{axioms, Bindings};
+use category::{prelude::*, CategoryBuilder};
 
 use std::fmt::Debug;
 
 #[test]
-fn test_bug() {
-    // Get rules
-    let rule_unique = axioms::rule_unique::<&str>().unwrap();
-
+fn test_substitution() {
     // Build the initial category
     let mut category = CategoryBuilder::<_, _, _, &str>::new()
         .object("A", vec![], ())
         .object("B", vec![], ())
-        .morphism("id", "A", "A", vec![MorphismTag::Identity("A")], ())
         .morphism("f", "A", "B", vec![], ())
-        .morphism("g", "B", "A", vec![], ())
-        .equality(vec!["f", "g"], vec!["id"], ())
-        .morphism("m", "B", "A", vec![MorphismTag::Unique], ())
+        .morphism("id", "A", "A", vec![], ())
+        .morphism(
+            "f.id",
+            "A",
+            "B",
+            vec![MorphismTag::Composition {
+                first: "id",
+                second: "f",
+            }],
+            (),
+        )
+        .morphism("m", "A", "B", vec![MorphismTag::Unique], ())
         .build();
 
     print_category(&category);
+
+    // Make sure the build is correct
     assert_eq!(2, category.objects.len());
     assert_eq!(4, category.morphisms.len());
-    assert_eq!(1, category.equalities.len());
+    assert_eq!(0, category.equalities.len());
 
-    // Substitute g=m
-    let result = category.apply_rule(&rule_unique, Bindings::new(), |_| (), |_, _| (), |_| ());
-    assert!(result.1);
+    // Get rules
+    let rule_unique = axioms::rule_unique::<&str>().unwrap();
 
-    print_category(&category);
-    assert_eq!(2, category.objects.len());
-    assert_eq!(4, category.morphisms.len());
-    assert_eq!(2, category.equalities.len());
-
-    // Test undo
-    let result = result
-        .0
-        .into_iter()
-        .flat_map(|undo| category.action_do(undo))
-        .collect::<Vec<_>>();
-
-    print_category(&category);
-    assert_eq!(2, category.objects.len());
-    assert_eq!(4, category.morphisms.len());
-    assert_eq!(1, category.equalities.len());
-
-    // Test redo
-    result.into_iter().for_each(|redo| {
-        category.action_do(redo);
-    });
-
+    // Apply unique rule
+    category.apply_rule(&rule_unique, Bindings::new(), |_| (), |_, _| (), |_| ());
     print_category(&category);
     assert_eq!(2, category.objects.len());
     assert_eq!(4, category.morphisms.len());

@@ -3,11 +3,11 @@ use super::*;
 impl GameState {
     pub fn update_impl(&mut self, delta_time: f32) {
         // Apply forces to objects/morphisms
-        for category in [&mut self.fact_category.inner, &mut self.goal_category.inner]
-            .into_iter()
-            .chain(self.rules.iter_mut().map(|rule| &mut rule.category.inner))
-        {
-            update_category(category, delta_time);
+        for category in [&mut self.fact_category.inner, &mut self.goal_category.inner] {
+            update_category(category, true, delta_time);
+        }
+        for category in self.rules.iter_mut().map(|rule| &mut rule.category.inner) {
+            update_category(category, false, delta_time);
         }
 
         self.update_cameras_bounds();
@@ -55,6 +55,25 @@ impl GameState {
     }
 }
 
+pub fn get_hidden_morphisms(equalities: &Equalities) -> HashSet<MorphismId> {
+    let mut hidden = HashSet::new();
+
+    for (equality, _) in equalities.iter() {
+        match (&equality.left()[..], &equality.right()[..]) {
+            (&[f], &[g]) => {
+                // Hide `f`
+                if !hidden.insert(f) {
+                    // `f` has already been hidden -> hide `g`
+                    hidden.insert(g);
+                }
+            }
+            _ => (),
+        }
+    }
+
+    hidden
+}
+
 type BodiesCollection<'a> = HashMap<BodyId, PhysicsBody<'a>>;
 type Connections = HashMap<BodyId, Vec<BodyId>>;
 
@@ -92,7 +111,10 @@ impl<'a> force_graph::PhysicsBody for PhysicsBody<'a> {
     }
 }
 
-fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
+fn bodies_collection<'a>(
+    category: &'a mut Category,
+    hidden_morphisms: &HashSet<MorphismId>,
+) -> BodiesCollection<'a> {
     let mut bodies = BodiesCollection::new();
     for (&id, object) in category.objects.iter_mut() {
         bodies.insert(
@@ -105,7 +127,11 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
             },
         );
     }
-    for (&id, morphism) in category.morphisms.iter_mut() {
+    for (&id, morphism) in category
+        .morphisms
+        .iter_mut()
+        .filter(|(id, _)| !hidden_morphisms.contains(id))
+    {
         bodies.extend(
             morphism
                 .inner
@@ -129,7 +155,7 @@ fn bodies_collection<'a>(category: &'a mut Category) -> BodiesCollection<'a> {
     bodies
 }
 
-fn connections(category: &Category) -> Connections {
+fn connections(category: &Category, hidden_morphisms: &HashSet<MorphismId>) -> Connections {
     let mut connections = Connections::new();
 
     for (&id, _) in category
@@ -144,15 +170,18 @@ fn connections(category: &Category) -> Connections {
         connections.insert(BodyId::Object { id }, neighbours);
     }
 
-    for (&id, morphism) in category.morphisms.iter() {
+    for (&id, morphism) in category
+        .morphisms
+        .iter()
+        .filter(|(id, _)| !hidden_morphisms.contains(id))
+    {
         let parts = morphism
             .inner
             .positions
             .len()
             .min(morphism.inner.velocities.len());
 
-        // TODO: better error handling?
-        let (from, to) = match category.morphisms.get(&id).unwrap().connection {
+        let (from, to) = match morphism.connection {
             MorphismConnection::Regular { from, to } => (from, to),
             MorphismConnection::Isomorphism(a, b) => (a, b),
         };
@@ -194,8 +223,13 @@ fn connections(category: &Category) -> Connections {
     connections
 }
 
-fn update_category(category: &mut Category, delta_time: f32) {
-    let connections = connections(&category);
-    let mut bodies = bodies_collection(category);
+fn update_category(category: &mut Category, hide_morphisms: bool, delta_time: f32) {
+    let hidden_morphisms = if hide_morphisms {
+        get_hidden_morphisms(&category.equalities)
+    } else {
+        Default::default()
+    };
+    let connections = connections(&category, &hidden_morphisms);
+    let mut bodies = bodies_collection(category, &hidden_morphisms);
     force_graph::apply_forces(&default(), delta_time, &mut bodies, &connections)
 }
