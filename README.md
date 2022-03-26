@@ -4,6 +4,8 @@ This tool implements some basic Category theory in the form of a diagram with th
 
 An interactable version of the tool is available [here](https://nertsal.github.io/categories/).
 
+[![gif](docs/demo.GIF)](https://nertsal.github.io/categories/)
+
 # Basics of Category theory
 
 ## Definition of a category
