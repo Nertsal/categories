@@ -98,15 +98,15 @@ For example, the picture below means that the goal is prove that objects **A** a
 ## Controls
 Both keyboard+mouse and touchscreen are supported. Hopefully, the controls are intuitive, but anyway here is the list of possible actions:
  - Moving objects/morphisms
-   - Drag with **LMB**
+   - Drag with <kbd>LMB</kbd>
    - Drag with one finger
  - Moving camera
-   - Drag with **RMB**
-   - **LCtrl** + drag with **LMB**
+   - Drag with <kbd>RMB</kbd>
+   - <kbd>Ctrl</kbd> + drag with <kbd>LMB</kbd>
    - Drag from an empty place with one finger (not possible in the rule section)
    - Drag with two fingers
  - Zooming the camera
-   - **LCtrl** + scroll the mouse wheel
+   - <kbd>Ctrl</kbd> + scroll the mouse wheel
    - Touch with two fingers and control the distance between them
  - Selecting a rule
    - Left click or touch any point inside the rule
@@ -116,10 +116,10 @@ Both keyboard+mouse and touchscreen are supported. Hopefully, the controls are i
    - Scroll the mouse wheel
    - Drag with one finger in the rule area
  - Undo last action
-   - **LCtrl** + Z
+   - <kbd>Ctrl</kbd> + <kbd>Z</kbd>
    - left click or tap the undo button
  - Redo (a.k.a undo last undo)
-   - **LCtrl** + **LShift** + Z
+   - <kbd>Ctrl</kbd> + <kbd>⇧ Shift</kbd> + <kbd>Z</kbd>
    - Left click or tap the redo button
  - Cancel rule selection
-   - **Escape**
+   - <kbd>Esc</kbd>
