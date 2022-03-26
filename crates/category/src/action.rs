@@ -210,9 +210,16 @@ impl<O, M, E> Category<O, M, E> {
                     .filter(|(equality, _)| {
                         match (equality.left().as_slice(), equality.right().as_slice()) {
                             (&[f], &[g]) => {
-                                let g = substitutes.get(&g).copied().unwrap_or(g);
-                                substitutes.insert(f, g);
-                                false
+                                if let &[f] = &util::decompose_morphism(f, self)[..] {
+                                    if let &[g] = &util::decompose_morphism(g, self)[..] {
+                                        todo!();
+                                        return false;
+                                    }
+                                }
+                                true
+                                // let g = substitutes.get(&g).copied().unwrap_or(g);
+                                // substitutes.insert(f, g);
+                                // false
                             }
                             _ => true,
                         }

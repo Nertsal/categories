@@ -175,8 +175,7 @@ impl<O, M, E> Category<O, M, E> {
                         match bindings.get_morphism(label) {
                             None => return None,
                             Some(id) => {
-                                let decomposed = util::decompose_morphism(id, self);
-                                result.extend(decomposed);
+                                result.push(id);
                             }
                         }
                     }
