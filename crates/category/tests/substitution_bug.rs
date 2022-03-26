@@ -30,8 +30,8 @@ fn test_bug() {
 
     print_category(&category);
     assert_eq!(2, category.objects.len());
-    assert_eq!(3, category.morphisms.len());
-    assert_eq!(1, category.equalities.len());
+    assert_eq!(4, category.morphisms.len());
+    assert_eq!(2, category.equalities.len());
 
     // Test undo
     let result = result
@@ -52,8 +52,8 @@ fn test_bug() {
 
     print_category(&category);
     assert_eq!(2, category.objects.len());
-    assert_eq!(3, category.morphisms.len());
-    assert_eq!(1, category.equalities.len());
+    assert_eq!(4, category.morphisms.len());
+    assert_eq!(2, category.equalities.len());
 }
 
 fn print_category<O: Debug, M: Debug, E: Debug>(category: &Category<O, M, E>) {

@@ -13,6 +13,7 @@ pub struct RenderableCategory {
     redo_history: Vec<Vec<CategoryAction>>,
     pub undo_button: Option<AABB<f32>>,
     pub redo_button: Option<AABB<f32>>,
+    hide_morphisms: bool,
 }
 
 impl RenderableCategory {
@@ -29,6 +30,7 @@ impl RenderableCategory {
             redo_button: if buttons { Some(AABB::ZERO) } else { None },
             inner: category,
             texture_size,
+            hide_morphisms: buttons,
         }
     }
 
@@ -78,6 +80,7 @@ impl RenderableCategory {
             &self.inner,
             background_color,
             selection,
+            self.hide_morphisms,
         );
 
         // Undo/redo buttons

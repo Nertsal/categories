@@ -38,8 +38,8 @@ fn test_substitution() {
     category.apply_rule(&rule_unique, Bindings::new(), |_| (), |_, _| (), |_| ());
     print_category(&category);
     assert_eq!(2, category.objects.len());
-    assert_eq!(3, category.morphisms.len());
-    assert_eq!(0, category.equalities.len());
+    assert_eq!(4, category.morphisms.len());
+    assert_eq!(2, category.equalities.len());
 }
 
 fn print_category<O: Debug, M: Debug, E: Debug>(category: &Category<O, M, E>) {

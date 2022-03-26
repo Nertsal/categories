@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::*;
 
 #[derive(Debug, Clone)]
@@ -14,7 +12,6 @@ pub enum Action<O, M, E> {
     RemoveMorphisms(Vec<MorphismId>),
     NewEqualities(Vec<(Equality, E)>),
     RemoveEqualities(Vec<Equality>),
-    SubstituteEqualities(Vec<(Equality, Equality)>),
 }
 
 impl<O, M, E> Category<O, M, E> {
@@ -201,95 +198,28 @@ impl<O, M, E> Category<O, M, E> {
                 undo
             }
             Action::NewEqualities(equalities) => {
-                let mut actions = Vec::new();
-
-                let mut substitutes = HashMap::new();
-                // Check substitable equalities
-                let equalities = equalities
-                    .into_iter()
-                    .filter(|(equality, _)| {
-                        match (equality.left().as_slice(), equality.right().as_slice()) {
-                            (&[f], &[g]) => {
-                                if let &[f] = &util::decompose_morphism(f, self)[..] {
-                                    if let &[g] = &util::decompose_morphism(g, self)[..] {
-                                        todo!();
-                                        return false;
-                                    }
-                                }
-                                true
-                                // let g = substitutes.get(&g).copied().unwrap_or(g);
-                                // substitutes.insert(f, g);
-                                // false
-                            }
-                            _ => true,
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                // Move tags
-                let extend = substitutes
-                    .iter()
-                    .filter_map(|(from, to)| {
-                        self.morphisms
-                            .get(from)
-                            .map(|morphism| (*to, morphism.tags.clone()))
-                    })
-                    .collect();
-                let extended = self.action_do(Action::ExtendMorphismTags(extend));
-                actions.extend(extended);
-
-                // Substitute into existing equalities
-                let mut kept = Vec::new();
-                let mut changed = Vec::new();
-                for (equality, inner) in self.equalities.drain() {
-                    let original = equality.clone();
-                    let (mut left, mut right) = equality.destructure();
-                    let mut is_changed = false;
-                    for morphism in left.iter_mut().chain(&mut right) {
-                        if let Some(&substitute) = substitutes.get(morphism) {
-                            is_changed = true;
-                            *morphism = substitute;
-                        }
-                    }
-                    if is_changed {
-                        let substituted = Equality::new(left, right).unwrap();
-                        changed.push((substituted.clone(), original));
-                        kept.push((substituted, inner));
-                    } else {
-                        kept.push((original, inner));
-                    }
-                }
-                for (equality, inner) in kept {
-                    self.equalities.new_equality(equality, inner);
-                }
-                actions.push(Action::SubstituteEqualities(changed));
-
-                // Remove substituted morphisms
-                let remove = substitutes.iter().map(|(from, _)| *from).collect();
-                let removed = self.action_do(Action::RemoveMorphisms(remove));
-                actions.extend(removed);
-
-                // Apply substitutions
-                let equalities = equalities
+                let equalitites = equalities
                     .into_iter()
                     .map(|(equality, inner)| {
-                        let (mut left, mut right) = equality.destructure();
-                        for morphism in left.iter_mut().chain(&mut right) {
-                            *morphism = substitutes.get(morphism).copied().unwrap_or(*morphism);
-                        }
-                        (Equality::new(left, right).unwrap(), inner)
-                    })
-                    .map(|(equality, inner)| {
+                        let (left, right) = equality.destructure();
+                        let left = left
+                            .into_iter()
+                            .flat_map(|id| util::decompose_morphism(id, self))
+                            .collect();
+                        let right = right
+                            .into_iter()
+                            .flat_map(|id| util::decompose_morphism(id, self))
+                            .collect();
+                        let equality =
+                            Equality::new(left, right).expect("Failed to flatten equality");
                         self.equalities.new_equality(equality.clone(), inner);
                         equality
                     })
                     .collect();
-                actions.push(Action::RemoveEqualities(equalities));
-
-                actions
+                vec![Action::RemoveEqualities(equalitites)]
             }
-            Action::RemoveEqualities(equals) => {
-                let equals = equals
+            Action::RemoveEqualities(equalities) => {
+                let equalities = equalities
                     .into_iter()
                     .filter_map(|equality| {
                         self.equalities
@@ -297,19 +227,7 @@ impl<O, M, E> Category<O, M, E> {
                             .map(|inner| (equality, inner))
                     })
                     .collect();
-                vec![Action::NewEqualities(equals)]
-            }
-            Action::SubstituteEqualities(substitutions) => {
-                let substitutions = substitutions
-                    .into_iter()
-                    .filter_map(|(from, to)| {
-                        self.equalities.remove_equality(&from).map(|inner| {
-                            self.equalities.new_equality(to.clone(), inner);
-                            (to, from)
-                        })
-                    })
-                    .collect();
-                vec![Action::SubstituteEqualities(substitutions)]
+                vec![Action::NewEqualities(equalities)]
             }
         }
     }

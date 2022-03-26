@@ -36,6 +36,7 @@ type Label = String;
 type Rule = category::Rule<Label>;
 type Bindings = category::Bindings<Label>;
 type Constraints = category::Constraints<Label>;
+type Equalities = category::Equalities<Equality>;
 
 pub struct GameState {
     geng: Geng,
