@@ -18,7 +18,7 @@ impl GameState {
             }
             geng::Event::TouchStart { touches } => self.handle_touch_start(touches),
             geng::Event::TouchMove { touches } => self.handle_touch_move(touches),
-            geng::Event::TouchEnd => self.handle_touch_end(),
+            geng::Event::TouchEnd { .. } => self.handle_touch_end(),
             _ => (),
         }
     }
